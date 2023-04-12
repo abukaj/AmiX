@@ -2,6 +2,8 @@
 
 My early dogfooding reverse engineering C(++) project.  No other software engineering techniques used.
 
+The commit history recreated from the content of distributed archives.
+
 Readme from: [Oficjalna strona AmiX-a - linuksowego klienta polchatu.](http://amix.org.pl/)
 (no English translation - sorry).
 
