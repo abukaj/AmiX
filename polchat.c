@@ -13,6 +13,7 @@ int debug = 0;
 int verbose = 0;
 int bell = 0;
 int run = -1;
+double period = 1.0;
 nicknode *nicks = NULL;
 int colour[8] = {90, 34, 96, 95, 93, 90, 36, 94};
 char *roomname = NULL;

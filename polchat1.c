@@ -3,14 +3,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #include "polchat.h"
 #include "polchat1.h"
 #include "polchat2.h"
+#include "interfeace.h"
 #include "temp.h"
 
 int read(int, char *, int);
 int write(int, char *, int);
+
+
+part *tosend = NULL;
+
 
 unsigned char *wrapstring(unsigned char *string){
   unsigned char *result = NULL;
@@ -71,6 +77,7 @@ part *parsepart(unsigned char *prt){
 
   if (NULL != prt){
     if (NULL != (result = calloc(1, sizeof(part)))){
+      result->next = NULL;
       size = partlen(prt);
       ptr = 4;
 
@@ -123,6 +130,7 @@ void freepart(part **p){
   int i;
   
   if (*p != NULL){
+    freepart(&((*p)->next));
     if ((*p)->header != NULL){
       free((*p)->header);
       }
@@ -202,6 +210,41 @@ int sendpol(part * ppart, int sfd){
   return 0;
   }
         
+
+void putmsg(part *msg){
+  part **tmp;
+  
+  tmp = &tosend;
+  while (*tmp != NULL)
+    {
+    tmp = &((*tmp)->next);
+    }
+  *tmp = msg;
+  }
+
+
+void sendnext(int sfd)
+  {
+  static time_t last = 0;
+  part *tmp;
+
+  if (last == 0)
+    {
+    last = time(NULL);
+    }
+  if (NULL != tosend)
+    {
+    if (period < difftime(time(NULL), last)){
+      sendpol(tosend, sfd);
+      tmp = tosend->next;
+      tosend->next = NULL;
+      freepart(&tosend);
+      tosend = tmp;
+      last = time(NULL);
+      }
+    }
+  }
+
 
 void partdump(unsigned char *part){
   int size;

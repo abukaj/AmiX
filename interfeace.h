@@ -1,3 +1,5 @@
+#include <ncurses.h>
+
 #define NICKLIST_X nicklist_x
 #define NICKLIST_Y 0
 #define NICKLIST_WIDTH 40 

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #include <ncurses.h>
 
@@ -531,6 +532,7 @@ part *makemsg(unsigned char *string){
   
   if (string != NULL){
     if (NULL != (result = calloc(1, sizeof(part)))){
+      result->next = NULL;
       if (NULL != (result->header = calloc(1, sizeof(short)))){
         result->headerlen = 1;
         result->header[0] = 0x019a;
@@ -596,8 +598,14 @@ void printpol(char *string){
   int mode = 0;
   int tokens = -1;
   char *token = NULL;
-
+  static char buffer[15];
+  time_t t;
+  
   if (string != NULL){
+    t = time(NULL);
+    strftime(buffer, 14, "%H:%M:%S ", localtime(&t));
+    window_put(buffer);
+    
     token = readtoken(string);
     while (tokens){
       switch (mode){

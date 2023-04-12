@@ -17,6 +17,7 @@ extern int debug;
 extern int verbose;
 extern int bell;
 extern int run;
+extern double period;
 extern nicknode *nicks;
 extern int colour[];
 extern char *roomname;

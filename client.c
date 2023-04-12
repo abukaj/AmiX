@@ -43,7 +43,7 @@ int main(int argc, char *argv[]){
   
   for (i = 1; i < argc; ++i){
     if (0 == strcmp(argv[i], "?")){
-      printf("SERVER/K PORT/K/N ROOM/K NICK/K PASSWORD/K DEBUG/S VERBOSE/S BELL/S\n");
+      printf("SERVER/K PORT/K/N ROOM/K NICK/K PASSWORD/K DEBUG/S VERBOSE/S BELL/S PERIOD/K/N\n");
       run = 0;
       }
     else if (0 == strcmp(argv[i], "-debug") || 0 == ncsstrcmp(argv[i], "DEBUG")){
@@ -66,6 +66,12 @@ int main(int argc, char *argv[]){
       if (i < argc){
         port = atoi(argv[i]);
         }                              
+      }
+    else if (0 == strcmp(argv[i], "-period") || 0 == ncsstrcmp(argv[i], "PERIOD")){
+      i++;
+      if (i < argc){
+        period = strtod(argv[i], NULL);
+        }
       }
     else if (0 == strcmp(argv[i], "-room") || 0 == ncsstrcmp(argv[i], "ROOM")){
       i++;
@@ -111,7 +117,7 @@ int main(int argc, char *argv[]){
 
     init_pair(1, COLOR_YELLOW, COLOR_BLUE);
     wattron(chatwindow, COLOR_PAIR(1));
-    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b\n");
+    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 2\n");
     wattroff(chatwindow, COLOR_PAIR(1));
     wprintw(chatwindow, " Linuxowy klient Polchatu\n");
     wprintw(chatwindow, " By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)\n");
@@ -185,21 +191,24 @@ int main(int argc, char *argv[]){
                 if (0 == ncsstrncmp(buffer, "/quit ", 6) || 0 == ncsstrncmp(buffer, "/quit", 6))
                   {
                   ppart = makemsg(buffer);
-                  sendpol(ppart, sfd);
-                  freepart(&ppart);
+                  putmsg(ppart);
+                  /*sendpol(ppart, sfd);
+                  freepart(&ppart);*/
                   }
                 else if (0 == ncsstrncmp(buffer, "/lama ", 6) || 0 == ncsstrncmp(buffer, "/lama", 6))
                   {
                   ppart = makemsg("thankfully alert gauchos were able to save the llama "
                                   "before it was swept into the blades of the turbine");
-                  sendpol(ppart, sfd);
-                  freepart(&ppart);
+                  putmsg(ppart);
+                  /*sendpol(ppart, sfd);
+                  freepart(&ppart);*/
                   }
                 else
                   {
                   ppart = makemsg(buffer);
-                  sendpol(ppart, sfd);
-                  freepart(&ppart);
+                  putmsg(ppart);
+                  /*sendpol(ppart, sfd);
+                  freepart(&ppart);*/
                   }
                 i = 0;
                 break;
@@ -229,7 +238,7 @@ int main(int argc, char *argv[]){
                 break;
               }
             }
-
+          
           /*czy jest cos na gniezdzie?*/
           pol.fd = sfd;
           pol.events = POLLIN;
@@ -246,9 +255,12 @@ int main(int argc, char *argv[]){
               printnicks(nicks);*/
               }
             }
+
+          /*czy mamy cos do wyslania?*/
+          sendnext(sfd);
           } while (run);
-
-
+        
+        freepart(&tosend);
         if (NULL != roomname){
           free(roomname);
           roomname = NULL;
