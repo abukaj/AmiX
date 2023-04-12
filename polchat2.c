@@ -4,9 +4,12 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <ncurses.h>
+
 #include "polchat.h"
 #include "polchat1.h"
 #include "polchat2.h"
+#include "interfeace.h"
 #include "temp.h"
 
 int read(int, char *, int);
@@ -73,7 +76,7 @@ unsigned char *welcome(unsigned char *nick, unsigned char *pass,
                 memcpy(result + ptr, p3, wrapsize(p3));
                 ptr += wrapsize(p3);
                 if (ptr != size){
-                  printf("Error: ptr (%d) != size (%d)\n", ptr, size);
+                  printw("Error: ptr (%d) != size (%d)\n", ptr, size);
                   }
                 write(sfd, result, size);/*i od razu wyslemy co trzeba*/
                 free(result);
@@ -159,7 +162,7 @@ unsigned char *welcome2(unsigned char *nick, unsigned char *pass,
                   memcpy(result + ptr, klient, wrapsize(klient));
                   ptr += wrapsize(klient);
                   if (ptr != size){
-                    printf("Error: ptr (%d) != size (%d)\n", ptr, size);
+                    printw("Error: ptr (%d) != size (%d)\n", ptr, size);
                     }
                   write(sfd, result, size);/*i od razu wyslemy co trzeba*/
                   free(result);
@@ -193,282 +196,335 @@ void processpart(part *ppart, int sfd){
   if (NULL != ppart){
     headerlen = ppart->headerlen;
     nstrings = ppart->nstrings;
-    if (headerlen > 0){
-      type = (ppart->header[0] & 0xFFFF);
-      switch (type){
-        case 0x0000: /*heh, chyba nie wejdzie??*/
-          if (headerlen == 0x0000 && nstrings == 0x0000){
-            puts("\033[5m\033[44m\033[30m CONNECTION LOST :-( /*???*/\033[0m 0x000000000000");
-            run = 0;
-            }
-          else {
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x0001:
-          if (headerlen == 0x0001 && nstrings == 0x0000){
-            write(sfd, echo, 8);
-            if (verbose){
-              puts("ECHO REQUESTED");
-              }
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }     
-          break;
-        case 0x0262:                
-          if (headerlen == 0x0001 && nstrings == 0x0001){
-            if (bell){
-              puts("BELL\a");
-              }
-            if (verbose){
-              puts(" MSG:");
-              puts(ppart->strings[0]);
-              }
-            else{
-              printpol(ppart->strings[0]);
-              }
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x0263:
-          if (headerlen == 0x0001 && nstrings == 0x0002){
-            printf("\033[5m\033[31mWIADOMOSC PRYWATNA:\033[0m ");
-            if (verbose){
-              puts(ppart->strings[0]);
-              }
-            else{
-              printpol(ppart->strings[0]);
-              }
-            if (verbose){
-              puts("\033[31mOd:\033[0m");
-              puts(ppart->strings[1]);
-              }
-            }
-          else if (headerlen == 0x0001 && nstrings == 0x0003){
-            printf("\033[5m\033[31mWIADOMOSC PRYWATNA:\033[0m ");
-            printpol(ppart->strings[0]);
-            putchar('\n');
-            if (verbose){
-              printf("\033[31mOd:\033[0m ");
-              puts(ppart->strings[1]);
-              printf("\033[31mDo:\033[0m ");
-              puts(ppart->strings[2]);
-              }           
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x0267:
-          if (headerlen == 0x0002 && nstrings == 0x0001){
-            /*if (debug){
-              printf(" OP -> jesli 0002 ???");
-              printf("  %04X\n", ppart->header[1]);
-              printf(" NICK:\n");
-              }
-            puts(ppart->strings[0]);*/
-            addnick(ppart->strings[0], ppart->header[1], 0x0000);
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x0268:
-          if (headerlen == 0x0001 && nstrings == 0x0001){
-            if (verbose){
-              puts(" MSG inny (na wyjscie?):");
-              }
-            printf("\033[37m%s wychodzi\033[0m\n", ppart->strings[0]);
-            remnick(ppart->strings[0]);
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x0269:
-          if (headerlen == 0x0002 && nstrings == 0x0001){
-            /*if (debug){
-              printf(" jakies istotne bity ???");
-              printf("  %04X\n", ppart->header[1]);
-              printf(" NICK:\n");
-              }
-            puts(ppart->strings[0]);*/
-            addnick(ppart->strings[0], ppart->header[1], 0x0000);
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x026a:
-          if (headerlen == 0x0002 && nstrings == 0x0001){
-            if (verbose || debug){
-              printf(" 0004 ???");
-              printf("  %04X\n", ppart->header[1]);
-              printf(" NICK:\n");
-              }
-            puts(ppart->strings[0]);
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x026b:
-          if (headerlen >= 5 && ppart->header[1] == 0x0001 &&
-              ppart->header[2] == 0x0001 && ppart->header[3] == 0x0000 &&
-              ppart->header[4] == 0x0000){
-            for (i = 0; i < nstrings; i++){
-              addnick(ppart->strings[i], ppart->header[2 * i + 5], ppart->header[2 * i + 6]);
-              }
-            printnicks(nicks);
-            }
-          else {
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x0271:
-          if (headerlen == 0x0002 && nstrings == 0x0002){
-            if (debug){
-              printf(" 0000 ???\n");
-              printf("  %04X\n", ppart->header[1]);
-              printf(" ROOM:\n");
-              }
-            puts(ppart->strings[0]);
-            if (verbose){
-              puts(" DESCRIPTION:");
-              puts(ppart->strings[1]);
-              }                                                                                                            
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x0272:
-          if (headerlen == 0x0001 && nstrings == 0x0002){
-            if (verbose){
-              puts(" PIERDOLY[1]:");
-              puts(ppart->strings[0]);
-              puts(" PIERDOLY[2]:");
-              puts(ppart->strings[0]);
-              }
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x0276:
-          if (headerlen == 0x0001 && nstrings == 0x0001){
-            if (verbose){
-              puts(" MSG inny (na wejscie?):");
-              puts(ppart->strings[0]);
-              }
-            else{
-              printpol(ppart->strings[0]);
-              }
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        case 0x0277:
-          if (headerlen == 0x0001 && nstrings == 0x0001){
-            freenicklist(&nicks);
-            if (verbose){
-              puts(" MSG inny(na wyjscie?):");
-              puts(ppart->strings[0]);
-              }
-            else{
-              printpol(ppart->strings[0]);
-              }
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }     
-          break;
-        case (short) 0xffff:
-          if (headerlen == 0x0001 && nstrings == 0x0001){
-            if (verbose){
-              puts(" MSG '-':");
-              puts(ppart->strings[0]);
-              }
-            else{
-              printpol(ppart->strings[0]);
-              }
-            run = false;
-            }
-          else{
-            if (debug){
-              puts("Unknown part header");
-              verbosedump(ppart);
-              }
-            }
-          break;
-        default:
-          if (debug){
-            puts("Unknown part header (f)");
-            verbosedump(ppart);
-            }
-          break;
-        }
+
+    if (verbose){
+      verbosedump(ppart);
       }
     else{
-      if (debug){
-        puts("Unknown part header (f)");
-        verbosedump(ppart);
+      if (headerlen > 0){
+        type = (ppart->header[0] & 0xFFFF);
+        switch (type){
+          case 0x0000: /*heh, chyba nie wejdzie??*/
+            if (headerlen == 0x0000 && nstrings == 0x0000){
+              window_put("\033[5m\033[44m\033[30m");
+              window_put("CONNECTION LOST :-( /*???*/");
+              window_put("\033[0m");
+              window_put("0x000000000000");
+              window_put("\n");
+              run = 0;
+              }
+            else {
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x0001:
+            if (headerlen == 0x0001 && nstrings == 0x0000){
+              write(sfd, echo, 8);
+              if (verbose){
+                window_put("ECHO REQUESTED");
+                window_put("\n");
+                }
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }     
+            break;
+          case 0x0262:                
+            if (headerlen == 0x0001 && nstrings == 0x0001){
+              if (bell){
+                window_put("\a");
+                window_put("\n");
+                }
+              if (verbose){
+                window_put(" MSG:");
+                window_put("\n");
+                window_put(ppart->strings[0]);
+                window_put("\n");
+                }
+              else{
+                printpol(ppart->strings[0]);
+                }
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x0263:
+            if (headerlen == 0x0001 && nstrings == 0x0002){
+              window_put("<blink>");
+              window_put("WIADOMOSC PRYWATNA:");
+              window_put("</blink>");
+              printpol(ppart->strings[0]);
+              if (verbose){
+                window_put("\033[31m");
+                window_put("Od:");
+                window_put("\033[0m");
+                window_put(ppart->strings[1]);
+                window_put("\n");
+                }
+              }
+            else if (headerlen == 0x0001 && nstrings == 0x0003){
+              window_put("<blink>");
+              window_put("WIADOMOSC PRYWATNA: ");
+              window_put("</blink>");
+              printpol(ppart->strings[0]);
+              if (verbose){
+                window_put("\033[31m");
+                window_put("Od: ");
+                window_put("\033[0m");
+                window_put(ppart->strings[1]);
+                window_put("\n");
+                window_put("\033[31m");
+                window_put("Do: ");
+                window_put("\033[0m");
+                window_put(ppart->strings[2]);
+                window_put("\n");
+                }           
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x0267:
+            if (headerlen == 0x0002 && nstrings == 0x0001){
+              addnick(ppart->strings[0], ppart->header[1], 0x0000);
+              printnicks(nicks);
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x0268:
+            if (headerlen == 0x0001 && nstrings == 0x0001){
+              if (verbose){
+                window_put(" MSG inny (na wyjscie?):");
+                window_put("\n");
+                }
+              remnick(ppart->strings[0]);
+              printnicks(nicks);
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x0269:
+            if (headerlen == 0x0002 && nstrings == 0x0001){
+              addnick(ppart->strings[0], ppart->header[1], 0x0000);
+              printnicks(nicks);
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x026a:
+            if (headerlen == 0x0002 && nstrings == 0x0001){
+              if (verbose || debug){
+                printw(" 0004 ???");
+                printw("  %04X\n", ppart->header[1]);
+                printw(" NICK:\n");
+                }
+              printw(ppart->strings[0]);
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x026b:
+            if (headerlen >= 5 && ppart->header[1] == 0x0001 &&
+                ppart->header[2] == 0x0001 && ppart->header[3] == 0x0000 &&
+                ppart->header[4] == 0x0000){
+              for (i = 0; i < nstrings; i++){
+                addnick(ppart->strings[i], ppart->header[2 * i + 5], ppart->header[2 * i + 6]);
+                }
+              printnicks(nicks);
+              }
+            else {
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x0271:
+            if (headerlen == 0x0002 && nstrings == 0x0002)
+              {
+              if (NULL != roomname)
+                {
+                free(roomname);
+                roomname = NULL;
+                }
+              if (NULL != (roomname = calloc(1 + strlen(ppart->strings[0]), sizeof(char))))
+                {
+                strcpy(roomname, ppart->strings[0]);
+                }
+              if (NULL != roomdesc)
+                {
+                free(roomdesc);
+                roomdesc = NULL;
+                }
+              if (NULL != (roomdesc = calloc(1 + strlen(ppart->strings[1]), sizeof(char))))
+                {
+                strcpy(roomdesc, ppart->strings[1]);
+                }
+              printtitle();
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x0272:
+            if (headerlen == 0x0001 && nstrings == 0x0002){
+              if (verbose){
+                window_put(" PIERDOLY[1]:");
+                window_put(ppart->strings[0]);
+                window_put("\n");
+                window_put(" PIERDOLY[2]:");
+                window_put(ppart->strings[0]);
+                window_put("\n");
+                }
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x0276:
+            if (headerlen == 0x0001 && nstrings == 0x0001){
+              if (verbose){
+                window_put(" MSG inny (na wejscie?):");
+                window_put("\n");
+                window_put(ppart->strings[0]);
+                window_put("\n");
+                }
+              else{
+                printpol(ppart->strings[0]);
+                }
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          case 0x0277:
+            if (headerlen == 0x0001 && nstrings == 0x0001){
+              freenicklist(&nicks);
+              printnicks(nicks);
+              if (verbose){
+                window_put(" MSG inny(na wyjscie?):");
+                window_put("\n");
+                window_put(ppart->strings[0]);
+                window_put("\n");
+                }
+              else{
+                printpol(ppart->strings[0]);
+                }
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }     
+            break;
+          case (short) 0xffff:
+            if (headerlen == 0x0001 && nstrings == 0x0001){
+              if (verbose){
+                window_put(" MSG '-':");
+                window_put("\n");
+                window_put(ppart->strings[0]);
+                window_put("\n");
+                }
+              else{
+                printpol(ppart->strings[0]);
+                }
+              run = false;
+              }
+            else{
+              if (debug){
+                window_put("Unknown part header");
+                window_put("\n");
+                verbosedump(ppart);
+                }
+              }
+            break;
+          default:
+            if (debug){
+              window_put("Unknown part header (f)");
+              window_put("\n");
+              verbosedump(ppart);
+              }
+            break;
+          }
         }
-      if (headerlen == 0x0000 && nstrings == 0x0000){
-        puts("\033[5m\033[44m\033[30m CONNECTION LOST :-( /*???*/\033[0m 0x000000000000");
-        run = 0;
+      else{
+        if (debug){
+          window_put("Unknown part header (f)");
+          window_put("\n");
+          verbosedump(ppart);
+          }
+        if (headerlen == 0x0000 && nstrings == 0x0000){
+          window_put("\033[5m\033[44m\033[30m");
+          window_put("CONNECTION LOST :-( /*???*/");
+          window_put("\033[0m");
+          window_put("0x000000000000");
+          window_put("\n");
+          run = 0;
+          }
         }
       }
     }
   else{
     if (debug){
-      puts("Error: NULL ptr given to processpart()");
+      window_put("Error: NULL ptr given to processpart()");
+      window_put("\n");
       }
     }
   }
+
 
 part *makemsg(unsigned char *string){
   part *result = NULL;
@@ -498,7 +554,8 @@ part *makemsg(unsigned char *string){
     }
   else{
     if (debug){
-      puts("Error: NULL ptr given to makemsg()");
+      window_put("Error: NULL ptr given to makemsg()");
+      window_put("\n");
       }
     }
   return result;
@@ -507,152 +564,115 @@ part *makemsg(unsigned char *string){
 
 void verbosedump(part *dump){
   int i;
-
+  static char buffer[6];
+  
   if (dump != NULL){
-    puts("HEADER:");
+    wprintw(chatwindow, "HEADER[%u]:\n", dump->headerlen);
     for (i = 0; i < dump->headerlen; i++){
-      printf("%04X", dump->header[i]);
+      buffer[3] = inttohex(dump->header[i] & 0x0F);
+      buffer[2] = inttohex((dump->header[i] >> 4) & 0x0F);
+      buffer[1] = inttohex((dump->header[i] >> 8) & 0x0F);
+      buffer[0] = inttohex((dump->header[i] >> 12) & 0x0F);
+      buffer[4] = ' ';
+      buffer[5] = '\0';
+      waddstr(chatwindow, buffer);
       }
-    putchar('\n');
-    puts("STRINGS:");
+    wprintw(chatwindow, "\nSTRINGS[%u]:\n", dump->nstrings);
     for (i = 0; i < dump->nstrings; i++){
-      puts(dump->strings[i]);
+      wprintw(chatwindow, "%s\n", dump->strings[i]);
       }
-    putchar('\n');
+    waddstr(chatwindow, "\n");
     }
   else{
     if (debug){
-      puts("Error: NULL ptr given to verbosedump()");
+      window_put("Error: NULL ptr given to verbosedump()");
+      window_put("\n");
       }
     }
   }
 
 
 void printpol(char *string){
-  int i = 0;
   int mode = 0;
-  int bold = 0;
-  int underlined = 0;
-  int c;
-  
+  int tokens = -1;
+  char *token = NULL;
+
   if (string != NULL){
-    while ((c = string[i]) != '\0'){
+    token = readtoken(string);
+    while (tokens){
       switch (mode){
         case 0:
-          switch (c){
-            case '<':
-              mode = 1;
-              break;
-            case '&':
-              mode = 3;
-              break;
-            default:
-              putchar(c);
-              i++;
-            }  
+          if (token == NULL){
+            tokens = 0;
+            }
+          else if (*token == '\0'){
+            mode = 1;
+            }
+          else if (0 == ncsstrncmp(token, "<font", 5)) {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "</font>")) {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "<i>")) {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "</i>")) {
+            mode = 2;
+            }
+          else if (0 == ncsstrncmp(token, "<a", 2)) {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "</a>")) {
+            mode = 2;
+            }
+          else if (0 == ncsstrncmp(token, "<img", 4)) {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "</img>")) {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "&quot;")){
+            window_put("\"");
+            mode = 1;
+            }
+          else if (0 == ncsstrcmp(token, "&amp;")){
+            window_put("&");
+            mode = 1;
+            }
+          else if (0 == ncsstrcmp(token, "&gt;")){
+            window_put(">");
+            mode = 1;
+            }
+          else if (0 == ncsstrcmp(token, "&lt;")){
+            window_put("<");
+            mode = 1;
+            }
+          else {
+            window_put(token);
+            mode = 1;
+            }
           break;
         case 1:
-          if (0 == ncsstrncmp(string + i, "<b>", 3)){
-            bold = -1;
-            mode = 4;
-            i += 2;
-            }
-          else if (0 == ncsstrncmp(string + i, "</b>", 4)){
-            bold = 0;
-            mode = 4;
-            i += 3;
-            }
-          else if (0 == ncsstrncmp(string + i, "<u>", 3)){
-            underlined = -1;
-            mode = 4;
-            i += 2;
-            }
-          else if (0 == ncsstrncmp(string + i, "</u>", 4)){
-            underlined = 0;
-            mode = 4;
-            i += 3;
-            }
-          else if (0 == ncsstrncmp(string + i, "<font", 5)) {
-            mode = 2;
-            }
-          else if (0 == ncsstrncmp(string + i, "</font", 6)) {
-            mode = 2;
-            }
-          else if (0 == ncsstrncmp(string + i, "<i>", 3)) {
-            mode = 2;
-            }
-          else if (0 == ncsstrncmp(string + i, "</i>", 4)) {
-            mode = 2;
-            }
-          else if (0 == ncsstrncmp(string + i, "<a", 2)) {
-            mode = 2;
-            }
-          else if (0 == ncsstrncmp(string + i, "</a>", 4)) {
-            mode = 2;
-            }
-          else if (0 == ncsstrncmp(string + i, "<img", 4)) {
-            mode = 2;
-            }
-          else if (0 == ncsstrncmp(string + i, "</img>", 6)) {
-            mode = 2;
-            }
-          else {
-            putchar('<');
-            mode = 0;
-            i++;
-            }
-          
+          free(token);
+          token = readtoken(string);
+          mode = 0;
           break;
         case 2:
-          if (c == '>'){
-            mode = 0;
+          if (verbose){
+            window_put(token);
             }
-          i++;
-          break;
-        case 3:
-          if (0 == ncsstrncmp(string + i, "&quot;", 6)){
-            putchar('"');
-            mode = 0;
-            i += 6;
-            }
-          else if (0 == ncsstrncmp(string + i, "&amp;", 5)){
-            putchar('&');
-            mode = 0;
-            i += 5;
-            }
-          else if (0 == ncsstrncmp(string + i, "&gt;", 4)){
-            putchar('>');
-            mode = 0;
-            i += 4;
-            }
-          else if (0 == ncsstrncmp(string + i, "&lt;", 4)){
-            putchar('<');
-            mode = 0;
-            i += 4;
-            }
-          else {
-            putchar('&');
-            mode = 0;
-            i++;
-            }
-          break;
-        case 4:
-          printf("\033[0m");
-          if (bold){
-            printf("\033[1m");
-            }
-          if (underlined){
-            printf("\033[4m");
-            }
-          mode = 2;
+          mode = 1;
           break;
         }
       }
-    putchar('\n');
+    window_put("\n");
     }
+
   else{
     if (debug){
-      puts("Error: NULL ptr given to printpol()");
+      window_put("Error: NULL ptr given to printpol()");
+      window_put("\n");
       }
     }
   }

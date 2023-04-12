@@ -11,9 +11,12 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include <ncurses.h>
+
 #include "polchat.h"
 #include "polchat1.h"
 #include "polchat2.h"
+#include "interfeace.h"
 #include "temp.h"
 
 #define input() 0
@@ -22,21 +25,21 @@
 #define BUFFSIZE 10240
 
 int main(int argc, char *argv[]){
-  int i, j;
+  int i;
   char *host = NULL;
   char *room = NULL;
   char *nick = NULL;
   char *pass = NULL;
   int port = 14003;
   static char buffer[BUFFSIZE];
-  char *ptr;
+  int c;
   
   int sfd = -1;
   struct sockaddr_in *serv_addr = NULL;
   struct addrinfo hints, *res, *tres;
   struct pollfd pol;
   unsigned char *prt = NULL;
-  part *ppart = NULL;
+  part *ppart = NULL;  
   
   for (i = 1; i < argc; ++i){
     if (0 == strcmp(argv[i], "?")){
@@ -97,16 +100,29 @@ int main(int argc, char *argv[]){
   
   
   if (run){
-    puts("\033[44m\033[93m AmiX v. 0.2a \033[0m");
-    puts(" Linuxowy klient Polchatu ");
-    puts(" By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl) ");
-    puts(" status wersji 0.2a: freeware (badz giftware ;-D)");
-    puts(" ze wzgledu na wczesna wersje rozwojowa,");
-    puts(" autor nie ponosi odpowiedzialnosci za ewentualne");
-    puts(" szkody wywolane uzyciem programu w tej wersji");
-    putchar('\n');
+    initscr();
+    noecho();
+    cbreak();
+    start_color();
+    
+    window_init();
+    nodelay(consolewindow, TRUE);
+    keypad(consolewindow, TRUE);
 
-    printf("resolving...\n");
+    init_pair(1, COLOR_YELLOW, COLOR_BLUE);
+    wattron(chatwindow, COLOR_PAIR(1));
+    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b\n");
+    wattroff(chatwindow, COLOR_PAIR(1));
+    wprintw(chatwindow, " Linuxowy klient Polchatu\n");
+    wprintw(chatwindow, " By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)\n");
+    wprintw(chatwindow, " status wersji 0.2b: freeware (badz giftware ;-D)\n");
+    wprintw(chatwindow, " ze wzgledu na wczesna wersje rozwojowa,\n");
+    wprintw(chatwindow, " autor nie ponosi odpowiedzialnosci za ewentualne\n");
+    wprintw(chatwindow, " szkody wywolane uzyciem programu w tej wersji\n");
+
+    wrefresh(chatwindow);
+
+    wprintw(chatwindow, " resolving...\n");
     /*resolvuje adres*/
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = PF_UNSPEC;
@@ -116,27 +132,29 @@ int main(int argc, char *argv[]){
         serv_addr = (struct sockaddr_in *) res->ai_addr;
         serv_addr->sin_port = htons(port);
         if ((sfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) != -1){
-          printf("connecting...\n");
+          mvwprintw(chatwindow, 8, 1, "connecting...\n");
           if ((connect(sfd, res->ai_addr, res->ai_addrlen)) < 0){
-            printf("Connection failed...\n");
+            mvwprintw(chatwindow, 9, 1, "Connection failed...\n");
             close(sfd);
             sfd = -1;
             continue;
             }
           }
         else{
-          printf("Unable to create socket...\n");
+          mvwprintw(chatwindow, 9, 1, "Unable to create socket...\n");
           }
         break;
         }
 
       /*jesli sie udalo polaczyc*/
       if (sfd >= 0){
-        printf("connected\n");
+        mvwprintw(chatwindow, 8, 1, "connected              \n");
         welcome2(nick, pass, room, sfd);/*do wymiany*/
+        i = 0;
         do {
           /*czy jest cos na wejsciu?*/
-          pol.fd = input();
+          if (ERR != (c = wgetch(consolewindow))){
+          /*pol.fd = input();
           pol.events = POLLIN;
           pol.revents = 0;
           poll(&pol, 1, 50);
@@ -144,44 +162,73 @@ int main(int argc, char *argv[]){
             i = read(input(), buffer, BUFFSIZE);
             buffer[i - 1] = '\0';
             if (verbose){
-              printf("Wprowadzono %d znakow: %s\n", i, buffer);
+              mvwprintw(chatwindow, 1, 1, "Wprowadzono %d znakow: %s\n", i, buffer);
               }
 
             if (buffer[0] == 0x1B){
               ptr = buffer + 7;
               if (debug){
-                puts("Strange string occured:");
+                mvwprintw(chatwindow, 1, 1, "Strange string occured:\n");
                 for (j = 0; j < i; j++){
-                  printf("%2u: [%02X/%0o] %c\n", j, buffer[j], buffer[j], buffer[j]);
+                  mvwprintw(chatwindow, 2, 1, "%2u: [%02X/%0o] %c\n", j, buffer[j], buffer[j], buffer[j]);
                   }
                 }
               }
             else{
               ptr = buffer;
               }
-            if (0 == ncsstrncmp(ptr, "/quit ", 6) || 0 == ncsstrncmp(ptr, "/quit", 6))
-              {
-              /*run = 0;*/
-              ppart = makemsg(ptr);
-              sendpol(ppart, sfd);
-              freepart(&ppart);
+            */
+            switch (c){
+              case '\n':
+              case '\r':
+                buffer[i] = '\0';         
+                if (0 == ncsstrncmp(buffer, "/quit ", 6) || 0 == ncsstrncmp(buffer, "/quit", 6))
+                  {
+                  ppart = makemsg(buffer);
+                  sendpol(ppart, sfd);
+                  freepart(&ppart);
+                  }
+                else if (0 == ncsstrncmp(buffer, "/lama ", 6) || 0 == ncsstrncmp(buffer, "/lama", 6))
+                  {
+                  ppart = makemsg("thankfully alert gauchos were able to save the llama "
+                                  "before it was swept into the blades of the turbine");
+                  sendpol(ppart, sfd);
+                  freepart(&ppart);
+                  }
+                else
+                  {
+                  ppart = makemsg(buffer);
+                  sendpol(ppart, sfd);
+                  freepart(&ppart);
+                  }
+                i = 0;
+                break;
+              case KEY_BACKSPACE:
+              case 0x007F: /*backspace mapuje na DEL?*/
+              case KEY_LEFT:
+                if (i > 0)
+                  {
+                  i--;
+                  }
+                break;
+              case KEY_RIGHT:
+                if (i < BUFFSIZE){
+                  i++;
+                  }
+                break;
+              default:
+                if (i < BUFFSIZE)
+                  {
+                  if (debug)
+                    {
+                    mvwprintw(consolewindow, 0, 1, "0x%X %c", c, c);
+                    }
+                  mvwaddch(consolewindow, 1, 1 + i, c);
+                  buffer[i++] = c;
+                  }
+                break;
               }
-            else if (0 == ncsstrncmp(ptr, "/lama ", 6) || 0 == ncsstrncmp(ptr, "/lama", 6))
-              {
-              ppart = makemsg("thankfully alert gauchos were able to save the llama "
-                              "before it was swept into the blades of the turbine");
-              sendpol(ppart, sfd);
-              freepart(&ppart);
-              }
-            else if (0 == ncsstrncmp(ptr, "/nick ", 6) || 0 == ncsstrncmp(ptr, "/nick", 6)){
-              printnicks(nicks);
-              }
-            else {
-              ppart = makemsg(ptr);
-              sendpol(ppart, sfd);
-              freepart(&ppart);
-              }
-            }                                                  
+            }
 
           /*czy jest cos na gniezdzie?*/
           pol.fd = sfd;
@@ -194,24 +241,36 @@ int main(int argc, char *argv[]){
               free(prt);
               prt = NULL;
               processpart(ppart, sfd);
-              freepart(&ppart);
+              freepart(&ppart);      
+              window_print();/*
+              printnicks(nicks);*/
               }
             }
           } while (run);
 
+
+        if (NULL != roomname){
+          free(roomname);
+          roomname = NULL;
+          }
+        if (NULL != roomdesc){
+          free(roomdesc);
+          roomdesc = NULL;
+          }
         freenicklist(&nicks);
         close(sfd);
         }
       else{
-        printf("Unable to connect host: %s...\n", host);
+        mvwprintw(chatwindow, 9, 1, "Unable to connect host: %s ...\n", host);
         }
    
       }                            
     else{
-      printf("Resolver problem...\n");
+      mvwprintw(chatwindow, 9, 1, "Resolver problem...\n");
       }
       
-   
+    window_done();
+    endwin();
     }
  
   puts("AmiX: Koniec pracy na dzis, polecam sie na przyszlosc");
