@@ -3,7 +3,7 @@
 My early dogfooding reverse engineering C(++) project.  No other software engineering techniques used.
 
 Readme from: [Oficjalna strona AmiX-a - linuksowego klienta polchatu.](http://amix.org.pl/)
-(no polish translation -sorry).
+(no English translation - sorry).
 
 ## Czym jest AmiX?
 
