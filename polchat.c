@@ -3,8 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <ncurses.h>
+
 #include "temp.h"
 #include "polchat.h"
+#include "interfeace.h"
 
 int debug = 0;
 int verbose = 0;
@@ -12,24 +15,44 @@ int bell = 0;
 int run = -1;
 nicknode *nicks = NULL;
 int colour[8] = {90, 34, 96, 95, 93, 90, 36, 94};
+char *roomname = NULL;
+char *roomdesc = NULL;
 
 void addnick(char *nick, short status, short unknown){
   nicknode **nicklist;
+  nicknode *tmp;
   int size;
+  int res;
 
   if (unknown != 0x0000){
     if (debug){
-      printf("NICK: %s unknown: %04X\n", nick, unknown);
+      printw("NICK: %s unknown: %04X\n", nick, unknown);
       }
     }
 
   nicklist = &nicks;
-  while ((*nicklist) != NULL && 0 != ncsstrcmp(nick, (*nicklist)->nick)){
+  while ((*nicklist) != NULL && (res = ncsstrcmp(nick, (*nicklist)->nick)) > 0){
     nicklist = &((*nicklist)->next);
     }
   if (*nicklist != NULL){
-    (*nicklist)->status = status;
-    (*nicklist)->unknown = unknown;
+    if (res){
+      if (NULL != (tmp = calloc(1, sizeof(nicknode)))){
+        if (NULL != (tmp->nick = calloc(strlen(nick) + 1, sizeof(char)))){
+          strcpy(tmp->nick, nick);
+          tmp->status = status;
+          tmp->unknown = unknown;
+          tmp->next = *nicklist;
+          *nicklist = tmp;
+          }
+        else{
+          free(tmp);
+          }
+        }
+      }
+    else{
+      (*nicklist)->status = status;
+      (*nicklist)->unknown = unknown;
+      }
     }
   else {
     if (NULL != (*nicklist = calloc(1, sizeof(nicknode)))){
@@ -41,7 +64,7 @@ void addnick(char *nick, short status, short unknown){
       else {
         if (debug){
           size = strlen(nick) + 1;
-          printf("Error: unable to allocate %d bytes of memory\n", size);
+          printw("Error: unable to allocate %d bytes of memory\n", size);
           }
         free(*nicklist);
         *nicklist = NULL;
@@ -49,7 +72,7 @@ void addnick(char *nick, short status, short unknown){
       }
     else {
       if (debug){
-        puts("Error: unable to allocate memory for nicknode");
+        printw("Error: unable to allocate memory for nicknode\n");
         }
       }
     }
@@ -74,39 +97,54 @@ void remnick(char *nick){
     }
   else {
     if (debug) {
-      puts("Error: no nick to delete");
+      printw("Error: no nick to delete\n");
       }
     }
   }
 
 
 void printnicks(nicknode *nicklist){
-  /*printf("\033[1;2H");*/
-  while (NULL != nicklist){
+  int i = 1;
+  int j;
+  while (NULL != nicklist && i <= NICKLIST_HEIGHT){
     if ((nicklist->status & 0xff8c) != 0x0000 || nicklist->unknown != 0x0000){
       if (debug){
-        printf("%04X %04X", nicklist->status, nicklist->unknown);
+        mvwprintw(nickwindow, i, 1, "%04X %04X", nicklist->status, nicklist->unknown);
         }
       else{
-        printf("         ");
+        mvwprintw(nickwindow, i, 1, "         ");
         }
       }
     else {
-      printf("         ");
+      mvwprintw(nickwindow, i, 1, "         ");
       }
-    printf("\033[%um", colour[(nicklist->status & 0x0070) >> 4]);
+    
+    /*mvwprintw(nickwindow, i++, 10, "\033[%um", colour[(nicklist->status & 0x0070) >> 4]);*/
     if (nicklist->status & 0x0002){
-      printf("OP ");
+      mvwprintw(nickwindow, i, 10, "OP ");
       }
     else{
-      printf("   ");
+      mvwprintw(nickwindow, i, 10, "   ");
       }
     if (nicklist->status & 0x0001){
-      printf("\033[4m");
+      wattron(nickwindow, A_UNDERLINE);
       }
-    printf("%s\033[0m\n", nicklist->nick);
+    mvwprintw(nickwindow, i, 13, nicklist->nick);
+    wattroff(nickwindow, A_UNDERLINE);
+    for (j = strlen(nicklist->nick) + 13; j < NICKLIST_WIDTH - 1; j++){
+      mvwaddch(nickwindow, i, j, ' ');
+      }
+    i++;
     nicklist = nicklist->next;
     }
+  while (i < NICKLIST_HEIGHT - 1){
+    wmove(nickwindow, i, 1);
+    for (j = 2; j < NICKLIST_WIDTH; j++){
+      waddch(nickwindow, ' ');
+      }
+    i++;
+    }
+  wrefresh(nickwindow);
   }
 
 

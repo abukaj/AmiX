@@ -19,3 +19,5 @@ extern int bell;
 extern int run;
 extern nicknode *nicks;
 extern int colour[];
+extern char *roomname;
+extern char *roomdesc;
