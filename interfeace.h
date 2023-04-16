@@ -1,3 +1,5 @@
+#include <time.h>
+
 #include <ncurses.h>
 
 #define NICKLIST_X nicklist_x
@@ -17,25 +19,18 @@
 #define TITLE_Y 0
 #define TITLE_H 4
 
+#define MSGSTOREMAX 100
 
-
-struct sn{
-  char *string;
-  int len;
-  struct sn *next;
-  };
-
-typedef struct sn stringnode;
+#define BUFFSIZE 10240
 
 typedef struct{
-  short length;
-  stringnode *body;
+  time_t time;
+  char *string;
   } line;
 
-extern line *window;
+extern line window[];
 extern WINDOW *chatwindow;
 extern WINDOW *nickwindow;
-
 extern WINDOW *titlewindow;
 extern WINDOW *consolewindow;
 
@@ -56,8 +51,15 @@ void window_done();
 void window_put(char *);
 void window_putforce(char *);
 void window_print();
+
+void window_resize();
+void window_redraw();
+void window_addstr(char *);
+
 char *readtoken(char *);
-void remsn(stringnode **);
+/*void remsn(stringnode **);
 stringnode *newsn(char *);
-void addstringnode(stringnode **, char *);
+void addstringnode(stringnode **, char *);*/
 void printtitle();
+void printpol(char *);
+char *console_input();

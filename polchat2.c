@@ -8,7 +8,6 @@
 #include <ncurses.h>
 
 #include "polchat.h"
-#include "polchat1.h"
 #include "polchat2.h"
 #include "interfeace.h"
 #include "temp.h"
@@ -264,7 +263,7 @@ void processpart(part *ppart, int sfd)
               }
             if (!verbose)
               {
-              printpol(ppart->strings[0]);
+              window_addstr(ppart->strings[0]);
               }
             }
           else
@@ -288,7 +287,7 @@ void processpart(part *ppart, int sfd)
             window_put("</blink>");
             if (!verbose)
               {
-              printpol(ppart->strings[0]);
+              window_addstr(ppart->strings[0]);
               }    
             }
           else if (headerlen == 0x0001 && nstrings == 0x0003)
@@ -298,7 +297,30 @@ void processpart(part *ppart, int sfd)
             window_put("</blink>");
             if (!verbose)
               {
-              printpol(ppart->strings[0]);
+              window_addstr(ppart->strings[0]);
+              }
+            }
+          else
+            {
+            if (debug)
+              {
+              window_put("Unknown part header");
+              window_put("\n");
+              if (!verbose)
+                {
+                verbosedump(ppart);
+                }
+              }
+            }
+          break;
+        case 0x0266: /*client config*/
+          if (headerlen == 0x0001 || nstrings == 0x0001)
+            {
+            if (debug)
+              {
+              window_put("CLIENT CONFIG: ");
+              window_put(ppart->strings[0]);
+              window_put("\n");
               }
             }
           else
@@ -485,7 +507,7 @@ void processpart(part *ppart, int sfd)
             {
             if (!verbose)
               {
-              printpol(ppart->strings[0]);
+              window_addstr(ppart->strings[0]);
               }
             }
           else
@@ -508,7 +530,7 @@ void processpart(part *ppart, int sfd)
             printnicks(nicks);
             if (!verbose)
               {
-              printpol(ppart->strings[0]);
+              window_addstr(ppart->strings[0]);
               }
             }
           else
@@ -529,7 +551,7 @@ void processpart(part *ppart, int sfd)
             {
             if (!verbose)
               {
-              printpol(ppart->strings[0]);
+              window_addstr(ppart->strings[0]);
               }
             run = false;
             }
@@ -611,11 +633,8 @@ part *makemsg(unsigned char *string)
         if (NULL != (result->strings = calloc(1, sizeof(char *))))
           {
           result->nstrings = 1;
-          if (NULL != (result->strings[0] = calloc(strlen(string) + 1, sizeof(char))))
+          if (NULL == (result->strings[0] = iso2utf8string(string)))
             {
-            strcpy(result->strings[0], string);
-            }
-          else{
             freepart(&result);
             }
           }
@@ -679,115 +698,4 @@ void verbosedump(part *dump)
   }
 
 
-void printpol(char *string)
-  {
-  int mode = 0;
-  int tokens = -1;
-  char *token = NULL;
-  static char buffer[15];
-  time_t t;
-  
-  if (string != NULL)
-    {
-    t = time(NULL);
-    strftime(buffer, 14, "%H:%M:%S ", localtime(&t));
-    window_put(buffer);
-    
-    token = readtoken(string);
-    while (tokens)
-      {
-      switch (mode)
-        {
-        case 0:
-          if (token == NULL)
-            {
-            tokens = 0;
-            }
-          else if (*token == '\0')
-            {
-            mode = 1;
-            }
-          else if (0 == ncsstrncmp(token, "<font", 5))
-            {
-            mode = 2;
-            }
-          else if (0 == ncsstrcmp(token, "</font>"))
-            {
-            mode = 2;
-            }
-          else if (0 == ncsstrcmp(token, "<i>"))
-            {
-            mode = 2;
-            }
-          else if (0 == ncsstrcmp(token, "</i>"))
-            {
-            mode = 2;
-            }
-          else if (0 == ncsstrncmp(token, "<a", 2))
-            {
-            mode = 2;
-            }
-          else if (0 == ncsstrcmp(token, "</a>"))
-            {
-            mode = 2;
-            }
-          else if (0 == ncsstrncmp(token, "<img", 4))
-            {
-            mode = 2;
-            }
-          else if (0 == ncsstrcmp(token, "</img>"))
-            {
-            mode = 2;
-            }
-          else if (0 == ncsstrcmp(token, "&quot;"))
-            {
-            window_put("\"");
-            mode = 1;
-            }
-          else if (0 == ncsstrcmp(token, "&amp;"))
-            {
-            window_put("&");
-            mode = 1;
-            }
-          else if (0 == ncsstrcmp(token, "&gt;"))
-            {
-            window_put(">");
-            mode = 1;
-            }
-          else if (0 == ncsstrcmp(token, "&lt;"))
-            {
-            window_put("<");
-            mode = 1;
-            }
-          else 
-            {
-            window_put(token);
-            mode = 1;
-            }
-          break;
-        case 1:
-          free(token);
-          token = readtoken(string);
-          mode = 0;
-          break;
-        case 2:
-          if (verbose)
-            {
-            window_put(token);
-            }
-          mode = 1;
-          break;
-        }
-      }
-    window_put("\n");
-    }
-  else
-    {
-    if (debug)
-      {
-      window_put("Error: NULL ptr given to printpol()");
-      window_put("\n");
-      }
-    }
-  }
 

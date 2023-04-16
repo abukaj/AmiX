@@ -11,10 +11,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#include <ncurses.h>
-
 #include "polchat.h"
-#include "polchat1.h"
 #include "polchat2.h"
 #include "interfeace.h"
 #include "temp.h"
@@ -22,7 +19,6 @@
 #define input() 0
 #define output() 1
 
-#define BUFFSIZE 10240
 
 int main(int argc, char *argv[]){
   int i;
@@ -31,9 +27,8 @@ int main(int argc, char *argv[]){
   char *nick = NULL;
   char *pass = NULL;
   int port = 14003;
-  static char buffer[BUFFSIZE];
-  int c;
-  
+  char *inputstring;
+
   int sfd = -1;
   struct sockaddr_in *serv_addr = NULL;
   struct addrinfo hints, *res, *tres;
@@ -116,9 +111,9 @@ int main(int argc, char *argv[]){
     keypad(consolewindow, TRUE);
 
     init_pair(1, COLOR_YELLOW, COLOR_BLUE);
-    wattron(chatwindow, COLOR_PAIR(1));
-    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 3\n");
-    wattroff(chatwindow, COLOR_PAIR(1));
+    wattron(chatwindow, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 4\n");
+    wattroff(chatwindow, COLOR_PAIR(1) | A_BOLD);
     wprintw(chatwindow, " Linuxowy klient Polchatu\n");
     wprintw(chatwindow, " By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)\n");
     wprintw(chatwindow, " status wersji 0.2b: freeware (badz giftware ;-D)\n");
@@ -166,87 +161,44 @@ int main(int argc, char *argv[]){
         i = 0;
         do {
           /*czy jest cos na wejsciu?*/
-          while (ERR != (c = wgetch(consolewindow))){
-          /*pol.fd = input();
-          pol.events = POLLIN;
-          pol.revents = 0;
-          poll(&pol, 1, 50);
-          if (((pol.revents) & POLLIN) == POLLIN){
-            i = read(input(), buffer, BUFFSIZE);
-            buffer[i - 1] = '\0';
-            if (verbose){
-              mvwprintw(chatwindow, 1, 1, "Wprowadzono %d znakow: %s\n", i, buffer);
+          if (NULL != (inputstring = console_input()))
+            {
+            if (0 == ncsstrncmp(inputstring, "/quit ", 6) || 0 == ncsstrncmp(inputstring, "/quit", 6))
+              {
+              ppart = makemsg(inputstring);
+              putmsg(ppart);
               }
-
-            if (buffer[0] == 0x1B){
-              ptr = buffer + 7;
-              if (debug){
-                mvwprintw(chatwindow, 1, 1, "Strange string occured:\n");
-                for (j = 0; j < i; j++){
-                  mvwprintw(chatwindow, 2, 1, "%2u: [%02X/%0o] %c\n", j, buffer[j], buffer[j], buffer[j]);
-                  }
-                }
+            else if (0 == ncsstrncmp(inputstring, "/lama ", 6) || 0 == ncsstrncmp(inputstring, "/lama", 6))
+              {
+              ppart = makemsg("thankfully alert gauchos were able to save the llama "
+                              "before it was swept into the blades of the turbine");
+              putmsg(ppart);
               }
-            else{
-              ptr = buffer;
+            else if (0 == ncsstrncmp(inputstring, "/debugon ", 9) || 0 == ncsstrncmp(inputstring, "/debugon", 9))
+              {
+              debug = -1;
               }
-            */
-            switch (c){
-              case '\n':
-              case '\r':
-                buffer[i] = '\0';         
-                if (0 == ncsstrncmp(buffer, "/quit ", 6) || 0 == ncsstrncmp(buffer, "/quit", 6))
-                  {
-                  ppart = makemsg(buffer);
-                  putmsg(ppart);
-                  /*sendpol(ppart, sfd);
-                  freepart(&ppart);*/
-                  }
-                else if (0 == ncsstrncmp(buffer, "/lama ", 6) || 0 == ncsstrncmp(buffer, "/lama", 6))
-                  {
-                  ppart = makemsg("thankfully alert gauchos were able to save the llama "
-                                  "before it was swept into the blades of the turbine");
-                  putmsg(ppart);
-                  /*sendpol(ppart, sfd);
-                  freepart(&ppart);*/
-                  }
-                else
-                  {
-                  ppart = makemsg(buffer);
-                  putmsg(ppart);
-                  /*sendpol(ppart, sfd);
-                  freepart(&ppart);*/
-                  }
-                i = 0;
-                break;
-              case KEY_BACKSPACE:
-              case 0x007F: /*backspace mapuje na DEL?*/
-              case KEY_LEFT:
-                if (i > 0)
-                  {
-                  i--;
-                  }
-                break;
-              case KEY_RIGHT:
-                if (i < BUFFSIZE){
-                  i++;
-                  }
-                break;
-              default:
-                if (i < BUFFSIZE)
-                  {
-                  if (debug)
-                    {
-                    mvwprintw(consolewindow, 0, 1, "0x%X %c", c, c);
-                    }
-                  mvwaddch(consolewindow, 1, 1 + i, c);
-                  buffer[i++] = c;
-                  }
-                break;
+            else if (0 == ncsstrncmp(inputstring, "/debugoff ", 10) || 0 == ncsstrncmp(inputstring, "/debugoff", 10))
+              {
+              debug = 0;
+              }
+            else if (0 == ncsstrncmp(inputstring, "/verboseon ", 11) || 0 == ncsstrncmp(inputstring, "/verboseon", 11))
+              {
+              verbose = -1;
+              }
+            else if (0 == ncsstrncmp(inputstring, "/verboseoff ", 12) || 0 == ncsstrncmp(inputstring, "/verboseoff", 12))
+              {
+              verbose = 0;
+              }
+            else
+              {
+              ppart = makemsg(inputstring);
+              putmsg(ppart);
               }
             }
+
           wnoutrefresh(consolewindow);
-          
+ 
           /*czy jest cos na gniezdzie?*/
           pol.fd = sfd;
           pol.events = POLLIN;

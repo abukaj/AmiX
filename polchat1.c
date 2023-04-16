@@ -6,7 +6,6 @@
 #include <time.h>
 
 #include "polchat.h"
-#include "polchat1.h"
 #include "polchat2.h"
 #include "interfeace.h"
 #include "temp.h"
@@ -20,14 +19,19 @@ part *tosend = NULL;
 
 unsigned char *wrapstring(unsigned char *string){
   unsigned char *result = NULL;
+  unsigned char *tmp;
   int len;
 
-  len = strlen(string);
-  if (NULL != (result = calloc(len + 3, sizeof(char)))){
-    result[0] = len / 256;
-    result[1] = len % 256;
-    strcpy(result + 2, string);
-    };
+  if (NULL != (tmp = iso2utf8string(string)))
+    {
+    len = strlen(tmp);
+    if (NULL != (result = calloc(len + 3, sizeof(char)))){
+      result[0] = len / 256;
+      result[1] = len % 256;
+      strcpy(result + 2, tmp);
+      }
+    free(tmp);
+    }
   return result;
   }
 
@@ -39,11 +43,14 @@ int wrapsize(unsigned char * string){
 
 unsigned char *unwrapstring(unsigned char *string){
   unsigned char *result = NULL;
+  unsigned char *tmp;
   int len;
 
   len = string[0] * 256 + string[1];
-  if (NULL != (result = calloc(len + 1, sizeof(char)))){
-    strcpy(result, string + 2);
+  if (NULL != (tmp = calloc(len + 1, sizeof(char)))){
+    strcpy(tmp, string + 2);
+    result = utf82isostring(tmp);
+    free(tmp);
     }
   return result;
   }
@@ -148,7 +155,7 @@ void freepart(part **p){
   }
 
 
-int sendpol(part * ppart, int sfd){
+int sendpol(part *ppart, int sfd){
   unsigned char *result;
   int size = 8;
   int i;

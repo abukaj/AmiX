@@ -3,18 +3,18 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <ncurses.h>
-
 #include "interfeace.h"
 #include "polchat.h"
+#include "polchat2.h" 
+/*przeniesc printpol*/
 #include "temp.h"
 
-line *window;
-WINDOW *chatwindow;
-WINDOW *nickwindow;
-
-WINDOW *titlewindow;
-WINDOW *consolewindow;
+line window[MSGSTOREMAX];
+WINDOW *chatwindow = NULL;
+WINDOW *nickwindow = NULL;
+WINDOW *titlewindow = NULL;
+WINDOW *consolewindow = NULL;
+static int inlen = 0;
 
 int nicklist_x;
 int nicklist_h;
@@ -28,7 +28,7 @@ int window_h;
 int window_w;
 
 
-void remsn(stringnode **wezel){
+/*void remsn(stringnode **wezel){
   if (*wezel != NULL){
     remsn(&((*wezel)->next));
     if ((*wezel)->string != NULL){
@@ -67,11 +67,16 @@ void addstringnode(stringnode **wezel, char *str){
     *wezel = newsn(str);
     }
   }
-
+*/
 
 void window_init(){
   int i;
 
+  for (i = 0; i < MSGSTOREMAX; ++i)
+    {
+    window->string = NULL;
+    }
+  
   getmaxyx(stdscr, scr_rows, scr_cols);
   window_h = scr_rows - WINDOW_Y - CONSOLE_H;
   window_w = scr_cols - NICKLIST_WIDTH - WINDOW_X;
@@ -103,17 +108,102 @@ void window_init(){
   consolewindow = newwin(CONSOLE_H, console_w, console_y, CONSOLE_X);
   wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
   wrefresh(consolewindow);
+  }
+
+
+void window_resize()
+  {
+  getmaxyx(stdscr, scr_rows, scr_cols);
   
-  window = calloc(window_h - 2, sizeof(line));
+  window_h = scr_rows - WINDOW_Y - CONSOLE_H;
+  window_w = scr_cols - NICKLIST_WIDTH - WINDOW_X;
+  mvwin(chatwindow, WINDOW_Y, WINDOW_X);
+  wresize(chatwindow, window_h, window_w);
+  wborder(chatwindow, ' ', ' ', '#', '#', '*', '*', '*', '*');
+  mvwaddstr(chatwindow, 0, window_w / 2 - 3, " CHAT ");
+  wsetscrreg(chatwindow, 1, window_h - 2);
+  window_redraw();
+  wnoutrefresh(chatwindow);
   
-  for (i = 0; i < window_h - 2; i++){
-    window[i].body = NULL;
-    window[i].length = 0;
+  nicklist_x = scr_cols - NICKLIST_WIDTH;
+  nicklist_h = scr_rows - NICKLIST_Y;
+  mvwin(nickwindow, NICKLIST_Y, nicklist_x);
+  wresize(nickwindow, nicklist_h, NICKLIST_WIDTH);
+  wborder(nickwindow, '|', '|', '-', '-', '+', '+', '+', '+');
+  mvwaddstr(nickwindow, 0, NICKLIST_WIDTH / 2 - 4, " NICKS: ");
+  printnicks();
+  wnoutrefresh(nickwindow);
+
+  title_w = scr_cols - NICKLIST_WIDTH - TITLE_X;
+  mvwin(titlewindow, TITLE_Y, TITLE_X);
+  wresize(titlewindow, TITLE_H, title_w);
+  wborder(titlewindow, '|', '|', '-', '-', '/', '\\', '\\', '/');
+  printtitle();
+  wnoutrefresh(titlewindow);
+
+  console_y = scr_rows - CONSOLE_H;
+  console_w = scr_cols - CONSOLE_X - NICKLIST_WIDTH;
+  mvwin(consolewindow, console_y, CONSOLE_X);
+  wresize(consolewindow, CONSOLE_H, console_w);
+  wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');  
+  wnoutrefresh(consolewindow);
+  }
+
+
+void window_redraw()
+  {
+  int i, j;
+  static char buffer[15];
+
+  wmove(chatwindow, 1, 0);
+  for (i = 0; i < MSGSTOREMAX; ++i)
+    {
+    if (NULL != window[i].string)
+      {
+      strftime(buffer, 14, "%H:%M:%S ", localtime(&(window[i].time)));
+      window_put(buffer);
+      printpol(window[i].string);
+      }
+    else
+      {
+      for (j = 0; j < window_w; ++j)
+        {
+        waddch(chatwindow, ' ');
+        }
+      waddch(chatwindow, '\n');
+      }
     }
   }
 
 
-void window_done(){
+void window_addstr(char *string){
+  int i;
+  static char buffer[15];
+  
+  if (NULL != string)
+    {
+    if (NULL != window[0].string)
+      {
+      free(window[0].string);
+      }
+    for (i = 0; i < MSGSTOREMAX - 1; ++i)
+      {
+      window[i] = window[i + 1];
+      }
+    if (NULL != (window[MSGSTOREMAX - 1].string = calloc(strlen(string) + 1, sizeof(char))))
+      {
+      strcpy(window[MSGSTOREMAX - 1].string, string);
+      window[MSGSTOREMAX - 1].time = time(NULL);
+      strftime(buffer, 14, "%H:%M:%S ", localtime(&(window[MSGSTOREMAX - 1].time)));
+      window_put(buffer);
+      printpol(window[MSGSTOREMAX - 1].string);
+      }
+    }
+  }
+
+
+void window_done()
+  {
   int i;
 
   delwin(chatwindow);
@@ -121,25 +211,25 @@ void window_done(){
   delwin(consolewindow);
   delwin(titlewindow);
   
-  for (i = 0; i < WINDOW_HEIGHT - 2; i++){
-    remsn(&(window[i].body));
-    window[i].length = 0;
+  for (i = 0; i < MSGSTOREMAX; i++)
+    {
+    if (NULL != window[i].string)
+      {
+      free(window[i].string);
+      window[i].string = NULL;
+      }
     }
-  free(window);
-  window = NULL;
   }
 
 
 void window_nl(){
-  int i;
-
-  remsn(&(window[0].body));
-  for (i = 1; i < WINDOW_HEIGHT - 2; i++){
-    window[i - 1].body = window[i].body;
-    window[i - 1].length = window[i].length;
+  while (inlen < window_w - 2)
+    {
+    waddch(chatwindow, ' ');
+    inlen++;
     }
-  window[WINDOW_HEIGHT - 3].body = NULL;
-  window[WINDOW_HEIGHT - 3].length = 0;
+  waddch(chatwindow, '\n');
+  inlen = 0;
   }
 
 
@@ -147,43 +237,11 @@ void window_put(char *word){
   char *tmp;
   int len;
   int ptr;
-  static int inlen = 0;
   
   if (word != NULL && *word != '\0'){
-/*    if (*word == '\n'){
-      window_nl();
-      }
-    else if (*word == '<'){
-      addstringnode(&(window[WINDOW_HEIGHT - 3].body), word);
-      }
-    else{
-      len = strlen(word);
-      if (window[WINDOW_HEIGHT - 3].length + len <= WINDOW_WIDTH - 2){
-        addstringnode(&(window[WINDOW_HEIGHT - 3].body), word);
-        window[WINDOW_HEIGHT - 3].length += len;
-        }
-      else{
-        window_nl();
-        ptr = 0;
-        if (NULL != (tmp = calloc(window_w - 2 + 1, sizeof(char)))){
-          while (len > (WINDOW_WIDTH - 2)){
-            window[WINDOW_HEIGHT - 3].length = WINDOW_WIDTH - 2;
-            strncpy(tmp, (word + ptr), WINDOW_WIDTH - 2);
-            addstringnode(&(window[WINDOW_HEIGHT - 3].body), tmp);
-            ptr += (WINDOW_WIDTH - 2);
-            len -= (WINDOW_WIDTH - 2);
-            window_nl();
-            }
-          free(tmp);
-          }
-        addstringnode(&(window[WINDOW_HEIGHT - 3].body), (word + ptr));
-        window[WINDOW_HEIGHT - 3].length = len;
-        }
-      }*/
     if (*word == '\n')
       {
-      waddch(chatwindow, '\n');
-      inlen = 0;
+      window_nl();
       }
     else if (verbose || (*word != '<'))
       {
@@ -195,7 +253,7 @@ void window_put(char *word){
         }
       else 
         {
-        waddch(chatwindow, '\n');
+        window_nl();
         inlen = window_w - 2;
         ptr = 0;
         if (NULL != (tmp = calloc(inlen + 1, sizeof(char))))
@@ -274,92 +332,10 @@ void window_put(char *word){
 
 void window_putforce(char *word){
   waddstr(chatwindow, word);
-/*  char *tmp;
-  int len;
-  int ptr;
-
-  if (word != NULL && *word != '\0'){
-    if (*word == '\n'){
-      window_nl();
-      }
-    else{
-      len = strlen(word);
-      if (window[WINDOW_HEIGHT - 3].length + len <= WINDOW_WIDTH - 2){
-        addstringnode(&(window[WINDOW_HEIGHT - 3].body), word);
-        window[WINDOW_HEIGHT - 3].length += len;
-        }     
-      else{      
-        window_nl();
-        ptr = 0;
-        if (NULL != (tmp = calloc(window_w - 2 + 1, sizeof(char)))){
-          while (len > (WINDOW_WIDTH - 2)){
-            window[WINDOW_HEIGHT - 3].length = WINDOW_WIDTH - 2;
-            strncpy(tmp, (word + ptr), WINDOW_WIDTH - 2);
-            addstringnode(&(window[WINDOW_HEIGHT - 3].body), tmp);
-            ptr += (WINDOW_WIDTH - 2);
-            len -= (WINDOW_WIDTH - 2);
-            window_nl();
-            }
-          free(tmp);
-          }
-        addstringnode(&(window[WINDOW_HEIGHT - 3].body), (word + ptr));
-        window[WINDOW_HEIGHT - 3].length = len;
-        }
-      }
-    }*/
   }
 
 
 void window_print(){
-/*  int i;
-  int j;
-  stringnode *tmp;
-  
-  for (i = 0; i < WINDOW_HEIGHT - 2; i++){
-    tmp = window[i].body;
-    j = 1;
-    wmove(chatwindow, i + 1, j);
-    while (tmp != NULL){
-      if (verbose || (tmp->string[0] != '<'))
-        {
-        mvwaddstr(chatwindow, i + 1, j, tmp->string);
-        j += tmp->len;
-        }
-      else if (0 == ncsstrcmp(tmp->string, "<b>"))
-        {
-        wattron(chatwindow, A_BOLD);
-        }
-      else if (0 == ncsstrcmp(tmp->string, "</b>"))
-        {
-        wattroff(chatwindow, A_BOLD);
-        }
-      else if (0 == ncsstrcmp(tmp->string, "<u>"))
-        {
-        wattron(chatwindow, A_UNDERLINE);
-        }
-      else if (0 == ncsstrcmp(tmp->string, "</u>"))
-        {
-        wattroff(chatwindow, A_UNDERLINE);
-        }
-      else if (0 == ncsstrcmp(tmp->string, "<blink>"))
-        {
-        wattron(chatwindow, A_BLINK);
-        }
-      else if (0 == ncsstrcmp(tmp->string, "</blink>"))
-        {
-        wattroff(chatwindow, A_BLINK);
-        }
-      else
-        {
-        mvwaddstr(chatwindow, i + 1, j, tmp->string);
-        j += tmp->len;
-        }
-      tmp = tmp->next;
-      }
-    while (j < WINDOW_WIDTH - 1){
-      mvwaddch(chatwindow, i + 1, j++, ' ');
-      }
-    }*/
   wnoutrefresh(chatwindow);
   }
 
@@ -539,18 +515,181 @@ void printtitle()
   {
   int i;
 
-  for (i = 1; i < title_w; i++)
+  for (i = 1; i < title_w - 1; i++)
     {
     mvwaddch(titlewindow, 1, i, ' ');
     mvwaddch(titlewindow, 2, i, ' ');
     }
   if (NULL != roomname)
     {
-    mvwaddstr(titlewindow, 1, 1, roomname);
+    mvwaddnstr(titlewindow, 1, 1, roomname, title_w - 2);
     }
   if (NULL != roomdesc)
     {
-    mvwaddstr(titlewindow, 2, 1, roomdesc);
+    mvwaddnstr(titlewindow, 2, 1, roomdesc, title_w - 2);
     }  
   wrefresh(titlewindow);
+  }
+
+
+void printpol(char *string)
+  {
+  int mode = 0;
+  int tokens = -1;
+  char *token = NULL;
+/*  static char buffer[15];
+  time_t t;*/
+  
+  if (string != NULL)
+    {
+/*    t = time(NULL);
+    strftime(buffer, 14, "%H:%M:%S ", localtime(&t));
+    window_put(buffer);*/
+    
+    token = readtoken(string);
+    while (tokens)
+      {
+      switch (mode)
+        {
+        case 0:
+          if (token == NULL)
+            {
+            tokens = 0;
+            }
+          else if (*token == '\0')
+            {
+            mode = 1;
+            }
+          else if (0 == ncsstrncmp(token, "<font", 5))
+            {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "</font>"))
+            {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "<i>"))
+            {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "</i>"))
+            {
+            mode = 2;
+            }
+          else if (0 == ncsstrncmp(token, "<a", 2))
+            {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "</a>"))
+            {
+            mode = 2;
+            }
+          else if (0 == ncsstrncmp(token, "<img", 4))
+            {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "</img>"))
+            {
+            mode = 2;
+            }
+          else if (0 == ncsstrcmp(token, "&quot;"))
+            {
+            window_put("\"");
+            mode = 1;
+            }
+          else if (0 == ncsstrcmp(token, "&amp;"))
+            {
+            window_put("&");
+            mode = 1;
+            }
+          else if (0 == ncsstrcmp(token, "&gt;"))
+            {
+            window_put(">");
+            mode = 1;
+            }
+          else if (0 == ncsstrcmp(token, "&lt;"))
+            {
+            window_put("<");
+            mode = 1;
+            }
+          else 
+            {
+            window_put(token);
+            mode = 1;
+            }
+          break;
+        case 1:
+          free(token);
+          token = readtoken(string);
+          mode = 0;
+          break;
+        case 2:
+          if (verbose)
+            {
+            window_put(token);
+            }
+          mode = 1;
+          break;
+        }
+      }
+    window_put("\n");
+    }
+  else
+    {
+    if (debug)
+      {
+      window_put("Error: NULL ptr given to printpol()");
+      window_put("\n");
+      }
+    }
+  }
+
+char *console_input(){
+  int c;
+  static int i = 0;
+  static char buffer[BUFFSIZE];
+  while (ERR != (c = wgetch(consolewindow))){
+    switch (c){
+      case '\n':
+      case '\r':
+        buffer[i] = '\0';
+        wmove(consolewindow, 1, 1);
+        for (i = 1; i < console_w - 1; i++)
+          {
+          waddch(consolewindow, ' ');
+          }
+        i = 0;
+        return (char *) buffer;
+        break;
+      case KEY_BACKSPACE:
+      case 0x007F: /*backspace mapuje na DEL?*/
+      case KEY_LEFT:
+        if (i > 0)
+          {
+          i--;
+          }
+        break;
+      case KEY_RESIZE:  
+        window_resize();
+        break;
+      case KEY_RIGHT:
+        if (i < BUFFSIZE - 1)
+          {
+          i++;
+          }
+        break;
+      default:
+        if (i < BUFFSIZE - 1)
+          {
+          if (debug)
+            {
+            mvwprintw(consolewindow, 0, 1, "0x%X %c", c, c);
+            }
+          mvwaddch(consolewindow, 1, 1 + i, c);
+          buffer[i++] = c;
+          }
+        break;
+      }
+    }
+  return NULL;
   }
