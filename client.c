@@ -15,6 +15,7 @@
 #include "polchat2.h"
 #include "interfeace.h"
 #include "temp.h"
+#include "version.h"
 
 #define input() 0
 #define output() 1
@@ -112,21 +113,35 @@ int main(int argc, char *argv[]){
 
     init_pair(1, COLOR_YELLOW, COLOR_BLUE);
     wattron(chatwindow, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 7\n");
+    window_put(" " $VER);
     wattroff(chatwindow, COLOR_PAIR(1) | A_BOLD);
-    wprintw(chatwindow, " Linuxowy klient Polchatu\n");
-    wprintw(chatwindow, " By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)\n");
-    wprintw(chatwindow, " status wersji 0.2b: freeware (badz giftware ;-D)\n");
-    wprintw(chatwindow, " ze wzgledu na wczesna wersje rozwojowa,\n");
-    wprintw(chatwindow, " autor nie ponosi odpowiedzialnosci za ewentualne\n");
-    wprintw(chatwindow, " szkody wywolane uzyciem programu w tej wersji\n");
-    wprintw(chatwindow, " Oficjalna strona projektu:\n");
-    wprintw(chatwindow, " http://infomax.net.pl/~kowalskijan/amix/\n");
+    window_nl();
+    window_put(" Linuxowy klient Polchatu");
+    window_nl();
+    window_put(" By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)");
+    window_nl();
+    window_put(" status wersji 0.2b: freeware (badz giftware ;-D)");
+    window_nl();
+    window_put(" ze wzgledu na wczesna wersje rozwojowa,");
+    window_nl();
+    window_put(" autor nie ponosi odpowiedzialnosci za ewentualne");
+    window_nl();
+    window_put(" szkody wywolane uzyciem programu w tej wersji");
+    window_nl();
+    window_put(" Oficjalna strona projektu:");
+    window_nl();
+    window_put(" http://infomax.net.pl/~kowalskijan/amix/");
+    window_nl();
 
+    wnoutrefresh(chatwindow);
+    doupdate();    
+    
+    checkupdate();
     wnoutrefresh(chatwindow);
     doupdate();
 
-    wprintw(chatwindow, " resolving...\n");
+    window_put(" resolving...");
+    window_nl();
     wrefresh(chatwindow);
     
     /*resolvuje adres*/
@@ -138,10 +153,12 @@ int main(int argc, char *argv[]){
         serv_addr = (struct sockaddr_in *) res->ai_addr;
         serv_addr->sin_port = htons(port);
         if ((sfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) != -1){
-          mvwprintw(chatwindow, 10, 1, "connecting...\n");
+          window_put(" connecting...");
+          window_nl();
           wrefresh(chatwindow);
           if ((connect(sfd, res->ai_addr, res->ai_addrlen)) < 0){
-            mvwprintw(chatwindow, 11, 1, "Connection failed...\n");
+            window_put(" Connection failed...");
+            window_nl();
             wrefresh(chatwindow);
             close(sfd);
             sfd = -1;
@@ -149,7 +166,8 @@ int main(int argc, char *argv[]){
             }
           }
         else{
-          mvwprintw(chatwindow, 11, 1, "Unable to create socket...\n");
+          window_put(" Unable to create socket...");
+          window_nl();
           wrefresh(chatwindow);
           }
         break;
@@ -157,7 +175,8 @@ int main(int argc, char *argv[]){
 
       /*jesli sie udalo polaczyc*/
       if (sfd >= 0){
-        mvwprintw(chatwindow, 10, 1, "connected              \n");
+        window_put(" connected");
+        window_nl();
         wrefresh(chatwindow);
         welcome2(nick, pass, room, sfd);/*do wymiany*/
         i = 0;
@@ -252,12 +271,16 @@ int main(int argc, char *argv[]){
         close(sfd);
         }
       else{
-        mvwprintw(chatwindow, 11, 1, "Unable to connect host: %s ...\n", host);
+        window_put("Unable to connect host: ");
+        window_put(host);
+        window_put(" ...");
+        window_nl();
         }
    
       }                            
     else{
-      mvwprintw(chatwindow, 11, 1, "Resolver problem...\n");
+      window_put("Resolver problem...");
+      window_nl();
       }
       
     window_done();

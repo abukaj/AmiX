@@ -48,6 +48,7 @@ void window_init(){
   mvwaddstr(chatwindow, 0, window_w / 2 - 3, " CHAT ");
   scrollok(chatwindow, TRUE);
   wsetscrreg(chatwindow, 1, window_h - 2);
+  wmove(chatwindow, 1, 0);
   wrefresh(chatwindow);
   
   
