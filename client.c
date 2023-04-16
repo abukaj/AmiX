@@ -43,8 +43,32 @@ int main(int argc, char *argv[])
     if (0 == strcmp(argv[i], "?"))
       {
       printf("SERVER/K PORT/K/N ROOM/K NICK/K PASSWORD/K DEBUG/S VERBOSE/S BELL/S"
-             " PERIOD/K/N NICKLISTWIDTH/K/N NOATTR/K\n");
+             " PERIOD/K/N NICKLISTWIDTH/K/N NOATTR/S ASKPASSW/S\n");
       run = 0;
+      }
+    else if (0 == strcmp(argv[i], "-help") || 0 == strcmp(argv[i], "--help") || 0 == strcmp(argv[i], "-h"))
+      {
+      run = 0;
+      puts("Usage:");
+      puts(argv[0]);
+      puts("[-askpassw]");
+      puts("[-nick nick]");
+      puts("[-nicklistwidth width of nicklist]");
+      puts("[-noattr]");
+      puts("[-password password]");
+      puts("[-period interval]");
+      puts("[-port port]");
+      puts("[-room room]");
+      puts("[-server server]");
+      }
+    else if (0 == strcmp(argv[i], "-askpassw") || 0 == ncsstrcmp(argv[i], "ASKPASSW"))
+      {
+      if (pass != NULL)
+        {
+        free(pass);
+        }
+      puts("Password:");
+      pass = readline(input());
       }
     else if (0 == strcmp(argv[i], "-noattr") || 0 == ncsstrcmp(argv[i], "NOATTR"))
       {
@@ -67,7 +91,11 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
         {
-        host = argv[i];
+        if (host != NULL)
+          {
+          free(host);
+          }
+        host = clonestring(argv[i]);
         }                              
       }
     else if (0 == strcmp(argv[i], "-port") || 0 == ncsstrcmp(argv[i], "PORT"))
@@ -99,7 +127,11 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
         {
-        room = argv[i];
+        if (room != NULL)
+          {
+          free(room);
+          }
+        room = clonestring(argv[i]);
         }                              
       }
      else if (0 == strcmp(argv[i], "-nick") || 0 == ncsstrcmp(argv[i], "NICK"))
@@ -107,7 +139,11 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
         {
-        nick = argv[i];
+        if (nick != NULL)
+          {
+          free(nick);
+          }
+        nick = clonestring(argv[i]);
         }                              
       }
      else if (0 == strcmp(argv[i], "-password") || 0 == ncsstrcmp(argv[i], "PASSWORD"))
@@ -115,7 +151,11 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
         {
-        pass = argv[i];
+        if (pass != NULL)
+          {
+          free(pass);
+          }
+        pass = clonestring(argv[i]);
         }                              
       }
     else
@@ -123,13 +163,21 @@ int main(int argc, char *argv[])
     }
 
   if (host == NULL)
-    host = "polchat.pl";
+    {
+    host = clonestring("polchat.pl");
+    }
   if (nick == NULL)
-    nick = "AmiX_user";
+    {
+    nick = clonestring("AmiX_user");
+    }
   if (room == NULL)
-    room = "Sekciarz";
+    {
+    room = clonestring("Sekciarz");
+    }
   if (pass == NULL)
-    pass = "";
+    {
+    pass = clonestring("");
+    }
   
   
   if (run)
@@ -328,6 +376,24 @@ int main(int argc, char *argv[])
             wnoutrefresh(chatwindow);
             window_nl();
             }
+          else if (0 == ncsstrncmp(inputstring, "/ver ", 5) || 0 == ncsstrncmp(inputstring, "/ver", 5))
+            {
+            window_addstr("<B>" $VER "</B>");
+            wnoutrefresh(chatwindow);
+            }
+          else if (0 == ncsstrncmp(inputstring, "/help ", 6) || 0 == ncsstrncmp(inputstring, "/help", 6))
+            {
+            window_addstr("<B>/borg</B> - wysyla tekst: &quot;"
+                          "I'm cybernetic organism - living tissue over metal endoskeleton.&quot;");
+            window_addstr("<B>/exit</B> - komenda analogiczna do polchatowego /quit, ale "
+                          "dodatkowo koñczy pracê programu");
+            window_addstr("<B>/help</B> - wyswietla tekst pomocy");
+            window_addstr("<B>/lama</B> - wysyla tekst: &quot;" 
+                          "thankfully alert gauchos were able to save the llama "
+                          "before it was swept into the blades of the turbine&quot;");
+            window_addstr("<B>/ver</B> - podaje wersje programu"); 
+            wnoutrefresh(chatwindow);
+            }
           else
             {
             ppart = makemsg(inputstring);
@@ -361,13 +427,28 @@ int main(int argc, char *argv[])
       {
       window_put("Resolver problem...");
       window_nl();
-      }
- 
+      } 
     
     window_done();
     endwin();
     }
  
+  if (nick != NULL)
+    {
+    free(nick);
+    }
+  if (pass != NULL)
+    {
+    free(pass);
+    }
+  if (host != NULL)
+    {
+    free(host);
+    }
+  if (room != NULL)
+    {
+    free(room);
+    }
   puts("AmiX: Koniec pracy na dzis, polecam sie na przyszlosc");
   return 0;
   }

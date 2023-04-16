@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "temp.h"
 
@@ -300,6 +301,21 @@ unsigned char *utf82isostring(unsigned char *string)
           }
         }
       }
+    }
+  return result;
+  }
+
+
+/*****************************************************************************\
+\*****************************************************************************/
+
+char *clonestring(char *string)
+  {
+  char *result = NULL;
+
+  if (string != NULL && NULL != (result = malloc(1 + strlen(string))))
+    {
+    strcpy(result, string);
     }
   return result;
   }
