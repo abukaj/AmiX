@@ -4,7 +4,7 @@
 
 #define NICKLIST_X nicklist_x
 #define NICKLIST_Y 0
-#define NICKLIST_WIDTH 30 
+#define NICKLIST_WIDTH nicklist_w 
 #define NICKLIST_HEIGHT nicklist_h
 
 #define WINDOW_X 0
@@ -36,6 +36,7 @@ extern WINDOW *consolewindow;
 
 extern int nicklist_x;
 extern int nicklist_h;
+extern int nicklist_w;
 extern int console_y;
 extern int console_w;
 extern int title_w;
@@ -53,6 +54,8 @@ void window_putchar(unsigned char);
 void window_puthex(unsigned int, unsigned int);
 void window_putforce(char *);
 void window_print();
+void window_colouron(int);
+void window_colouroff();
 
 void window_resize();
 void window_redraw();
@@ -66,3 +69,5 @@ void printtitle();
 void printpol(char *);
 char *console_input();
 void console_update();
+
+int transformrgb(int, int, int);

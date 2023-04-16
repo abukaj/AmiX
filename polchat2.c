@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <ncurses.h>
 
@@ -11,10 +12,7 @@
 #include "polchat2.h"
 #include "interfeace.h"
 #include "temp.h"
-
-int read(int, char *, int);
-int write(int, char *, int);
-
+#include "version.h"
 
 unsigned char *welcome(unsigned char *nick, unsigned char *pass,
                        unsigned char *room, int sfd)
@@ -129,7 +127,7 @@ unsigned char *welcome2(unsigned char *nick, unsigned char *pass,
             {
             if (NULL != (p3 = wrapstring("nlst=1&nnum=1&jlmsg=true&ignprv=false")))
               {
-              if (NULL != (klient = wrapstring("AmiX v. 0.2a")))
+              if (NULL != (klient = wrapstring($VER)))
                 {
                 size = 4; /*sam size*/
                 size += 6; /*header*/
@@ -214,6 +212,9 @@ void processpart(part *ppart, int sfd)
   short headerlen;
   short nstrings;
   int i;
+  char *ptr;
+  int tmp;
+  int tempt[7];
   
   if (NULL != ppart)
     {
@@ -508,8 +509,34 @@ void processpart(part *ppart, int sfd)
               }
             }
           break;
-        case 0x0272:/*PIERDOLY*/
-          if (headerlen != 0x0001 || nstrings != 0x0002)
+        case 0x0272:/*PIERDOLY... konfiguracja pokoju ;-D*/
+          if (headerlen == 0x0001 && nstrings == 0x0002)
+            {
+            if (NULL != (ptr = strstr(ppart->strings[0], "color_user=")))
+              {
+              ptr += 11;
+              sscanf(ptr, "#%x", &tmp);
+              colourt[0] = transformrgb((tmp >> 16) & 0x00FF, (tmp >> 8) & 0x00FF, tmp & 0x00FF);
+              }
+            if (NULL != (ptr = strstr(ppart->strings[0], "color_op=")))
+              {
+              ptr += 9;
+              sscanf(ptr, "#%x", &tmp);
+              colourop = transformrgb((tmp >> 16) & 0x00FF, (tmp >> 8) & 0x00FF, tmp & 0x00FF);
+              }
+            if (NULL != (ptr = strstr(ppart->strings[0], "color_guest=")))
+              {
+              ptr += 12;
+              tmp = sscanf(ptr, "#%x #%x #%x #%x #%x #%x #%x", &tempt[0],
+                           &tempt[1], &tempt[2], &tempt[3], &tempt[4], &tempt[5],
+                           &tempt[6]);
+              for (i = 0; i <tmp; i++)
+                {
+                colourt[i + 1] = transformrgb((tempt[i] >> 16) & 0x00FF, (tempt[i] >> 8) & 0x00FF, tempt[i] & 0x00FF);
+                }
+              }
+            }    
+          else
             {
             if (debug)
               {
@@ -528,6 +555,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
+              window_colouroff();
               }
             }
           else
@@ -551,6 +579,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
+              window_colouroff();
               }
             }
           else
@@ -573,7 +602,8 @@ void processpart(part *ppart, int sfd)
               {
               window_addstr(ppart->strings[0]);
               }
-            run = false;
+            connected = 0;
+            close(sfd);
             }
           else
             {
@@ -619,7 +649,8 @@ void processpart(part *ppart, int sfd)
         window_put("</blink>");
         window_put("0x000000000000");
         window_nl();
-        run = 0;
+        connected = 0;
+        close(sfd);
         }
       }     
     if (verbose)

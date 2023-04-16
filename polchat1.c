@@ -4,18 +4,14 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "polchat.h"
 #include "polchat2.h"
 #include "interfeace.h"
 #include "temp.h"
 
-int read(int, char *, int);
-int write(int, char *, int);
-
-
 part *tosend = NULL;
-
 
 unsigned char *wrapstring(unsigned char *string){
   unsigned char *result = NULL;
@@ -64,13 +60,24 @@ unsigned char *readpart(int sfd){
   unsigned char buffer[4];
   unsigned char *result = NULL;
 
-  read(sfd, buffer, 4);
-  if (NULL != (result = calloc(partlen(buffer), sizeof(char)))){
-    result[0] = buffer[0];
-    result[1] = buffer[1];
-    result[2] = buffer[2];
-    result[3] = buffer[3];
-    read(sfd, result + 4, partlen(buffer) - 4);
+  if (connected && (0 != read(sfd, buffer, 4)))
+    {
+    if (NULL != (result = calloc(partlen(buffer), sizeof(char)))){
+      result[0] = buffer[0];
+      result[1] = buffer[1];
+      result[2] = buffer[2];
+      result[3] = buffer[3];
+      if (0 == read(sfd, result + 4, partlen(buffer) - 4))
+        {
+        connected = 0;
+        close(sfd);
+        }
+      }
+    }
+  else
+    {
+    connected = 0;
+    close(sfd);
     }
   return result;
   }
@@ -247,7 +254,7 @@ void sendnext(int sfd)
     }
   if (NULL != tosend)
     {
-    if (period < difftime(time(NULL), last)){
+    if (connected && (period < difftime(time(NULL), last))){
       sendpol(tosend, sfd);
       tmp = tosend->next;
       tosend->next = NULL;

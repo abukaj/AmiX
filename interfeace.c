@@ -5,8 +5,6 @@
 
 #include "interfeace.h"
 #include "polchat.h"
-/*#include "polchat2.h" */
-/*przeniesc printpol*/
 #include "temp.h"
 
 line window[MSGSTOREMAX];
@@ -17,10 +15,12 @@ WINDOW *consolewindow = NULL;
 static int inlen = 0;
 static int ptr = 0;
 static int len = 0;
+static int colour = 0;
 static char buffer[BUFFSIZE];
 
 int nicklist_x;
 int nicklist_h;
+int nicklist_w = 30;
 int console_y;
 int console_w;
 int title_w;
@@ -29,6 +29,49 @@ int scr_rows;
 int scr_cols;
 int window_h;
 int window_w;
+
+
+int transformrgb(int red, int green, int blue)
+  {
+  int col = 0;
+  
+  if (red > 0x007F)
+    {
+    col |= 0x01;
+    }
+  
+  if (green > 0x007F)
+    {
+    col |= 0x02;
+    }
+  
+  if (blue > 0x007F)
+    {
+    col |= 0x04;
+    }
+  return col;
+  }
+
+
+void window_colouron(int c)
+  {
+/*  window_put("SETTING COLOUR");*/
+  if (colour)
+    {
+    wattroff(chatwindow, COLOR_PAIR(colour));
+    }
+  colour = c;
+  wattron(chatwindow, COLOR_PAIR(c));
+  }
+
+void window_colouroff()
+  {
+  if (colour)
+    {
+    wattroff(chatwindow, COLOR_PAIR(colour));
+    colour = 0;
+    }
+  }
 
 
 void window_init(){
@@ -112,14 +155,6 @@ void window_resize()
   wresize(consolewindow, CONSOLE_H, console_w);
   wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
 
-/*  wmove(consolewindow, 1, 1);
-  for (i = 1; i < console_w - 1; i++)
-    {
-    waddch(consolewindow, ' ');
-    }
-  mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
-  wmove(consolewindow, 1, ptr + 1);
-*/
   console_update();
   wnoutrefresh(consolewindow);
   }
@@ -503,6 +538,9 @@ void printpol(char *string)
   int mode = 0;
   int tokens = -1;
   char *token = NULL;
+  char *ptr;
+  int tmp;
+  int col;
   
   if (string != NULL)
     {
@@ -522,11 +560,29 @@ void printpol(char *string)
             }
           else if (0 == ncsstrncmp(token, "<font", 5))
             {
-            mode = 2;
+            if (NULL != (ptr = strstr(token, "color=")))
+              {
+              ptr += 6; /*+= strlen("color=");*/
+              if (0 == ncsstrncmp(ptr, "red", 3))
+                {
+                window_colouron(COLOR_RED);
+                }
+              else
+                {
+                sscanf(ptr, "#%x", &tmp);
+                col = transformrgb((tmp >> 16) & 0x00FF, (tmp >> 8) & 0x00FF, tmp & 0x00FF);
+                if (col != COLOR_WHITE && col != COLOR_BLACK)
+                  {
+                  window_colouron(col);
+                  }
+                }
+              }
+            mode = 2/*2*/;
             }
           else if (0 == ncsstrcmp(token, "</font>"))
             {
-            mode = 2;
+            window_colouroff();
+            mode = 2/*2*/;
             }
           else if (0 == ncsstrcmp(token, "<i>"))
             {
@@ -677,6 +733,10 @@ char *console_input(){
           {
           ptr--;
           wmove(consolewindow, 1, 1 + ptr);
+          if (ptr /*+1*/ > window_w - 3/*-2*/)
+            {
+            updated = -1;
+            }
           }
         break;
       case KEY_RESIZE:  
@@ -687,6 +747,10 @@ char *console_input(){
           {
           ptr++;
           wmove(consolewindow, 1, 1 + ptr);
+          if (ptr > window_w - 2)
+            {
+            updated = -1;
+            }
           }
         break;
       case '\t':
@@ -757,11 +821,16 @@ char *console_input(){
 void console_update()
   {
   int i = 0;
-  
-  wmove(consolewindow, 1, 1);
-  while (i < len && i < console_w - 2)
+  int d = 0;
+
+  if (ptr > console_w - 2)
     {
-    waddch(consolewindow, buffer[i++]);
+    d = ptr + 2 - console_w;
+    }
+  wmove(consolewindow, 1, 1);
+  while (i + d < len && i < console_w - 2)
+    {
+    waddch(consolewindow, buffer[d + i++]);
     }
   while (i++ < console_w - 2)
     {

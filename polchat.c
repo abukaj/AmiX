@@ -13,11 +13,15 @@ int debug = 0;
 int verbose = 0;
 int bell = 0;
 int run = -1;
+int connected = 0;
 double period = 1.0;
 nicknode *nicks = NULL;
-int colour[8] = {90, 34, 96, 95, 93, 90, 36, 94};
 char *roomname = NULL;
 char *roomdesc = NULL;
+
+int colourt[8] = {COLOR_BLACK, COLOR_BLUE, COLOR_CYAN, COLOR_MAGENTA, COLOR_YELLOW, COLOR_BLACK, COLOR_CYAN, COLOR_BLUE};
+int colourop = COLOR_RED;
+
 
 void addnick(char *nick, short status, short unknown){
   nicknode **nicklist;
@@ -113,21 +117,32 @@ void remnick(char *nick){
   }
 
 
-void printnicks(){
+void printnicks()
+  {
   int i = 1;
   int j;
+  int colour;
   nicknode *nicklist;
 
   nicklist = nicks;
-  while (NULL != nicklist && i < nicklist_h - 1){
-    /*mvwprintw(nickwindow, i++, 10, "\033[%um", colour[(nicklist->status & 0x0070) >> 4]);*/
-    if (nicklist->status & 0x0002){
+  while (NULL != nicklist && i < nicklist_h - 1)
+    {
+    colour = colourt[(nicklist->status & 0x0070) >> 4];
+    if (colour != COLOR_WHITE && colour != COLOR_BLACK)
+      {
+      wattron(nickwindow, COLOR_PAIR(colour) | A_BOLD);
+      }
+    
+    if (nicklist->status & 0x0002)
+      {
       mvwprintw(nickwindow, i, 1, "OP ");
       }
-    else{
+    else
+      {
       mvwprintw(nickwindow, i, 1, "   ");
       }
-    if (nicklist->status & 0x0001){
+    if (nicklist->status & 0x0001)
+      {
       wattron(nickwindow, A_UNDERLINE);
       }
     mvwaddnstr(nickwindow, i, 4, nicklist->nick, NICKLIST_WIDTH - 5);
@@ -141,6 +156,12 @@ void printnicks(){
       }
     i++;
     nicklist = nicklist->next;
+    
+    if (colour != COLOR_WHITE && colour != COLOR_BLACK)
+      {
+      wattroff(nickwindow, COLOR_PAIR(colour) | A_BOLD);
+      }
+    
     }
   while (i < nicklist_h - 1){
     wmove(nickwindow, i, 1);

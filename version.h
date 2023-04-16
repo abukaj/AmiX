@@ -1,5 +1,5 @@
-#define $VERCODE "0000"
-#define $VER  "AmiX v. 0.2b rev. 8"
+#define $VERCODE "0001"
+#define $VER  "AmiX v. 0.2b rev. 9"
 
 int checkupdate();
 char *readline();

@@ -22,7 +22,7 @@ polchat.o: polchat.c interfeace.h
 polchat1.o: polchat1.c
 	$(CC) $(CFLAGS) -c polchat1.c
 
-polchat2.o: polchat2.c interfeace.h
+polchat2.o: polchat2.c interfeace.h version.h
 	$(CC) $(CFLAGS) -c polchat2.c
 
 temp.o: temp.c
