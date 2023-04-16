@@ -27,7 +27,11 @@ void addnick(char *nick, short status, short unknown){
 
   if (unknown != 0x0000){
     if (debug){
-      printw("NICK: %s unknown: %04X\n", nick, unknown);
+      window_put("NICK: ");
+      window_put(nick);
+      window_put(" unknown: ");
+      window_puthex(unknown, 4);
+      window_nl();
       }
     }
 
@@ -65,7 +69,10 @@ void addnick(char *nick, short status, short unknown){
       else {
         if (debug){
           size = strlen(nick) + 1;
-          printw("Error: unable to allocate %d bytes of memory\n", size);
+          window_put("Error: unable to allocate 0x");
+          window_puthex(size, 4);
+          window_put("bytes of memory");
+          window_nl();
           }
         free(*nicklist);
         *nicklist = NULL;
@@ -73,7 +80,8 @@ void addnick(char *nick, short status, short unknown){
       }
     else {
       if (debug){
-        printw("Error: unable to allocate memory for nicknode\n");
+        window_put("Error: unable to allocate memory for nicknode");
+        window_nl();
         }
       }
     }
@@ -98,7 +106,8 @@ void remnick(char *nick){
     }
   else {
     if (debug) {
-      printw("Error: no nick to delete\n");
+      window_put("Error: no nick to delete");
+      window_nl();
       }
     }
   }
@@ -110,38 +119,30 @@ void printnicks(){
   nicknode *nicklist;
 
   nicklist = nicks;
-  while (NULL != nicklist && i <= NICKLIST_HEIGHT){
-    if ((nicklist->status & 0xff8c) != 0x0000 || nicklist->unknown != 0x0000){
-      if (debug){
-        mvwprintw(nickwindow, i, 1, "%04X %04X", nicklist->status, nicklist->unknown);
-        }
-      else{
-        mvwprintw(nickwindow, i, 1, "         ");
-        }
-      }
-    else {
-      mvwprintw(nickwindow, i, 1, "         ");
-      }
-    
+  while (NULL != nicklist && i < nicklist_h - 1){
     /*mvwprintw(nickwindow, i++, 10, "\033[%um", colour[(nicklist->status & 0x0070) >> 4]);*/
     if (nicklist->status & 0x0002){
-      mvwprintw(nickwindow, i, 10, "OP ");
+      mvwprintw(nickwindow, i, 1, "OP ");
       }
     else{
-      mvwprintw(nickwindow, i, 10, "   ");
+      mvwprintw(nickwindow, i, 1, "   ");
       }
     if (nicklist->status & 0x0001){
       wattron(nickwindow, A_UNDERLINE);
       }
-    mvwprintw(nickwindow, i, 13, nicklist->nick);
+    mvwaddnstr(nickwindow, i, 4, nicklist->nick, NICKLIST_WIDTH - 5);
+    if (strlen(nicklist->nick) > NICKLIST_WIDTH - 4)
+      {
+      mvwaddstr(nickwindow, i, NICKLIST_WIDTH - 4, "...");
+      }
     wattroff(nickwindow, A_UNDERLINE);
-    for (j = strlen(nicklist->nick) + 13; j < NICKLIST_WIDTH - 1; j++){
+    for (j = strlen(nicklist->nick) + 4; j < NICKLIST_WIDTH - 1; j++){
       mvwaddch(nickwindow, i, j, ' ');
       }
     i++;
     nicklist = nicklist->next;
     }
-  while (i < NICKLIST_HEIGHT - 1){
+  while (i < nicklist_h - 1){
     wmove(nickwindow, i, 1);
     for (j = 2; j < NICKLIST_WIDTH; j++){
       waddch(nickwindow, ' ');

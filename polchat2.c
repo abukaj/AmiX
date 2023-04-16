@@ -209,7 +209,7 @@ unsigned char *welcome2(unsigned char *nick, unsigned char *pass,
 void processpart(part *ppart, int sfd)
   {
   static unsigned char echo[8] = {0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00};
-  static char buffer[6];
+  /*static char buffer[6];*/
   short type;
   short headerlen;
   short nstrings;
@@ -336,18 +336,26 @@ void processpart(part *ppart, int sfd)
               }
             }
           break;
-        case 0x0267:/*nickinfo?*/
+        case 0x0267:/*nick entered*/
           if (headerlen == 0x0002 && nstrings == 0x0001)
             {
             addnick(ppart->strings[0], ppart->header[1], 0x0000);
             printnicks(nicks);
+            if ((ppart->header[1] & 0x00ff8c) != 0x0000 && debug)
+              {
+              window_put("Unknown status of: ");
+              window_put(ppart->strings[0]);
+              window_put(" : ");
+              window_puthex(ppart->header[1], 4);
+              window_nl();
+              }
             }
           else
             {
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -355,7 +363,7 @@ void processpart(part *ppart, int sfd)
               }
             }
           break;
-        case 0x0268:/*nick leave?*/
+        case 0x0268:/*nick left*/
           if (headerlen == 0x0001 && nstrings == 0x0001)
             {
             remnick(ppart->strings[0]);
@@ -366,7 +374,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -374,17 +382,25 @@ void processpart(part *ppart, int sfd)
               }
             }
           break;
-        case 0x0269:/*NICK update?*/
+        case 0x0269:/*NICK update*/
           if (headerlen == 0x0002 && nstrings == 0x0001)
             {
             addnick(ppart->strings[0], ppart->header[1], 0x0000);
             printnicks(nicks);
+            if ((ppart->header[1] & 0x00ff8c) != 0x0000 && debug)
+              {
+              window_put("Unknown status of: ");
+              window_put(ppart->strings[0]);
+              window_put(" : ");
+              window_puthex(ppart->header[1], 4);
+              window_nl();
+              }
             }
           else{
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -392,26 +408,27 @@ void processpart(part *ppart, int sfd)
               }
             }
           break;
-        case 0x026a:/*I have absolutly no idea*/
+        case 0x026a:/*I have absolutly no idea - chyba ze4 wlazlem jako ja???*/
           if (headerlen == 0x0002 && nstrings == 0x0001)
             {
             if (verbose || debug)
               {
               window_put(" 0004 ??? ");
+              window_puthex(ppart->header[1], 4);/*
               buffer[4] = inttohex(ppart->header[1] & 0x0F);
               buffer[3] = inttohex((ppart->header[1] >> 4) & 0x0F);
               buffer[2] = inttohex((ppart->header[1] >> 8) & 0x0F);
               buffer[1] = inttohex((ppart->header[1] >> 12) & 0x0F);
               buffer[0] = ' ';
               buffer[5] = '\0';
-              window_put(buffer);
-              window_put("\n");
+              window_put(buffer);*/
+              window_nl();
               window_put(" NICK:");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 window_put(ppart->strings[0]);
-                window_put("\n");
+                window_nl();
                 }
               }
             }
@@ -436,6 +453,16 @@ void processpart(part *ppart, int sfd)
             for (i = 0; i < nstrings; i++)
               {
               addnick(ppart->strings[i], ppart->header[2 * i + 5], ppart->header[2 * i + 6]);
+              if (((ppart->header[2 * i + 5] & 0x00ff8c) != 0x0000 || ppart->header[2 * i + 6] != 0x0000) && debug)
+                {
+                window_put("Unknown status of: ");
+                window_put(ppart->strings[i]);
+                window_put(" : ");
+                window_puthex(ppart->header[2 * i + 5], 4);
+                window_put(" : ");
+                window_puthex(ppart->header[2 * i + 6], 4);
+                window_nl();
+                }
               }
             printnicks(nicks);
             }
@@ -598,7 +625,7 @@ void processpart(part *ppart, int sfd)
         window_put("CONNECTION LOST :-( /*???*/");
         window_put("</blink>");
         window_put("0x000000000000");
-        window_put("\n");
+        window_nl();
         run = 0;
         }
       }     
@@ -611,7 +638,7 @@ void processpart(part *ppart, int sfd)
     if (debug)
       {
       window_put("Error: NULL ptr given to processpart()");
-      window_put("\n");
+      window_nl();
       }
     }
   }
@@ -652,7 +679,7 @@ part *makemsg(unsigned char *string)
     if (debug)
       {
       window_put("Error: NULL ptr given to makemsg()");
-      window_put("\n");
+      window_nl();
       }
     }
   return result;
@@ -662,37 +689,39 @@ part *makemsg(unsigned char *string)
 void verbosedump(part *dump)
   {
   int i;
-  static char buffer[6];
+  /*static char buffer[6];*/
   
   if (dump != NULL){
     window_put("HEADER:");
-    window_put("\n");
+    window_nl();
     for (i = 0; i < dump->headerlen; i++)
-      {
+      {/*
       buffer[3] = inttohex(dump->header[i] & 0x0F);
       buffer[2] = inttohex((dump->header[i] >> 4) & 0x0F);
       buffer[1] = inttohex((dump->header[i] >> 8) & 0x0F);
       buffer[0] = inttohex((dump->header[i] >> 12) & 0x0F);
       buffer[4] = ' ';
       buffer[5] = '\0';
-      window_put(buffer);
+      window_put(buffer);*/
+      window_puthex(dump->header[i], 4);
+      window_putchar(' ');
       }
-    window_put("\n");
+    window_nl();
     window_put("STRINGS");
-    window_put("\n");
+    window_nl();
     for (i = 0; i < dump->nstrings; i++)
       {
       window_put(dump->strings[i]);
-      window_put("\n");
+      window_nl();
       }
-    window_put("\n");
+    window_nl();
     }
   else
     {
     if (debug)
       {
       window_put("Error: NULL ptr given to verbosedump()");
-      window_put("\n");
+      window_nl();
       }
     }
   }

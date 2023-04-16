@@ -4,7 +4,7 @@
 
 #define NICKLIST_X nicklist_x
 #define NICKLIST_Y 0
-#define NICKLIST_WIDTH 40 
+#define NICKLIST_WIDTH 30 
 #define NICKLIST_HEIGHT nicklist_h
 
 #define WINDOW_X 0
@@ -49,6 +49,8 @@ void window_init();
 void window_nl();
 void window_done();
 void window_put(char *);
+void window_putchar(unsigned char);
+void window_puthex(unsigned int, unsigned int);
 void window_putforce(char *);
 void window_print();
 

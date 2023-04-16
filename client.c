@@ -112,7 +112,7 @@ int main(int argc, char *argv[]){
 
     init_pair(1, COLOR_YELLOW, COLOR_BLUE);
     wattron(chatwindow, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 4\n");
+    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 5\n");
     wattroff(chatwindow, COLOR_PAIR(1) | A_BOLD);
     wprintw(chatwindow, " Linuxowy klient Polchatu\n");
     wprintw(chatwindow, " By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)\n");

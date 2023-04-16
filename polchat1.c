@@ -119,14 +119,15 @@ part *parsepart(unsigned char *prt){
       }
     if (ptr != size){
       if (debug){
-        puts("Part parse error!");
+        window_put("Part parse error!");
         partdump(prt);
         }
       }
     }
   else{
     if (debug){
-      puts("Error: NULL ptr given to parsepart()");
+      window_put("Error: NULL ptr given to parsepart()");
+      window_nl();
       }
     }
   return result;
@@ -199,19 +200,24 @@ int sendpol(part *ppart, int sfd){
       write(sfd, result, size);
       if (ptr != size){
         if (debug){
-          printf("Error: ptr (%d) != size (%d)\n", ptr, size);
+          window_put("Error: ptr != size");
+          window_nl();
           }
         }
       }
     else{
       if (debug){
-        printf("Error: unable to allocate %d bytes of memory\n", size);
+        window_put("Error: unable to allocate 0x");
+        window_puthex(size, 4);
+        window_put("bytes of memory");
+        window_nl();
         }
       }
     }
   else{
     if (debug){
-      puts("Error: NULL ptr given to sendpol");
+      window_put("Error: NULL ptr given to sendpol");
+      window_nl();
       }
     }
   return 0;
@@ -260,43 +266,48 @@ void partdump(unsigned char *part){
   if (NULL != part){
     size = partlen(part);
     for (i = 0; i < size / 16; i++){
-      printf("0x%04X: ", i);
+      window_put("0x");
+      window_puthex(i, 4);
       for (j = 0; j < 16; j++){
-        printf(" %02X", part[i * 16 + j]);
+        window_putchar(' ');
+        window_puthex(part[i * 16 + j], 2);
         }
-      printf("  ");
+      window_put("  ");
       for (j = 0; j < 16; j++){
         if (isgraph(part[i * 16 + j])){
-          putchar(part[i * 16 + j]);
+          window_putchar(part[i * 16 + j]);
           }
         else {
-          putchar('.');
+          window_putchar('.');
           }
         }
-      putchar('\n');
+      window_nl();
       }
   
-    printf("0x%04X: ", i);
+    window_put("0x");
+    window_puthex(i, 4);
     for (j = 0; j < size % 16; j++){
-      printf(" %02X", part[i * 16 + j]);
+      window_putchar(' ');
+      window_puthex(part[i * 16 + j], 2);
       }
     for (; j < 16; j++){
-      printf("   ");
+      window_put("   ");
       }
-    printf("  ");
+    window_put("  ");
     for (j = 0; j < size % 16; j++){
       if (isgraph(part[i * 16 + j])){
-        putchar(part[i * 16 + j]);
+        window_putchar(part[i * 16 + j]);
         }
       else {
-        putchar('.');
+        window_putchar('.');
         }
       }
-    putchar('\n');
+    window_nl();
     }
   else{
     if (debug){
-      puts("Error: NULL ptr given to partdump()");
+      window_put("Error: NULL ptr given to partdump()");
+      window_nl();
       }
     }
   }

@@ -28,47 +28,6 @@ int window_h;
 int window_w;
 
 
-/*void remsn(stringnode **wezel){
-  if (*wezel != NULL){
-    remsn(&((*wezel)->next));
-    if ((*wezel)->string != NULL){
-      free((*wezel)->string);
-      }
-    free(*wezel);
-    *wezel = NULL;
-    }
-  }
-
-
-stringnode *newsn(char *str){
-  stringnode *nsn = NULL;
-  int len;
-
-  if (NULL != (nsn = calloc(1, sizeof(stringnode)))){
-    if (NULL != (nsn->string = calloc(1 + (len = strlen(str)), sizeof(char)))){
-      strcpy(nsn->string, str);
-      nsn->len = len;
-      nsn->next = NULL;
-      }
-    else {
-      free(nsn);
-      nsn = NULL;
-      }
-    }
-  return nsn;
-  }
-
-
-void addstringnode(stringnode **wezel, char *str){
-  if (*wezel != NULL){
-    addstringnode(&((*wezel)->next), str);
-    }
-  else {
-    *wezel = newsn(str);
-    }
-  }
-*/
-
 void window_init(){
   int i;
 
@@ -233,6 +192,29 @@ void window_nl(){
   }
 
 
+void window_putchar(unsigned char c)
+  {
+  if (inlen >= window_w - 2)
+    {
+    window_nl();
+    }
+  waddch(chatwindow, c);
+  inlen++;
+  }
+
+void window_puthex(unsigned int n, unsigned int len)
+  {
+  if (inlen + len >= window_w - 2)
+    {
+    window_nl();
+    }
+  while (len-- > 0)
+    {
+    waddch(chatwindow, inttohex((n >> (len * 4)) & 0x0F));
+    }
+  }
+
+
 void window_put(char *word){
   char *tmp;
   int len;
@@ -346,16 +328,135 @@ char *readtoken(char *string){
   static int link = 0;
   int mode = 0;
   int len = 0;
+  int start = 0;
   char c;
   char *result = NULL;
-  char *tmp;
+  /*char *tmp;*/
 
 
-  if (done){
+  if (done)
+    {
     ptr = 0;
     done = 0;
     }
-  else{
+  else
+    {
+    start = ptr;
+    c = string[ptr];
+    switch (c)
+      {
+      case '\0':
+        done = -1;
+        mode = 1;
+        break;
+      case '<':
+        mode = 2;
+        break;
+      case '&':
+        /*if (link)
+          {
+          mode = 4;
+          }
+        else
+          {*/
+          mode = 3;
+         /* }*/
+        break;
+      case ' ':
+      case '\n':
+      case '\t':
+      case '\r':
+      case '\f':
+      case '\b':
+      case '\a':
+        mode = 5;
+        break;
+      default:
+        mode = 0;
+        break;
+      }
+
+    switch (mode)
+      {
+      case 0:
+        while (!isspace(string[ptr]) && '\0' != string[ptr] && '<' != string[ptr] && (link || '&' != string[ptr]))
+          {
+          ptr++;
+          }
+        len = ptr - start;
+        if (NULL != (result = calloc(len + 1, sizeof(char))))
+          {
+          memcpy(result, string + start, len);
+          result[len] = '\0';
+          return result;
+          }
+        break;
+      case 1:
+        if (NULL != (result = calloc(1, sizeof(char))))
+          {
+          result[0] = '\0';
+          return result;
+          }
+        break;
+      case 2:
+        while ('\0' != string[ptr] && '>' != string[ptr])
+          {
+          ptr++;
+          }
+        if (string[ptr] == '>')
+          {
+          ptr++;
+          }
+        len = ptr - start;
+        if (NULL != (result = calloc(len + 1, sizeof(char))))
+          {
+          memcpy(result, string + start, len);
+          result[len] = '\0';
+          if (0 == ncsstrncmp(result, "<a", 2))
+            {
+            link = -1;
+            }
+          if (0 == ncsstrcmp(result, "</a>"))
+            {
+            link = 0;
+            }             
+          return result;
+          }
+        break;
+      case 3:
+        while ('\0' != string[ptr] && ';' != string[ptr])
+          {
+          ptr++;
+          }
+        if (string[ptr] == ';')
+          {
+          ptr++;
+          }
+        len = ptr - start;
+        if (NULL != (result = calloc(len + 1, sizeof(char))))
+          {
+          memcpy(result, string + start, len);
+          result[len] = '\0';
+          return result;
+          }                 
+        break;
+     /* case 4:
+        break;*/
+      case 5:
+        while (isspace(string[ptr++]))
+          {
+          }
+        ptr--;
+        if (NULL != (result = calloc(2, sizeof(char))))
+          {
+          result[0] = ' ';
+          result[1] = '\0';
+          return result;
+          }
+        break;
+      }
+    
+    /*
     if (NULL != (result = calloc(1, sizeof(char)))){
       *result = '\0';
       while (mode != 1)
@@ -504,7 +605,7 @@ char *readtoken(char *string){
             break;
           }
         }
-      }
+      }*/
     }
  
   return result;
@@ -537,15 +638,9 @@ void printpol(char *string)
   int mode = 0;
   int tokens = -1;
   char *token = NULL;
-/*  static char buffer[15];
-  time_t t;*/
   
   if (string != NULL)
     {
-/*    t = time(NULL);
-    strftime(buffer, 14, "%H:%M:%S ", localtime(&t));
-    window_put(buffer);*/
-    
     token = readtoken(string);
     while (tokens)
       {
@@ -644,49 +739,109 @@ void printpol(char *string)
     }
   }
 
+
 char *console_input(){
   int c;
+  int j;
   static int i = 0;
+  static int len = 0;
   static char buffer[BUFFSIZE];
   while (ERR != (c = wgetch(consolewindow))){
     switch (c){
       case '\n':
       case '\r':
-        buffer[i] = '\0';
+        buffer[len] = '\0';
         wmove(consolewindow, 1, 1);
-        for (i = 1; i < console_w - 1; i++)
+        for (j = 1; j < console_w - 1; j++)
           {
           waddch(consolewindow, ' ');
           }
         i = 0;
+        len = 0;
         return (char *) buffer;
         break;
       case KEY_BACKSPACE:
       case 0x007F: /*backspace mapuje na DEL?*/
+        if (i > 0)
+          {
+          for (j = i; j <= len; j++)
+            {
+            buffer[j - 1] = buffer[j];
+            }
+          i--;
+          len--;
+          buffer[len] = '\0';
+          wmove(consolewindow, 1, 1);
+          for (j = 1; j < console_w - 1; j++)
+            {
+            waddch(consolewindow, ' ');
+            }
+          mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
+          wmove(consolewindow, 1, 1 + i);
+          }
+        break;
+      case KEY_DL:
+      case KEY_DC:
+        if (i > 0 && i < len)
+          {
+          for (j = i; j < len; j++)
+            {
+            buffer[j] = buffer[j + 1];
+            }
+          len--;
+          buffer[len] = '\0';
+          wmove(consolewindow, 1, 1);
+          for (j = 1; j < console_w - 1; j++)
+            {
+            waddch(consolewindow, ' ');
+            }
+          mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
+          wmove(consolewindow, 1, 1 + i);
+          }
+        break;
       case KEY_LEFT:
         if (i > 0)
           {
           i--;
+          wmove(consolewindow, 1, 1 + i);
           }
         break;
       case KEY_RESIZE:  
         window_resize();
         break;
       case KEY_RIGHT:
-        if (i < BUFFSIZE - 1)
+        if (i < BUFFSIZE - 1 && i < len)
           {
           i++;
+          wmove(consolewindow, 1, 1 + i);
           }
         break;
       default:
-        if (i < BUFFSIZE - 1)
+        if (i < BUFFSIZE - 1 && len < BUFFSIZE - 1)
           {
           if (debug)
             {
             mvwprintw(consolewindow, 0, 1, "0x%X %c", c, c);
             }
-          mvwaddch(consolewindow, 1, 1 + i, c);
+          /*
+          if (i < console_w - 2)
+            {
+            mvwaddch(consolewindow, 1, 1 + i, c);
+            }*/
+          for (j = len; j > i; j--)
+            {
+            buffer[j] = buffer[j - 1];
+            }
           buffer[i++] = c;
+          len++;
+          buffer[len] = '\0';
+          wmove(consolewindow, 1, 1);
+          for (j = 1; j < console_w - 1; j++)
+            {
+            waddch(consolewindow, ' ');
+            }
+          mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
+          wmove(consolewindow, 1, i + 1);                    
           }
         break;
       }

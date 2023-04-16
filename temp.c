@@ -59,6 +59,19 @@ int ncsstrncmp(char *cs, char *ct, int n){
 /*****************************************************************************\
 \*****************************************************************************/
 char inttohex(int n){
+  if (n >= 0x00)
+    {
+    if (n < 0x0A)
+      {
+      return '0' + n;
+      }
+    else if (n < 0x0010)
+      {
+      return ('A' - 0x0A) + n;
+      }
+    }
+  return '#';
+  /*
   switch (n){
     case 1:
       return '1';
@@ -93,11 +106,12 @@ char inttohex(int n){
     case 15:
       return 'F';
     }
-  return 0;
+  return 0;*/
   }
 
 
 /*****************************************************************************\
+ mapuje tylko polskie znaczki
 \*****************************************************************************/
 unsigned int iso2unicode(unsigned char c)
   {
@@ -143,6 +157,7 @@ unsigned int iso2unicode(unsigned char c)
 
 
 /*****************************************************************************\
+ mapuje tylko polskie znaczki
 \*****************************************************************************/
 unsigned char unicode2iso(unsigned int c)
   {
@@ -188,69 +203,60 @@ unsigned char unicode2iso(unsigned int c)
 
 
 /*****************************************************************************\
+  nie przetwarza poprawnie sekwencji ponaddwubajtowych! - TODO
 \*****************************************************************************/
 unsigned char *iso2utf8string(unsigned char *string)
   {
   unsigned char *result = NULL;
-  unsigned char *tmp;
   int src = 0;
   int dst = 0;
-  int len = 10;
+  int len = 0/* 10*/;
   unsigned int c;
   
   if (NULL != string)
     {
-    if (NULL != (result = calloc(11, sizeof(char))))
+    while ('\0' != (c = iso2unicode(string[src++])))
       {
-      while (result != NULL && string[src] != '\0')
+      if (c < 0x0080)
+        {
+        len++;
+        }
+      else if (c < 0x0800)
+        {
+        len += 2;
+        }
+      else if (c < 0x010000)
+        {
+        len += 3;
+        }
+      else if (c < 0x0200000)
+        {
+        len += 4;
+        }
+      else if (c < 0x04000000)
+        {
+        len += 5;
+        }
+      else if (c < 0x080000000)
+        {
+        len += 6;
+        }
+      }
+    if (NULL != (result = calloc(len + 1, sizeof(char))))
+      {
+      src = 0;
+      while (dst <= len)
         {
         c = iso2unicode(string[src++]);
-        if (dst >= len)
+        if (c < 0x0080)
           {
-          if (NULL != (tmp = realloc(result, len + 11)))
-            {
-            len += 10;
-            result = tmp;
-            }
-          else
-            {
-            free(result);
-            result = NULL;
-            }
+          result[dst++] = c & 0x00FF;
           }
-        if (NULL != result)
+        else if (c < 0x0800)
           {
-          if (c < 0x0080)
-            {
-            result[dst++] = c & 0x00FF;
-            }
-          else if (c < 0x0800)
-            {
-            result[dst++] = 0x00C0 | (0x001F & (c >> 6));
-
-            if (dst >= len)
-              {
-              if (NULL != (tmp = realloc(result, len + 11)))
-                {
-                len += 10;
-                result = tmp;
-                }
-              else
-                {
-                free(result);
-                result = NULL;
-                }
-              }
-            if (NULL != result)
-              {
-              result[dst++] = 0x0080 | (0x003F & c); 
-              }
-            }
+          result[dst++] = 0x00C0 | (0x001F & (c >> 6));
+          result[dst++] = 0x0080 | (0x003F & c);
           }
-        }
-      if (NULL != result)
-        {
-        result[dst] = '\0';
         }
       }
     }
@@ -259,51 +265,39 @@ unsigned char *iso2utf8string(unsigned char *string)
 
 
 /*****************************************************************************\
+  nie przetwarza poprawnie sekwencji ponaddwubajtowych! - TODO
 \*****************************************************************************/
 unsigned char *utf82isostring(unsigned char *string)
   {
   unsigned char *result = NULL;
-  unsigned char *tmp;
   int src = 0;
   int dst = 0;
-  int len = 10;
+  int len = 0;
   unsigned int c;
   
   if (NULL != string)
     {
-    if (NULL != (result = calloc(11, sizeof(char))))
+    while ('\0' != (c = string[src++]))
       {
-      while (result != NULL && string[src] != '\0')
+      if (c < 0x0080 || c > 0x00BF)
+        {
+        len++;
+        }
+      }
+    if (NULL != (result = calloc(len + 1, sizeof(char))))
+      {
+      src = 0;
+      while (dst <= len)
         {
         c = string[src++];
-        if (dst >= len)
+        if (c < 0x0080)
           {
-          if (NULL != (tmp = realloc(result, len + 11)))
-            {
-            len += 10;
-            result = tmp;
-            }
-          else
-            {
-            free(result);
-            result = NULL;
-            }
+          result[dst++] = c & 0x00FF;
           }
-        if (NULL != result)
+        else if (c < 0x00E0)
           {
-          if ((c & 0x0080) == 0x0000)
-            {
-            result[dst++] = c & 0x00FF;
-            }
-          else if ((c & 0x00E0) == 0x00C0)
-            {
-            result[dst++] = unicode2iso(((c & 0x001F) << 6) | (string[src++] & 0x003F));
-            }
+          result[dst++] = unicode2iso(((c & 0x001F) << 6) | (string[src++] & 0x003F));
           }
-        }
-      if (NULL != result)
-        {
-        result[dst] = '\0';
         }
       }
     }
