@@ -145,7 +145,7 @@ void printnicks(nicknode *nicklist){
       }
     i++;
     }
-  wrefresh(nickwindow);
+  wnoutrefresh(nickwindow);
   }
 
 

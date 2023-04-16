@@ -360,7 +360,7 @@ void window_print(){
       mvwaddch(chatwindow, i + 1, j++, ' ');
       }
     }*/
-  wrefresh(chatwindow);
+  wnoutrefresh(chatwindow);
   }
 
 
