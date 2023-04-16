@@ -10,7 +10,7 @@ typedef struct nn nicknode;
 
 void addnick(char *, short, short);
 void remnick(char *);
-void printnicks(nicknode *);
+void printnicks();
 void freenicklist(nicknode **);
 
 extern int debug;

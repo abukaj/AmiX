@@ -104,9 +104,12 @@ void remnick(char *nick){
   }
 
 
-void printnicks(nicknode *nicklist){
+void printnicks(){
   int i = 1;
   int j;
+  nicknode *nicklist;
+
+  nicklist = nicks;
   while (NULL != nicklist && i <= NICKLIST_HEIGHT){
     if ((nicklist->status & 0xff8c) != 0x0000 || nicklist->unknown != 0x0000){
       if (debug){
