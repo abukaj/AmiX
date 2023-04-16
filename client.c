@@ -117,7 +117,7 @@ int main(int argc, char *argv[]){
 
     init_pair(1, COLOR_YELLOW, COLOR_BLUE);
     wattron(chatwindow, COLOR_PAIR(1));
-    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 2\n");
+    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 3\n");
     wattroff(chatwindow, COLOR_PAIR(1));
     wprintw(chatwindow, " Linuxowy klient Polchatu\n");
     wprintw(chatwindow, " By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)\n");
@@ -126,9 +126,12 @@ int main(int argc, char *argv[]){
     wprintw(chatwindow, " autor nie ponosi odpowiedzialnosci za ewentualne\n");
     wprintw(chatwindow, " szkody wywolane uzyciem programu w tej wersji\n");
 
-    wrefresh(chatwindow);
+    wnoutrefresh(chatwindow);
+    doupdate();
 
     wprintw(chatwindow, " resolving...\n");
+    wrefresh(chatwindow);
+    
     /*resolvuje adres*/
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = PF_UNSPEC;
@@ -139,8 +142,10 @@ int main(int argc, char *argv[]){
         serv_addr->sin_port = htons(port);
         if ((sfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) != -1){
           mvwprintw(chatwindow, 8, 1, "connecting...\n");
+          wrefresh(chatwindow);
           if ((connect(sfd, res->ai_addr, res->ai_addrlen)) < 0){
             mvwprintw(chatwindow, 9, 1, "Connection failed...\n");
+            wrefresh(chatwindow);
             close(sfd);
             sfd = -1;
             continue;
@@ -148,6 +153,7 @@ int main(int argc, char *argv[]){
           }
         else{
           mvwprintw(chatwindow, 9, 1, "Unable to create socket...\n");
+          wrefresh(chatwindow);
           }
         break;
         }
@@ -155,11 +161,12 @@ int main(int argc, char *argv[]){
       /*jesli sie udalo polaczyc*/
       if (sfd >= 0){
         mvwprintw(chatwindow, 8, 1, "connected              \n");
+        wrefresh(chatwindow);
         welcome2(nick, pass, room, sfd);/*do wymiany*/
         i = 0;
         do {
           /*czy jest cos na wejsciu?*/
-          if (ERR != (c = wgetch(consolewindow))){
+          while (ERR != (c = wgetch(consolewindow))){
           /*pol.fd = input();
           pol.events = POLLIN;
           pol.revents = 0;
@@ -238,6 +245,7 @@ int main(int argc, char *argv[]){
                 break;
               }
             }
+          wnoutrefresh(consolewindow);
           
           /*czy jest cos na gniezdzie?*/
           pol.fd = sfd;
@@ -251,13 +259,13 @@ int main(int argc, char *argv[]){
               prt = NULL;
               processpart(ppart, sfd);
               freepart(&ppart);      
-              window_print();/*
-              printnicks(nicks);*/
+              window_print();
               }
             }
 
           /*czy mamy cos do wyslania?*/
           sendnext(sfd);
+          doupdate();
           } while (run);
         
         freepart(&tosend);
