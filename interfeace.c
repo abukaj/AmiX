@@ -16,6 +16,7 @@ WINDOW *titlewindow = NULL;
 WINDOW *consolewindow = NULL;
 static int inlen = 0;
 static int ptr = 0;
+static int len = 0;
 static char buffer[BUFFSIZE];
 
 int nicklist_x;
@@ -75,7 +76,7 @@ void window_init(){
 
 void window_resize()
   {
-  int i;
+/*  int i;*/
   getmaxyx(stdscr, scr_rows, scr_cols);
   
   window_h = scr_rows - WINDOW_Y - CONSOLE_H;
@@ -110,14 +111,15 @@ void window_resize()
   wresize(consolewindow, CONSOLE_H, console_w);
   wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
 
-  wmove(consolewindow, 1, 1);
+/*  wmove(consolewindow, 1, 1);
   for (i = 1; i < console_w - 1; i++)
     {
     waddch(consolewindow, ' ');
     }
   mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
   wmove(consolewindow, 1, ptr + 1);
-
+*/
+  console_update();
   wnoutrefresh(consolewindow);
   }
 
@@ -468,157 +470,6 @@ char *readtoken(char *string){
           }
         break;
       }
-    
-    /*
-    if (NULL != (result = calloc(1, sizeof(char)))){
-      *result = '\0';
-      while (mode != 1)
-        {
-        c = string[ptr++];
-        switch (mode){
-          case 0:
-            switch (c)
-              {
-              case '\0':
-                done = -1;
-                mode = 1;
-                break;
-              case '<':
-                mode = 2;
-                if (NULL != (tmp = realloc(result, len + 2)))
-                  {
-                  result = tmp;
-                  result[len++] = c;
-                  result[len] = '\0';
-                  }
-                else 
-                  {
-                  printw("ERROR: unable to allocate enogh memory for letter: %c\n", c);
-                  }
-                break;
-              case ' ':
-              case '\n':
-              case '\t':
-              case '\r':
-              case '\f':
-              case '\b':
-              case '\a':
-                break;
-              case '&':
-                if (link)
-                  {
-                  mode = 4;
-                  }
-                else  
-                  {
-                  mode = 3;
-                  }
-                if (NULL != (tmp = realloc(result, len + 2))){
-                  result = tmp;
-                  result[len++] = c;
-                  result[len] = '\0';
-                  }
-                else 
-                  {
-                  printw("ERROR: unable to allocate enogh memory for letter: %c\n", c);
-                  }
-                break;
-              default:
-                mode = 4;
-                if (NULL != (tmp = realloc(result, len + 2)))
-                  {
-                  result = tmp;
-                  result[len++] = c;
-                  result[len] = '\0';
-                  }
-                else 
-                  {
-                  printw("ERROR: unable to allocate enogh memory for letter: %c\n", c);
-                  }
-                break;
-              }
-            break;
-          case 2:
-            if (NULL != (tmp = realloc(result, len + 2)))
-              {
-              result = tmp;
-              result[len++] = c;
-              result[len] = '\0';
-              }
-            else {
-              printw("ERROR: unable to allocate enogh memory for letter: %c\n", c);
-              }
-            if (c == '>')
-              {
-              if (0 == ncsstrncmp(result, "<a", 2))
-                {
-                link = -1;  
-                }
-              if (0 == ncsstrcmp(result, "</a>"))
-                {
-                link = 0;
-                }
-              mode = 1;
-              }
-            if (c == '\0')
-              {
-              mode = 1;
-              done = -1;
-              }
-            break;
-          case 3:
-            if (NULL != (tmp = realloc(result, len + 2)))
-              {
-              result = tmp;
-              result[len++] = c;
-              result[len] = '\0';
-              }
-            else 
-              {
-              printw("ERROR: unable to allocate enogh memory for letter: %c\n", c);
-              }
-            if (c == ';')
-              {
-              mode = 1;
-              }
-            if (c == '\0')
-              {
-              mode = 1;
-              done = -1;
-              }
-            break;
-          case 4:
-            if (c == '<' || c == '&')
-              {
-              mode = 1;
-              ptr--;
-              }
-            else 
-              {
-              if (NULL != (tmp = realloc(result, len + 2)))
-                {
-                result = tmp;
-                result[len++] = c;
-                result[len] = '\0';
-                }
-              else 
-                {
-                printw("ERROR: unable to allocate enogh memory for letter: %c\n", c);
-                }
-              if (isspace(c))
-                {
-                mode = 1;
-                }
-              if (c == '\0')
-                {
-                mode = 1;
-                done = -1;
-                }
-              }
-            break;
-          }
-        }
-      }*/
     }
  
   return result;
@@ -756,7 +607,12 @@ void printpol(char *string)
 char *console_input(){
   int c;
   int j;
-  static int len = 0;
+  int updated = 0;
+  int tptr;
+  int tlen = 0;
+  int delta;
+  const char *nick = NULL;
+  
   while (ERR != (c = wgetch(consolewindow))){
     switch (c){
       case '\n':
@@ -769,7 +625,7 @@ char *console_input(){
           }
         ptr = 0;
         len = 0;
-        wmove(consolewindow, 1, 1);
+        console_update();
         return (char *) buffer;
         break;
       case KEY_BACKSPACE:
@@ -782,14 +638,16 @@ char *console_input(){
             }
           ptr--;
           len--;
-          buffer[len] = '\0';
+          buffer[len] = '\0';/*
           wmove(consolewindow, 1, 1);
           for (j = 1; j < console_w - 1; j++)
             {
             waddch(consolewindow, ' ');
             }
           mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
-          wmove(consolewindow, 1, 1 + ptr);
+          wmove(consolewindow, 1, 1 + ptr);*/
+          updated = -1;
+          /*console_update();*/
           }
         break;
       case KEY_DL:
@@ -801,14 +659,16 @@ char *console_input(){
             buffer[j] = buffer[j + 1];
             }
           len--;
-          buffer[len] = '\0';
+          buffer[len] = '\0';/*
           wmove(consolewindow, 1, 1);
           for (j = 1; j < console_w - 1; j++)
             {
             waddch(consolewindow, ' ');
             }
           mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
-          wmove(consolewindow, 1, 1 + ptr);
+          wmove(consolewindow, 1, 1 + ptr);*/
+          updated = -1;
+          /*console_update();*/
           }
         break;
       case KEY_LEFT:
@@ -828,6 +688,35 @@ char *console_input(){
           wmove(consolewindow, 1, 1 + ptr);
           }
         break;
+      case '\t':
+        tptr = ptr - 1;
+        tlen = 1;
+        while (tptr >= 0 && buffer[tptr] != ' ')
+          {
+          tptr--;
+          tlen++;
+          }
+        tptr++;/*korekta dlugosci*/
+        tlen--;
+        if (NULL != (nick = getnickbyprefix(buffer + tptr, tlen, nicks)))
+          {
+          delta = strlen(nick) - tlen;
+          if (len + delta < BUFFSIZE)
+            {
+            for (j = len + delta; j >= ptr + delta; j--)
+              {
+              buffer[j] = buffer[j - delta];
+              }
+            for (j = tlen; j < tlen + delta; j++)
+              {
+              buffer[ptr++] = nick[j];
+              len++;
+              }
+            updated = -1;
+            }
+          nick = NULL;
+          }
+        break;
       default:
         if (ptr < BUFFSIZE - 1 && len < BUFFSIZE - 1)
           {
@@ -835,11 +724,6 @@ char *console_input(){
             {
             mvwprintw(consolewindow, 0, 1, "0x%X %c", c, c);
             }
-          /*
-          if (ptr < console_w - 2)
-            {
-            mvwaddch(consolewindow, 1, 1 + ptr, c);
-            }*/
           for (j = len; j > ptr; j--)
             {
             buffer[j] = buffer[j - 1];
@@ -847,16 +731,40 @@ char *console_input(){
           buffer[ptr++] = c;
           len++;
           buffer[len] = '\0';
+          /*
           wmove(consolewindow, 1, 1);
           for (j = 1; j < console_w - 1; j++)
             {
             waddch(consolewindow, ' ');
             }
           mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
-          wmove(consolewindow, 1, ptr + 1);                    
+          wmove(consolewindow, 1, ptr + 1); */      
+          /*console_update();*/
+          updated = -1;
           }
         break;
       }
     }
+  if (updated)
+    {
+    console_update();
+    }
   return NULL;
+  }
+
+
+void console_update()
+  {
+  int i = 0;
+  
+  wmove(consolewindow, 1, 1);
+  while (i < len && i < console_w - 2)
+    {
+    waddch(consolewindow, buffer[i++]);
+    }
+  while (i++ < console_w - 2)
+    {
+    waddch(consolewindow, ' ');
+    }
+  wmove(consolewindow, 1, ptr + 1);
   }

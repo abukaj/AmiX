@@ -65,3 +65,4 @@ void addstringnode(stringnode **, char *);*/
 void printtitle();
 void printpol(char *);
 char *console_input();
+void console_update();

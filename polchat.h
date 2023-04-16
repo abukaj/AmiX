@@ -12,6 +12,7 @@ void addnick(char *, short, short);
 void remnick(char *);
 void printnicks();
 void freenicklist(nicknode **);
+const char *getnickbyprefix(char *, int, nicknode *);
 
 extern int debug;
 extern int verbose;

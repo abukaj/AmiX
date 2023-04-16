@@ -112,7 +112,7 @@ int main(int argc, char *argv[]){
 
     init_pair(1, COLOR_YELLOW, COLOR_BLUE);
     wattron(chatwindow, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 6\n");
+    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 7\n");
     wattroff(chatwindow, COLOR_PAIR(1) | A_BOLD);
     wprintw(chatwindow, " Linuxowy klient Polchatu\n");
     wprintw(chatwindow, " By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)\n");
@@ -184,18 +184,30 @@ int main(int argc, char *argv[]){
             else if (0 == ncsstrncmp(inputstring, "/debugon ", 9) || 0 == ncsstrncmp(inputstring, "/debugon", 9))
               {
               debug = -1;
+              window_put("DEBUG MODE ON");
+              window_nl();
+              wnoutrefresh(chatwindow);
               }
             else if (0 == ncsstrncmp(inputstring, "/debugoff ", 10) || 0 == ncsstrncmp(inputstring, "/debugoff", 10))
               {
               debug = 0;
+              window_put("DEBUG MODE OFF");
+              window_nl();
+              wnoutrefresh(chatwindow);
               }
             else if (0 == ncsstrncmp(inputstring, "/verboseon ", 11) || 0 == ncsstrncmp(inputstring, "/verboseon", 11))
               {
               verbose = -1;
+              window_put("VERBOSE MODE ON");
+              window_nl();
+              wnoutrefresh(chatwindow);
               }
             else if (0 == ncsstrncmp(inputstring, "/verboseoff ", 12) || 0 == ncsstrncmp(inputstring, "/verboseoff", 12))
               {
               verbose = 0;
+              window_put("VERBOSE MODE OFF");
+              wnoutrefresh(chatwindow);
+              window_nl();
               }
             else
               {

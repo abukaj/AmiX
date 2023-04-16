@@ -165,3 +165,19 @@ void freenicklist(nicknode **nicklist){
   }
 
 
+const char *getnickbyprefix(char *prefix, int len, nicknode *node)
+  {
+  if (NULL != node)
+    {
+    if (0 == ncsstrncmp(prefix, node->nick, len))
+      {
+      return node->nick;
+      }
+    else
+      {
+      return getnickbyprefix(prefix, len, node->next);
+      }
+    }
+  return NULL;
+  }
+
