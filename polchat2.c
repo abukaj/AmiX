@@ -204,6 +204,90 @@ unsigned char *welcome2(unsigned char *nick, unsigned char *pass,
   }
 
 
+part *welcome3(unsigned char *nick, unsigned char *pass,
+               unsigned char *room, unsigned char *roompass)
+  {
+  unsigned char *nw = NULL, *pw = NULL, *rw = NULL, *rpw = NULL;
+  unsigned char *p1 = NULL, *p2 = NULL, *p3 = NULL, *klient = NULL;
+  part *result = NULL;
+  
+  if (NULL != (nw = calloc(strlen(nick) + 1, sizeof(char))))
+    {
+    strcpy(nw, nick);
+    if (NULL != (pw = calloc(strlen(pass) + 1, sizeof(char))))
+      {
+      strcpy(pw, pass);
+      if (NULL != (rw = calloc(strlen(room) + 1, sizeof(char))))
+        {
+        strcpy(rw, room);
+        if (NULL != (p1 =calloc(strlen("http://www.polchat.pl/chat/room.phtml/?room=AmiX") + 1, sizeof(char))))
+          {
+          strcpy(p1, "http://www.polchat.pl/chat/room.phtml/?room=AmiX");
+          if (NULL != (p2 = calloc(strlen("polchat.pl") + 1, sizeof(char))))
+            {
+            strcpy(p2, "polchat.pl");  
+            if (NULL != (p3 = calloc(strlen("nlst=1&nnum=1&jlmsg=true&ignprv=false") + 1, sizeof(char))))
+              {
+              strcpy(p3, "nlst=1&nnum=1&jlmsg=true&ignprv=false");
+              if (NULL != (klient = calloc(strlen($VER) + 1, sizeof(char))))
+                {
+                strcpy(klient, $VER);
+                if (NULL != (rpw = calloc(strlen(roompass) + 1, sizeof(char))))
+                  {
+                  strcpy(rpw, roompass);
+                  if (NULL != (result = calloc(1, sizeof(part))))
+                    {
+                    result->headerlen = 1;
+                    result->nstrings = 8;                      
+                    if (NULL != (result->header = calloc(1, sizeof(short))))
+                      {
+                      result->header[0] = 0x0578;
+                      if (NULL != (result->strings = calloc(8, sizeof(char *))))
+                        {
+                        result->strings[0] = nw;
+                        result->strings[1] = pw;
+                        result->strings[2] = rpw;
+                        result->strings[3] = rw;
+                        result->strings[4] = p1;
+                        result->strings[5] = p2;
+                        result->strings[6] = p3;
+                        result->strings[7] = klient;
+                        }
+                      else
+                        {
+                        free(result->header);
+                        free(result);
+                        result = NULL;    
+                        }
+                      }
+                    else
+                      {
+                      free(result);
+                      result = NULL;
+                      }
+                    }                  
+                  if (result == NULL) free(rpw);
+                  }
+                if (result == NULL) free(klient);
+                }
+              if (result == NULL) free(p3);
+              }
+            if (result == NULL) free(p2);
+            }
+          if (result == NULL) free(p1);
+          }
+        if (result == NULL) free(rw);
+        }
+      if (result == NULL) free(pw);
+      }
+    if (result == NULL) free(nw);
+    }
+  return result;
+  }
+
+
+
+
 void processpart(part *ppart, int sfd)
   {
   static unsigned char echo[8] = {0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00};

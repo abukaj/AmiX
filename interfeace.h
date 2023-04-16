@@ -46,6 +46,8 @@ extern int scr_cols;
 extern int window_h;
 extern int window_w;
 
+extern int useattr;
+
 void window_init();
 void window_nl();
 void window_done();
@@ -56,6 +58,8 @@ void window_putforce(char *);
 void window_print();
 void window_colouron(int);
 void window_colouroff();
+void window_attron(int);
+void window_attroff(int);
 
 void window_resize();
 void window_redraw();

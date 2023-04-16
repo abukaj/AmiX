@@ -30,6 +30,7 @@ int scr_cols;
 int window_h;
 int window_w;
 
+int useattr = -1;
 
 int transformrgb(int red, int green, int blue)
   {
@@ -58,18 +59,37 @@ void window_colouron(int c)
 /*  window_put("SETTING COLOUR");*/
   if (colour)
     {
-    wattroff(chatwindow, COLOR_PAIR(colour));
+    window_attroff(COLOR_PAIR(colour));
     }
   colour = c;
-  wattron(chatwindow, COLOR_PAIR(c));
+  window_attron(COLOR_PAIR(c));
   }
+
 
 void window_colouroff()
   {
   if (colour)
     {
-    wattroff(chatwindow, COLOR_PAIR(colour));
+    window_attroff(COLOR_PAIR(colour));
     colour = 0;
+    }
+  }
+
+
+void window_attron(int attr)
+  {
+  if (useattr)
+    {
+    wattron(chatwindow, attr);
+    }
+  }
+
+
+void window_attroff(int attr)
+  {
+  if (useattr)
+    {
+    wattroff(chatwindow, attr);
     }
   }
 
@@ -308,27 +328,27 @@ void window_put(char *word){
       }
     else if (0 == ncsstrcmp(word, "<b>"))
       {
-      wattron(chatwindow, A_BOLD);
+      window_attron(A_BOLD);
       }
     else if (0 == ncsstrcmp(word, "</b>"))
       {
-      wattroff(chatwindow, A_BOLD);
+      window_attroff(A_BOLD);
       }
     else if (0 == ncsstrcmp(word, "<u>"))
       {
-      wattron(chatwindow, A_UNDERLINE);
+      window_attron(A_UNDERLINE);
       }
     else if (0 == ncsstrcmp(word, "</u>"))
       {
-      wattroff(chatwindow, A_UNDERLINE);
+      window_attroff(A_UNDERLINE);
       }
     else if (0 == ncsstrcmp(word, "<blink>"))
       {
-      wattron(chatwindow, A_BLINK);
+      window_attron(A_BLINK);
       }
     else if (0 == ncsstrcmp(word, "</blink>"))
       {
-      wattroff(chatwindow, A_BLINK);
+      window_attroff(A_BLINK);
       }
     else
       {

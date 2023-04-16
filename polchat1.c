@@ -44,7 +44,8 @@ unsigned char *unwrapstring(unsigned char *string){
 
   len = string[0] * 256 + string[1];
   if (NULL != (tmp = calloc(len + 1, sizeof(char)))){
-    strcpy(tmp, string + 2);
+    strncpy(tmp, string + 2, len);
+    tmp[len] = '\0';
     result = utf82isostring(tmp);
     free(tmp);
     }
@@ -60,24 +61,29 @@ unsigned char *readpart(int sfd){
   unsigned char buffer[4];
   unsigned char *result = NULL;
 
-  if (connected && (0 != read(sfd, buffer, 4)))
+  if (connected)
     {
-    if (NULL != (result = calloc(partlen(buffer), sizeof(char)))){
-      result[0] = buffer[0];
-      result[1] = buffer[1];
-      result[2] = buffer[2];
-      result[3] = buffer[3];
-      if (0 == read(sfd, result + 4, partlen(buffer) - 4))
-        {
-        connected = 0;
-        close(sfd);
+    if (0 < read(sfd, buffer, 4))
+      {
+      if (NULL != (result = calloc(partlen(buffer), sizeof(char)))){
+        result[0] = buffer[0];
+        result[1] = buffer[1];
+        result[2] = buffer[2];
+        result[3] = buffer[3];
+        if (0 >= read(sfd, result + 4, partlen(buffer) - 4))
+          {
+          connected = 0;
+          close(sfd);
+          free(result);
+          result = NULL;
+          }
         }
       }
-    }
-  else
-    {
-    connected = 0;
-    close(sfd);
+    else
+      {
+      connected = 0;
+      close(sfd);
+      }
     }
   return result;
   }

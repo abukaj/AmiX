@@ -42,8 +42,13 @@ int main(int argc, char *argv[])
     {
     if (0 == strcmp(argv[i], "?"))
       {
-      printf("SERVER/K PORT/K/N ROOM/K NICK/K PASSWORD/K DEBUG/S VERBOSE/S BELL/S PERIOD/K/N NICKLISTWIDTH/K/N\n");
+      printf("SERVER/K PORT/K/N ROOM/K NICK/K PASSWORD/K DEBUG/S VERBOSE/S BELL/S"
+             " PERIOD/K/N NICKLISTWIDTH/K/N NOATTR/K\n");
       run = 0;
+      }
+    else if (0 == strcmp(argv[i], "-noattr") || 0 == ncsstrcmp(argv[i], "NOATTR"))
+      {
+      useattr = 0;
       }
     else if (0 == strcmp(argv[i], "-debug") || 0 == ncsstrcmp(argv[i], "DEBUG"))
       {
@@ -222,14 +227,19 @@ int main(int argc, char *argv[])
             window_put(" connected");
             window_nl();
             wrefresh(chatwindow);
+
+            freepart(&tosend);
             if (roomname != NULL)
               {
-              welcome2(nick, pass, roomname, sfd);/*do wymiany*/
+              ppart = welcome3(nick, pass, roomname, "");
+              /*welcome2(nick, pass, roomname, sfd);*/
               }
             else
               {
-              welcome2(nick, pass, room, sfd);/*do wymiany*/
+              ppart = welcome3(nick, pass, room, "");
+              /*welcome2(nick, pass, roomname, sfd);*/
               }
+            putmsg(ppart);
             }
           else
             {

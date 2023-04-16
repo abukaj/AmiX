@@ -128,7 +128,7 @@ void printnicks()
   while (NULL != nicklist && i < nicklist_h - 1)
     {
     colour = colourt[(nicklist->status & 0x0070) >> 4];
-    if (colour != COLOR_WHITE && colour != COLOR_BLACK)
+    if (colour != COLOR_WHITE && colour != COLOR_BLACK && useattr)
       {
       wattron(nickwindow, COLOR_PAIR(colour) | A_BOLD);
       }
@@ -141,7 +141,7 @@ void printnicks()
       {
       mvwprintw(nickwindow, i, 1, "   ");
       }
-    if (nicklist->status & 0x0001)
+    if ((nicklist->status & 0x0001) && useattr)
       {
       wattron(nickwindow, A_UNDERLINE);
       }
@@ -150,14 +150,17 @@ void printnicks()
       {
       mvwaddstr(nickwindow, i, NICKLIST_WIDTH - 4, "...");
       }
-    wattroff(nickwindow, A_UNDERLINE);
+    if ((nicklist->status & 0x0001) && useattr)
+      {
+      wattroff(nickwindow, A_UNDERLINE);
+      }
     for (j = strlen(nicklist->nick) + 4; j < NICKLIST_WIDTH - 1; j++){
       mvwaddch(nickwindow, i, j, ' ');
       }
     i++;
     nicklist = nicklist->next;
     
-    if (colour != COLOR_WHITE && colour != COLOR_BLACK)
+    if (colour != COLOR_WHITE && colour != COLOR_BLACK && useattr)
       {
       wattroff(nickwindow, COLOR_PAIR(colour) | A_BOLD);
       }

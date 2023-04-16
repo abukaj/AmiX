@@ -5,6 +5,8 @@ unsigned char *welcome(unsigned char *, unsigned char *,
                            unsigned char *, int);
 unsigned char *welcome2(unsigned char *, unsigned char *,
                            unsigned char *, int);
+
+part *welcome3(unsigned char *, unsigned char *, unsigned char *, unsigned char *);
 part *makemsg(unsigned char *);
 void verbosedump(part *);
 void processpart(part *, int);
