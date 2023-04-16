@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
         }                              
       }
     else
-      printf("%s - unknown option", argv[i]);
+      printf("%s - unknown option\n", argv[i]);
     }
 
   if (host == NULL)

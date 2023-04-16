@@ -830,7 +830,7 @@ void console_update()
   wmove(consolewindow, 1, 1);
   while (i + d < len && i < console_w - 2)
     {
-    waddch(consolewindow, buffer[d + i++]);
+    waddch(consolewindow, (unsigned char) buffer[d + i++]);
     }
   while (i++ < console_w - 2)
     {
