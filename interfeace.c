@@ -5,7 +5,7 @@
 
 #include "interfeace.h"
 #include "polchat.h"
-#include "polchat2.h" 
+/*#include "polchat2.h" */
 /*przeniesc printpol*/
 #include "temp.h"
 
@@ -15,6 +15,8 @@ WINDOW *nickwindow = NULL;
 WINDOW *titlewindow = NULL;
 WINDOW *consolewindow = NULL;
 static int inlen = 0;
+static int ptr = 0;
+static char buffer[BUFFSIZE];
 
 int nicklist_x;
 int nicklist_h;
@@ -66,12 +68,14 @@ void window_init(){
   console_w = scr_cols - CONSOLE_X - NICKLIST_WIDTH;
   consolewindow = newwin(CONSOLE_H, console_w, console_y, CONSOLE_X);
   wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
+  wmove(consolewindow, 1, 1);
   wrefresh(consolewindow);
   }
 
 
 void window_resize()
   {
+  int i;
   getmaxyx(stdscr, scr_rows, scr_cols);
   
   window_h = scr_rows - WINDOW_Y - CONSOLE_H;
@@ -104,7 +108,16 @@ void window_resize()
   console_w = scr_cols - CONSOLE_X - NICKLIST_WIDTH;
   mvwin(consolewindow, console_y, CONSOLE_X);
   wresize(consolewindow, CONSOLE_H, console_w);
-  wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');  
+  wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
+
+  wmove(consolewindow, 1, 1);
+  for (i = 1; i < console_w - 1; i++)
+    {
+    waddch(consolewindow, ' ');
+    }
+  mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
+  wmove(consolewindow, 1, ptr + 1);
+
   wnoutrefresh(consolewindow);
   }
 
@@ -743,9 +756,7 @@ void printpol(char *string)
 char *console_input(){
   int c;
   int j;
-  static int i = 0;
   static int len = 0;
-  static char buffer[BUFFSIZE];
   while (ERR != (c = wgetch(consolewindow))){
     switch (c){
       case '\n':
@@ -756,19 +767,20 @@ char *console_input(){
           {
           waddch(consolewindow, ' ');
           }
-        i = 0;
+        ptr = 0;
         len = 0;
+        wmove(consolewindow, 1, 1);
         return (char *) buffer;
         break;
       case KEY_BACKSPACE:
       case 0x007F: /*backspace mapuje na DEL?*/
-        if (i > 0)
+        if (ptr > 0)
           {
-          for (j = i; j <= len; j++)
+          for (j = ptr; j <= len; j++)
             {
             buffer[j - 1] = buffer[j];
             }
-          i--;
+          ptr--;
           len--;
           buffer[len] = '\0';
           wmove(consolewindow, 1, 1);
@@ -777,14 +789,14 @@ char *console_input(){
             waddch(consolewindow, ' ');
             }
           mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
-          wmove(consolewindow, 1, 1 + i);
+          wmove(consolewindow, 1, 1 + ptr);
           }
         break;
       case KEY_DL:
       case KEY_DC:
-        if (i > 0 && i < len)
+        if (ptr >= 0 && ptr < len)
           {
-          for (j = i; j < len; j++)
+          for (j = ptr; j < len; j++)
             {
             buffer[j] = buffer[j + 1];
             }
@@ -796,43 +808,43 @@ char *console_input(){
             waddch(consolewindow, ' ');
             }
           mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
-          wmove(consolewindow, 1, 1 + i);
+          wmove(consolewindow, 1, 1 + ptr);
           }
         break;
       case KEY_LEFT:
-        if (i > 0)
+        if (ptr > 0)
           {
-          i--;
-          wmove(consolewindow, 1, 1 + i);
+          ptr--;
+          wmove(consolewindow, 1, 1 + ptr);
           }
         break;
       case KEY_RESIZE:  
         window_resize();
         break;
       case KEY_RIGHT:
-        if (i < BUFFSIZE - 1 && i < len)
+        if (ptr < BUFFSIZE - 1 && ptr < len)
           {
-          i++;
-          wmove(consolewindow, 1, 1 + i);
+          ptr++;
+          wmove(consolewindow, 1, 1 + ptr);
           }
         break;
       default:
-        if (i < BUFFSIZE - 1 && len < BUFFSIZE - 1)
+        if (ptr < BUFFSIZE - 1 && len < BUFFSIZE - 1)
           {
           if (debug)
             {
             mvwprintw(consolewindow, 0, 1, "0x%X %c", c, c);
             }
           /*
-          if (i < console_w - 2)
+          if (ptr < console_w - 2)
             {
-            mvwaddch(consolewindow, 1, 1 + i, c);
+            mvwaddch(consolewindow, 1, 1 + ptr, c);
             }*/
-          for (j = len; j > i; j--)
+          for (j = len; j > ptr; j--)
             {
             buffer[j] = buffer[j - 1];
             }
-          buffer[i++] = c;
+          buffer[ptr++] = c;
           len++;
           buffer[len] = '\0';
           wmove(consolewindow, 1, 1);
@@ -841,7 +853,7 @@ char *console_input(){
             waddch(consolewindow, ' ');
             }
           mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
-          wmove(consolewindow, 1, i + 1);                    
+          wmove(consolewindow, 1, ptr + 1);                    
           }
         break;
       }

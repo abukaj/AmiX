@@ -228,7 +228,7 @@ void processpart(part *ppart, int sfd)
           if (debug)
             {
             window_put("Unknown part header");
-            window_put("\n");
+            window_nl();
             if (!verbose)
               {
               verbosedump(ppart);
@@ -245,7 +245,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -259,7 +259,7 @@ void processpart(part *ppart, int sfd)
             if (bell)
               {
               window_put("\a");
-              window_put("\n");
+              window_nl();
               }
             if (!verbose)
               {
@@ -271,7 +271,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -283,7 +283,7 @@ void processpart(part *ppart, int sfd)
           if (headerlen == 0x0001 && nstrings == 0x0002)
             {
             window_put("<blink>");
-            window_put("WIADOMOSC PRYWATNA:");
+            window_put("WIADOMOSC PRYWATNA: ");
             window_put("</blink>");
             if (!verbose)
               {
@@ -305,7 +305,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -320,7 +320,7 @@ void processpart(part *ppart, int sfd)
               {
               window_put("CLIENT CONFIG: ");
               window_put(ppart->strings[0]);
-              window_put("\n");
+              window_nl();
               }
             }
           else
@@ -328,7 +328,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -408,20 +408,13 @@ void processpart(part *ppart, int sfd)
               }
             }
           break;
-        case 0x026a:/*I have absolutly no idea - chyba ze4 wlazlem jako ja???*/
+        case 0x026a:/*I have absolutly no idea - chyba ze wlazlem jako ja???*/
           if (headerlen == 0x0002 && nstrings == 0x0001)
             {
-            if (verbose || debug)
+            if ((verbose || debug) && ppart->header[1] != 0x0004)
               {
-              window_put(" 0004 ??? ");
-              window_puthex(ppart->header[1], 4);/*
-              buffer[4] = inttohex(ppart->header[1] & 0x0F);
-              buffer[3] = inttohex((ppart->header[1] >> 4) & 0x0F);
-              buffer[2] = inttohex((ppart->header[1] >> 8) & 0x0F);
-              buffer[1] = inttohex((ppart->header[1] >> 12) & 0x0F);
-              buffer[0] = ' ';
-              buffer[5] = '\0';
-              window_put(buffer);*/
+              window_put(" 0004 != ");
+              window_puthex(ppart->header[1], 4);
               window_nl();
               window_put(" NICK:");
               window_nl();
@@ -437,7 +430,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -471,7 +464,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -507,7 +500,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -521,7 +514,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -542,7 +535,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -565,7 +558,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -587,7 +580,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
               {
               window_put("Unknown part header");
-              window_put("\n");
+              window_nl();
               if (!verbose)
                 {
                 verbosedump(ppart);
@@ -599,7 +592,7 @@ void processpart(part *ppart, int sfd)
           if (debug)
             {
             window_put("Unknown part header");
-            window_put("\n");
+            window_nl();
             if (!verbose)
               {
               verbosedump(ppart);
@@ -613,7 +606,7 @@ void processpart(part *ppart, int sfd)
       if (debug)
         {
         window_put("Unknown part header");
-        window_put("\n");
+        window_nl();
         if (!verbose)
           {
           verbosedump(ppart);
@@ -689,20 +682,12 @@ part *makemsg(unsigned char *string)
 void verbosedump(part *dump)
   {
   int i;
-  /*static char buffer[6];*/
   
   if (dump != NULL){
     window_put("HEADER:");
     window_nl();
     for (i = 0; i < dump->headerlen; i++)
-      {/*
-      buffer[3] = inttohex(dump->header[i] & 0x0F);
-      buffer[2] = inttohex((dump->header[i] >> 4) & 0x0F);
-      buffer[1] = inttohex((dump->header[i] >> 8) & 0x0F);
-      buffer[0] = inttohex((dump->header[i] >> 12) & 0x0F);
-      buffer[4] = ' ';
-      buffer[5] = '\0';
-      window_put(buffer);*/
+      {
       window_puthex(dump->header[i], 4);
       window_putchar(' ');
       }

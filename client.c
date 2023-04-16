@@ -112,7 +112,7 @@ int main(int argc, char *argv[]){
 
     init_pair(1, COLOR_YELLOW, COLOR_BLUE);
     wattron(chatwindow, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 5\n");
+    mvwprintw(chatwindow, 1, 0, " AmiX v. 0.2b rev 6\n");
     wattroff(chatwindow, COLOR_PAIR(1) | A_BOLD);
     wprintw(chatwindow, " Linuxowy klient Polchatu\n");
     wprintw(chatwindow, " By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)\n");
@@ -120,6 +120,8 @@ int main(int argc, char *argv[]){
     wprintw(chatwindow, " ze wzgledu na wczesna wersje rozwojowa,\n");
     wprintw(chatwindow, " autor nie ponosi odpowiedzialnosci za ewentualne\n");
     wprintw(chatwindow, " szkody wywolane uzyciem programu w tej wersji\n");
+    wprintw(chatwindow, " Oficjalna strona projektu:\n");
+    wprintw(chatwindow, " http://infomax.net.pl/~kowalskijan/amix/\n");
 
     wnoutrefresh(chatwindow);
     doupdate();
@@ -136,10 +138,10 @@ int main(int argc, char *argv[]){
         serv_addr = (struct sockaddr_in *) res->ai_addr;
         serv_addr->sin_port = htons(port);
         if ((sfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) != -1){
-          mvwprintw(chatwindow, 8, 1, "connecting...\n");
+          mvwprintw(chatwindow, 10, 1, "connecting...\n");
           wrefresh(chatwindow);
           if ((connect(sfd, res->ai_addr, res->ai_addrlen)) < 0){
-            mvwprintw(chatwindow, 9, 1, "Connection failed...\n");
+            mvwprintw(chatwindow, 11, 1, "Connection failed...\n");
             wrefresh(chatwindow);
             close(sfd);
             sfd = -1;
@@ -147,7 +149,7 @@ int main(int argc, char *argv[]){
             }
           }
         else{
-          mvwprintw(chatwindow, 9, 1, "Unable to create socket...\n");
+          mvwprintw(chatwindow, 11, 1, "Unable to create socket...\n");
           wrefresh(chatwindow);
           }
         break;
@@ -155,7 +157,7 @@ int main(int argc, char *argv[]){
 
       /*jesli sie udalo polaczyc*/
       if (sfd >= 0){
-        mvwprintw(chatwindow, 8, 1, "connected              \n");
+        mvwprintw(chatwindow, 10, 1, "connected              \n");
         wrefresh(chatwindow);
         welcome2(nick, pass, room, sfd);/*do wymiany*/
         i = 0;
@@ -172,6 +174,11 @@ int main(int argc, char *argv[]){
               {
               ppart = makemsg("thankfully alert gauchos were able to save the llama "
                               "before it was swept into the blades of the turbine");
+              putmsg(ppart);
+              }
+            else if (0 == ncsstrncmp(inputstring, "/borg ", 6) || 0 == ncsstrncmp(inputstring, "/borg", 6))
+              {
+              ppart = makemsg("I'm cybernetic organism - living tissue over metal endoskeleton.");
               putmsg(ppart);
               }
             else if (0 == ncsstrncmp(inputstring, "/debugon ", 9) || 0 == ncsstrncmp(inputstring, "/debugon", 9))
@@ -233,12 +240,12 @@ int main(int argc, char *argv[]){
         close(sfd);
         }
       else{
-        mvwprintw(chatwindow, 9, 1, "Unable to connect host: %s ...\n", host);
+        mvwprintw(chatwindow, 11, 1, "Unable to connect host: %s ...\n", host);
         }
    
       }                            
     else{
-      mvwprintw(chatwindow, 9, 1, "Resolver problem...\n");
+      mvwprintw(chatwindow, 11, 1, "Resolver problem...\n");
       }
       
     window_done();
