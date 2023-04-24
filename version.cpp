@@ -9,7 +9,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#include "interfeace.h"
+#include "interface.h"
 #include "version.h"
 #include "polchat.h"
 
@@ -176,7 +176,7 @@ char *readline(int sfd)
           {
           if (NULL != string)
             {
-            if (NULL != (tmp = realloc(string, length + 1024)))
+            if (NULL != (tmp = (char *) realloc(string, length + 1024)))
               {
               string = tmp;
               strncpy(string + length, buffer, 1024);
@@ -190,7 +190,7 @@ char *readline(int sfd)
             }
           else
             {
-            if (NULL != (string = calloc(1024, sizeof(char))))
+            if (NULL != (string = (char *) calloc(1024, sizeof(char))))
               {
               strncpy(string, buffer, 1024);
               length = 1024;
@@ -207,7 +207,7 @@ char *readline(int sfd)
     {
     if (NULL != string)
       {
-      if (NULL != (tmp = realloc(string, length + inbuf + 1)))
+      if (NULL != (tmp = (char *) realloc(string, length + inbuf + 1)))
         {
         string = tmp;
         strncpy(string + length, buffer, inbuf);
@@ -222,7 +222,7 @@ char *readline(int sfd)
       }
     else
       {
-      if (NULL != (string = calloc(inbuf + 1, sizeof(char))))
+      if (NULL != (string = (char *) calloc(inbuf + 1, sizeof(char))))
         {
         strncpy(string, buffer, inbuf);
         length = inbuf;

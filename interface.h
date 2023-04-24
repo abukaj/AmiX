@@ -1,6 +1,9 @@
 #include <time.h>
 
-#include <ncurses.h>
+#include <ncursesw/ncurses.h>
+
+#ifndef AMIX_INTERFACE_H
+#define AMIX_INTERFACE_H
 
 #define NICKLIST_X nicklist_x
 #define NICKLIST_Y 0
@@ -88,3 +91,5 @@ int transformrgb(int, int, int);
 void priv(privinfo, char *, char *);
 
 char *input_password();
+
+#endif

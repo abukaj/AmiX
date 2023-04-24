@@ -1,21 +1,69 @@
-/*AmiX - polchat1.h - v. 0.1 - (c) by ABUKAJ (J.M.Kowalski)*/
+/*AmiX - polchat1.h - (c) by ABUKAJ (J.M.Kowalski)*/
 #include <time.h>
 
-struct structtank{
-  long length;
-  char *data;
-  };
+#include <string>
 
-typedef struct structtank tank;
+#include "interface.h"
 
-char *wrapstring(char *);
-int wrapsize(char *);
-char *unwrapstring(char *);
+class wrappedString
+{
+  protected:
+    char * content;
 
+
+  public:
+    //wrappedString(std::string);
+
+    wrappedString(const char *);
+
+    char * c_str();
+
+    ~wrappedString()
+    {
+      delete content;
+    }
+
+    int size()
+    {
+      return wraplength(content);
+    }
+
+    std::string string()
+    {
+      return std::string(content + 2);
+    }
+
+    static int wraplength(const char * str)
+    {
+      return ((unsigned char) str[0]) * 256 + ((unsigned char) str[1]) + 3;
+    }
+};
+
+class tank
+{
+  protected:
+    long length;
+    char *data;
+
+  public:
+    tank(int, char *);
+    ~tank();
+    int send(int);
+    void dump();
+
+    long len()
+    {
+      return length;
+    }
+
+    const char * get()
+    {
+      return data;
+    }
+
+};
+
+char * wrapstring(const char *);
+unsigned int wrapsize(const char *);
+char *unwrapstring(const char*);
 tank *readtank(int);
-void freetank(tank **);
-int sendtank(tank *, int);
-
-void tankdump(tank *);
-
-
