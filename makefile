@@ -2,7 +2,7 @@
 
 CC = gcc
 LD = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -pedantic
 LDFLAGS = -lm -lncurses
 RM = rm -f
 OBJS = client.o polchat.o temp.o polchat1.o polchat2.o interfeace.o version.o
