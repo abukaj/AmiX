@@ -35,3 +35,4 @@ extern int colourop;
 extern char *roomname;
 extern char *roomdesc;
 extern char *pass;
+extern short nickn;

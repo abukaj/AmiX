@@ -28,6 +28,7 @@ int main(int argc, char *argv[])
   char *room = NULL;
   char *nick = NULL;
   char *logfn = NULL;
+  char *reffrom = NULL;
   char ol = -1;
   int port = 14003;
   char *inputstring;
@@ -48,7 +49,7 @@ int main(int argc, char *argv[])
       {
       printf("SERVER/K PORT/K/N ROOM/K NICK/K DEBUG/S VERBOSE/S COREDUMP/S BELL/S"
              " PERIOD/K/N NICKLISTWIDTH/K/N NOATTR/S ASKPASSW/S CHECKUPDATES/S"
-             " LOG/K OLDLOG/K ANTIIDLE/K/N NOHTML/S\n");
+             " LOG/K OLDLOG/K ANTIIDLE/K/N NOHTML/S REFFROM/K\n");
       run = 0;
       }
     else if (0 == strcmp(argv[i], "-help") || 0 == strcmp(argv[i], "--help") || 0 == strcmp(argv[i], "-h"))
@@ -101,6 +102,18 @@ int main(int argc, char *argv[])
     else if (0 == strcmp(argv[i], "-nohtml") || 0 == ncsstrcmp(argv[i], "NOHTML"))
       {
       html = 0;
+      }
+    else if (0 == strcmp(argv[i], "-reffrom") || 0 == ncsstrcmp(argv[i], "REFFROM"))
+      {
+      i++;
+      if (i < argc)
+        {
+        if (reffrom != NULL)
+          {
+          free(reffrom);
+          }
+        reffrom = clonestring(argv[i]);
+        }                              
       }
     else if (0 == strcmp(argv[i], "-server") || 0 == ncsstrcmp(argv[i], "SERVER"))
       {
@@ -212,6 +225,10 @@ int main(int argc, char *argv[])
     {
     room = clonestring("Sekciarz");
     }
+  if (reffrom == NULL)
+    {
+    reffrom = clonestring("http://www.polchat.pl/chat/room.phtml/?room=Sekciarz");
+    }
   if (logfn != NULL)
     {
     if (ol)
@@ -254,7 +271,7 @@ int main(int argc, char *argv[])
     window_nl();
     window_put(" Oficjalna strona projektu:");
     window_nl();
-    window_put(" http://infomax.net.pl/~kowalskijan/amix/");
+    window_put(" http://www.student.ii.uni.wroc.pl/~abukaj/amix/");
     window_nl();
 
     wnoutrefresh(chatwindow);
@@ -346,12 +363,14 @@ int main(int argc, char *argv[])
             freepart(&tosend);
             if (roomname != NULL)
               {
-              ppart = welcome3(nick, pass, roomname, "");
+              /*ppart = welcome3(nick, pass, roomname, "");*/
+              ppart = welcome(nick, pass, roomname, "", reffrom);
               /*welcome2(nick, pass, roomname, sfd);*/
               }
             else
               {
-              ppart = welcome3(nick, pass, room, "");
+              /*ppart = welcome3(nick, pass, room, "");*/
+              ppart = welcome(nick, pass, room, "", reffrom);
               /*welcome2(nick, pass, roomname, sfd);*/
               }
             putmsg(ppart);
@@ -544,6 +563,10 @@ int main(int argc, char *argv[])
   if (room != NULL)
     {
     free(room);
+    }
+  if (reffrom != NULL)
+    {
+    free(reffrom);
     }
   if (logfn != NULL)
     {

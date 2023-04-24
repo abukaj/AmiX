@@ -27,6 +27,7 @@ char *roomname = NULL;
 char *roomdesc = NULL;
 char *pass = NULL;
 FILE *logfh = NULL;
+short nickn;
 
 int colourt[8] = {COLOR_BLACK, COLOR_BLUE, COLOR_CYAN, COLOR_MAGENTA, COLOR_YELLOW, COLOR_BLACK, COLOR_CYAN, COLOR_BLUE};
 int colourop = COLOR_RED;

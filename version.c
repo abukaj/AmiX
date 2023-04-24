@@ -31,11 +31,11 @@ int checkupdate(){
       hints.ai_family = PF_UNSPEC;
       hints.ai_socktype = SOCK_STREAM;
       
-      if (0 == getaddrinfo("infomax.net.pl", "http", &hints, &res)){
+      if (0 == getaddrinfo(AMIXSERVER, "http", &hints, &res)){
         for (tres = res; tres; tres = tres->ai_next){
           if ((sfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) != -1){
             if ((connect(sfd, res->ai_addr, res->ai_addrlen)) < 0){
-              window_put("Connection to infomax.net.pl failed...");
+              window_put("Connection to " AMIXSERVER " failed...");
               window_nl();
              
               close(sfd);
@@ -53,7 +53,7 @@ int checkupdate(){
           }
       
         if (sfd >= 0){
-          strcpy(buffer, "GET /~kowalskijan/amix/version.txt  HTTP/1.1\r\nHost: infomax.net.pl\r\n\r\n");
+          strcpy(buffer, "GET " AMIXPATH "  HTTP/1.1\r\nHost: " AMIXSERVER "\r\n\r\n");
                                                   
           if (write(sfd, buffer, strlen(buffer) + 1))
             {

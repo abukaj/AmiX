@@ -13,6 +13,7 @@ typedef struct structpart part;
 
 part *readpart(int);
 part *parsetank(tank *);
+part *welcome(char *, char *, char *, char *, char *);
 part *welcome3(char *, char *, char *, char *);
 part *makemsg(char *);
 void verbosedump(part *);

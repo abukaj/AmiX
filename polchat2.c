@@ -1,4 +1,4 @@
-/*AmiX - polchat2.c - v. 0.2 - (c) by ABUKAJ (J.M.Kowalski)*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -174,6 +174,81 @@ part *parsetank(tank *prt)
   }
 
 
+part *welcome(char *nick, char *pass, char *room, char *roompass, char *referer)
+  {
+  char *nw = NULL, *pw = NULL, *rw = NULL, *rpw = NULL;
+  char *ref = NULL, *p2 = NULL, *p3 = NULL, *klient = NULL;
+  part *result = NULL;
+
+  if (NULL != (nw = clonestring(nick)))
+    {
+    if (NULL != (pw = clonestring(pass)))
+      {
+      if (NULL != (rw = clonestring(room)))
+        {
+        if (NULL != (ref = clonestring(referer)))
+          {
+          if (NULL != (p2 = clonestring("polchat.pl")))
+            {
+            if (NULL != (p3 = clonestring("nlst=1&nnum=1&jlmsg=true&ignprv=false")))
+              {
+              if (NULL != (klient = clonestring(VER)))
+                {
+                if (NULL != (rpw = clonestring(roompass)))
+                  {
+                  strcpy(rpw, roompass);
+                  if (NULL != (result = calloc(1, sizeof(part))))
+                    {
+                    result->headerlen = 1;
+                    result->nstrings = 8;                      
+                    if (NULL != (result->header = calloc(1, sizeof(short))))
+                      {
+                      result->header[0] = 0x0578;
+                      if (NULL != (result->strings = calloc(8, sizeof(char *))))
+                        {
+                        result->strings[0] = nw;
+                        result->strings[1] = pw;
+                        result->strings[2] = rpw;
+                        result->strings[3] = rw;
+                        result->strings[4] = ref;
+                        result->strings[5] = p2;
+                        result->strings[6] = p3;
+                        result->strings[7] = klient;
+                        }
+                      else
+                        {
+                        free(result->header);
+                        free(result);
+                        result = NULL;    
+                        }
+                      }
+                    else
+                      {
+                      free(result);
+                      result = NULL;
+                      }
+                    }                  
+                  if (result == NULL) free(rpw);
+                  }
+                if (result == NULL) free(klient);
+                }
+              if (result == NULL) free(p3);
+              }
+            if (result == NULL) free(p2);
+            }
+          if (result == NULL) free(ref);
+          }
+        if (result == NULL) free(rw);
+        }
+      if (result == NULL) free(pw);
+      }
+    if (result == NULL) free(nw);
+    }
+  return result;
+  }
+
+
+
 part *welcome3(char *nick, char *pass, char *room, char *roompass)
   {
   char *nw = NULL, *pw = NULL, *rw = NULL, *rpw = NULL;
@@ -189,9 +264,8 @@ part *welcome3(char *nick, char *pass, char *room, char *roompass)
       if (NULL != (rw = calloc(strlen(room) + 1, sizeof(char))))
         {
         strcpy(rw, room);
-        if (NULL != (p1 =calloc(strlen("http://www.polchat.pl/chat/room.phtml/?room=AmiX") + 1, sizeof(char))))
+        if (NULL != (p1 = clonestring("http://www.polchat.pl/chat/room.phtml/?room=Sekciarz")))
           {
-          strcpy(p1, "http://www.polchat.pl/chat/room.phtml/?room=AmiX");
           if (NULL != (p2 = calloc(strlen("polchat.pl") + 1, sizeof(char))))
             {
             strcpy(p2, "polchat.pl");  
@@ -514,6 +588,30 @@ void processpart(part *ppart, int sfd)
               }
             }
           break;
+        case 0x026C: /*#nicks*/
+          if (headerlen == 0x0002 && nstrings == 0x0000)
+            {
+            nickn = ppart->header[1];
+            if (debug)
+              {
+              window_put("W pokoju: 0x");
+              window_puthex(nickn, 4);
+              window_nl();
+              }
+            }
+          else
+            {
+            if (debug)
+              {
+              window_put("Unknown part header");
+              window_nl();
+              if (!verbose)
+                {
+                verbosedump(ppart);
+                }
+              }
+            }
+          break;
         case 0x0271: /*ROOMINFO*/
           if (headerlen == 0x0002 && nstrings == 0x0002)
             {
@@ -636,6 +734,14 @@ void processpart(part *ppart, int sfd)
                 verbosedump(ppart);
                 }
               } 
+            }
+          break;
+        case 0x0591:
+          if (debug && !verbose)
+            {
+            window_put("REKLAMY");
+            window_nl();
+            verbosedump(ppart);
             }
           break;
         case (short) 0xffff:/*MSG -*/
@@ -775,7 +881,8 @@ void verbosedump(part *dump)
       window_putchar(' ');
       }
     window_nl();
-    window_put("STRINGS");
+    window_put("STRINGS ");
+    window_puthex(dump->nstrings, 4);
     window_nl();
     for (i = 0; i < dump->nstrings; i++)
       {
