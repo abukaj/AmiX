@@ -48,6 +48,8 @@ extern int window_w;
 
 extern int useattr;
 
+extern int window_updated;
+
 void window_init();
 void window_nl();
 void window_done();

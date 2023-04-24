@@ -166,14 +166,17 @@ void printnicks()
       }
     
     }
-  while (i < nicklist_h - 1){
+  while (i < nicklist_h - 1)
+    {
     wmove(nickwindow, i, 1);
-    for (j = 2; j < NICKLIST_WIDTH; j++){
+    for (j = 2; j < NICKLIST_WIDTH; j++)
+      {
       waddch(nickwindow, ' ');
       }
     i++;
     }
   wnoutrefresh(nickwindow);
+  window_updated = -1;
   }
 
 
