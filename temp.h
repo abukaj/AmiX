@@ -9,6 +9,6 @@ int ncsstrncmp(char *, char *, int);
 char inttohex(int);
 unsigned char unicode2iso(unsigned int);
 unsigned int iso2unicode(unsigned char);
-unsigned char *iso2utf8string(unsigned char *);
-unsigned char *utf82isostring(unsigned char *);
+char *iso2utf8string(char *);
+char *utf82isostring(char *);
 char *clonestring(char *);

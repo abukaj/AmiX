@@ -13,18 +13,18 @@
 
 part *tosend = NULL;
 
-unsigned char *wrapstring(unsigned char *string){
-  unsigned char *result = NULL;
-  unsigned char *tmp;
+char *wrapstring(char *string){
+  char *result = NULL;
+  char *tmp;
   int len;
 
   if (NULL != (tmp = iso2utf8string(string)))
     {
     len = strlen(tmp);
     if (NULL != (result = calloc(len + 3, sizeof(char)))){
-      result[0] = len / 256;
-      result[1] = len % 256;
-      strcpy(result + 2, tmp);
+      result[0] = (char) (len / 256);
+      result[1] = (char) (len % 256);
+      strncpy(result + 2, tmp, len);
       }
     free(tmp);
     }
@@ -32,17 +32,17 @@ unsigned char *wrapstring(unsigned char *string){
   }
 
 
-int wrapsize(unsigned char * string){
-  return string[0] * 256 + string[1] + 3;
+int wrapsize(char * string){
+  return ((unsigned char) string[0]) * 256 + ((unsigned char) string[1]) + 3;
   }
 
 
-unsigned char *unwrapstring(unsigned char *string){
-  unsigned char *result = NULL;
-  unsigned char *tmp;
+char *unwrapstring(char *string){
+  char *result = NULL;
+  char *tmp;
   int len;
 
-  len = string[0] * 256 + string[1];
+  len = ((unsigned char) string[0]) * 256 + (unsigned char) string[1];
   if (NULL != (tmp = calloc(len + 1, sizeof(char)))){
     strncpy(tmp, string + 2, len);
     tmp[len] = '\0';
@@ -53,13 +53,14 @@ unsigned char *unwrapstring(unsigned char *string){
   }
 
 
-int partlen(unsigned char *part){
-  return ((part[0] * 256 + part[1]) * 256 + part[2]) * 256 + part[3];
+int partlen(char *part){
+  return (((unsigned char) part[0] * 256 + (unsigned char) part[1]) * 256
+              + (unsigned char) part[2]) * 256 + (unsigned char) part[3];
   }
 
-unsigned char *readpart(int sfd){
-  unsigned char buffer[4];
-  unsigned char *result = NULL;
+char *readpart(int sfd){
+  char buffer[4];
+  char *result = NULL;
   int len, tmp, ptr = 0;
 
   if (connected)
@@ -99,7 +100,7 @@ unsigned char *readpart(int sfd){
   }
 
 
-part *parsepart(unsigned char *prt)
+part *parsepart(char *prt)
   {
   int size;
   int ptr;
@@ -114,16 +115,16 @@ part *parsepart(unsigned char *prt)
       size = partlen(prt);
       ptr = 4;
 
-      result->headerlen = prt[ptr++] << 8;
-      result->headerlen |= prt[ptr++];
-      result->nstrings = prt[ptr++] << 8;
-      result->nstrings |= prt[ptr++];
+      result->headerlen = ((unsigned char) prt[ptr++]) << 8;
+      result->headerlen |= (unsigned char) prt[ptr++];
+      result->nstrings = ((unsigned char) prt[ptr++]) << 8;
+      result->nstrings |= (unsigned char) prt[ptr++];
       if (NULL != (result->header = calloc(result->headerlen, sizeof(short))))
         {
         for (i = 0; i < result->headerlen; i++)
           {
-          result->header[i] = prt[ptr++] << 8;
-          result->header[i] |= prt[ptr++];
+          result->header[i] = ((unsigned char) prt[ptr++]) << 8;
+          result->header[i] |= (unsigned char) prt[ptr++];
           }
         if (NULL != (result->strings = calloc(result->nstrings, sizeof(char *))))
           {
@@ -205,7 +206,7 @@ void freepart(part **p)
 
 
 int sendpol(part *ppart, int sfd){
-  unsigned char *result;
+  char *result;
   int size = 8;
   int i;
   int tmp = 0;
@@ -218,28 +219,28 @@ int sendpol(part *ppart, int sfd){
       }
     if (NULL != (result = calloc(size, sizeof(char)))){
       tmp = size;
-      result[3] = tmp % 256;
+      result[3] = (char) (tmp % 256);
       tmp /= 256;
-      result[2] = tmp % 256;
+      result[2] = (char) (tmp % 256);
       tmp /= 256;
-      result[1] = tmp % 256;
+      result[1] = (char) (tmp % 256);
       tmp /= 256;
-      result[0] = tmp;
+      result[0] = (char) tmp;
       ptr += 4;
 
-      result[ptr++] = ppart->headerlen / 256;
-      result[ptr++] = ppart->headerlen % 256;
-      result[ptr++] = ppart->nstrings / 256;
-      result[ptr++] = ppart->nstrings % 256;
+      result[ptr++] = (char) (ppart->headerlen / 256);
+      result[ptr++] = (char) (ppart->headerlen % 256);
+      result[ptr++] = (char) (ppart->nstrings / 256);
+      result[ptr++] = (char) (ppart->nstrings % 256);
    
       for (i = 0; i < ppart->headerlen; i++){
-        result[ptr++] = ppart->header[i] / 256;
-        result[ptr++] = ppart->header[i] % 256;
+        result[ptr++] = (char) (ppart->header[i] / 256);
+        result[ptr++] = (char) (ppart->header[i] % 256);
         }
       for (i = 0; i < ppart->nstrings; i++){
         tmp = strlen(ppart->strings[i]);
-        result[ptr++] = tmp / 256;
-        result[ptr++] = tmp % 256;
+        result[ptr++] = (char) (tmp / 256);
+        result[ptr++] = (char) (tmp % 256);
         strcpy(result + ptr, ppart->strings[i]);
         ptr += tmp;
         result[ptr++] = '\0';
@@ -307,7 +308,7 @@ void sendnext(int sfd)
   }
 
 
-void partdump(unsigned char *part){
+void partdump(char *part){
   int size;
   int i, j;
 
@@ -318,12 +319,12 @@ void partdump(unsigned char *part){
       window_puthex(i, 4);
       for (j = 0; j < 16; j++){
         window_putchar(' ');
-        window_puthex(part[i * 16 + j], 2);
+        window_puthex((unsigned char) part[i * 16 + j], 2);
         }
       window_put("  ");
       for (j = 0; j < 16; j++){
-        if (isgraph(part[i * 16 + j])){
-          window_putchar(part[i * 16 + j]);
+        if (isgraph((unsigned char) part[i * 16 + j])){
+          window_putchar((unsigned char) part[i * 16 + j]);
           }
         else {
           window_putchar('.');
@@ -336,15 +337,15 @@ void partdump(unsigned char *part){
     window_puthex(i, 4);
     for (j = 0; j < size % 16; j++){
       window_putchar(' ');
-      window_puthex(part[i * 16 + j], 2);
+      window_puthex((unsigned char) part[i * 16 + j], 2);
       }
     for (; j < 16; j++){
       window_put("   ");
       }
     window_put("  ");
     for (j = 0; j < size % 16; j++){
-      if (isgraph(part[i * 16 + j])){
-        window_putchar(part[i * 16 + j]);
+      if (isgraph((unsigned char) part[i * 16 + j])){
+        window_putchar((unsigned char) part[i * 16 + j]);
         }
       else {
         window_putchar('.');

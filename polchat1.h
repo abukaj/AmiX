@@ -9,15 +9,15 @@ struct structpart{
 
 typedef struct structpart part;
 
-unsigned char *wrapstring(unsigned char *);
-int wrapsize(unsigned char *);
-unsigned char *unwrapstring(unsigned char *);
-int partlen(unsigned char *);
-unsigned char *readpart(int);
-part *parsepart(unsigned char *);
+char *wrapstring(char *);
+int wrapsize(char *);
+char *unwrapstring(char *);
+int partlen(char *);
+char *readpart(int);
+part *parsepart(char *);
 void freepart(part **);
 int sendpol(part *, int);
-void partdump(unsigned char *);
+void partdump(char *);
 
 void putmsg(part *);
 void sendnext(int);

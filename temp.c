@@ -206,9 +206,9 @@ unsigned char unicode2iso(unsigned int c)
 /*****************************************************************************\
   nie przetwarza poprawnie sekwencji ponaddwubajtowych! - TODO
 \*****************************************************************************/
-unsigned char *iso2utf8string(unsigned char *string)
+char *iso2utf8string(char *string)
   {
-  unsigned char *result = NULL;
+  char *result = NULL;
   int src = 0;
   int dst = 0;
   int len = 0/* 10*/;
@@ -216,7 +216,7 @@ unsigned char *iso2utf8string(unsigned char *string)
   
   if (NULL != string)
     {
-    while ('\0' != (c = iso2unicode(string[src++])))
+    while ('\0' != (c = iso2unicode((unsigned char) string[src++])))
       {
       if (c < 0x0080)
         {
@@ -248,15 +248,15 @@ unsigned char *iso2utf8string(unsigned char *string)
       src = 0;
       while (dst <= len)
         {
-        c = iso2unicode(string[src++]);
+        c = iso2unicode((unsigned char) string[src++]);
         if (c < 0x0080)
           {
-          result[dst++] = c & 0x00FF;
+          result[dst++] = (char) c & 0x00FF;
           }
         else if (c < 0x0800)
           {
-          result[dst++] = 0x00C0 | (0x001F & (c >> 6));
-          result[dst++] = 0x0080 | (0x003F & c);
+          result[dst++] = (char) 0x00C0 | (0x001F & (c >> 6));
+          result[dst++] = (char) 0x0080 | (0x003F & c);
           }
         }
       }
@@ -268,9 +268,9 @@ unsigned char *iso2utf8string(unsigned char *string)
 /*****************************************************************************\
   nie przetwarza poprawnie sekwencji ponaddwubajtowych! - TODO
 \*****************************************************************************/
-unsigned char *utf82isostring(unsigned char *string)
+char *utf82isostring(char *string)
   {
-  unsigned char *result = NULL;
+  char *result = NULL;
   int src = 0;
   int dst = 0;
   int len = 0;
@@ -278,7 +278,7 @@ unsigned char *utf82isostring(unsigned char *string)
   
   if (NULL != string)
     {
-    while ('\0' != (c = string[src++]))
+    while ('\0' != (c = (unsigned char) string[src++]))
       {
       if (c < 0x0080 || c > 0x00BF)
         {
@@ -290,14 +290,14 @@ unsigned char *utf82isostring(unsigned char *string)
       src = 0;
       while (dst <= len)
         {
-        c = string[src++];
+        c = (unsigned char) string[src++];
         if (c < 0x0080)
           {
-          result[dst++] = c & 0x00FF;
+          result[dst++] = (char) c & 0x00FF;
           }
         else if (c < 0x00E0)
           {
-          result[dst++] = unicode2iso(((c & 0x001F) << 6) | (string[src++] & 0x003F));
+          result[dst++] = (char) unicode2iso(((c & 0x001F) << 6) | ((unsigned char) string[src++] & 0x003F));
           }
         }
       }
