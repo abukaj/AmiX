@@ -222,9 +222,8 @@ void window_addstr(char *string){
       {
       window[i] = window[i + 1];
       }
-    if (NULL != (window[MSGSTOREMAX - 1].string = calloc(strlen(string) + 1, sizeof(char))))
+    if (NULL != (window[MSGSTOREMAX - 1].string = remcontrols(utf82isostring(string))))
       {
-      strcpy(window[MSGSTOREMAX - 1].string, string);
       window[MSGSTOREMAX - 1].time = time(NULL);
       strftime(buffer, 14, "%H:%M:%S ", localtime(&(window[MSGSTOREMAX - 1].time)));
       window_put(buffer);
@@ -284,6 +283,7 @@ void window_puthex(unsigned int n, unsigned int len)
   while (len-- > 0)
     {
     waddch(chatwindow, inttohex((n >> (len * 4)) & 0x0F));
+    inlen++;
     }
   }
 
@@ -697,7 +697,7 @@ char *console_input(){
         ptr = 0;
         len = 0;
         console_update();
-        return (char *) buffer;
+        return iso2utf8string((char *) buffer);
         break;
       case KEY_BACKSPACE:
       case 0x007F: /*backspace mapuje na DEL?*/

@@ -27,7 +27,6 @@ int main(int argc, char *argv[])
   char *host = NULL;
   char *room = NULL;
   char *nick = NULL;
-  char *pass = NULL;
   char *logfn = NULL;
   char ol = -1;
   int port = 14003;
@@ -37,14 +36,17 @@ int main(int argc, char *argv[])
   struct sockaddr_in *serv_addr = NULL;
   struct addrinfo hints, *res, *tres;
   struct pollfd pol;
-  char *prt = NULL;
+  /*tank *tnk = NULL;*/
   part *ppart = NULL;  
+  unsigned char testbuffer[256];
+  int testi;
+  char *testptr;
   
   for (i = 1; i < argc; ++i)
     {
     if (0 == strcmp(argv[i], "?"))
       {
-      printf("SERVER/K PORT/K/N ROOM/K NICK/K PASSWORD/K DEBUG/S VERBOSE/S BELL/S"
+      printf("SERVER/K PORT/K/N ROOM/K NICK/K DEBUG/S VERBOSE/S COREDUMP/S BELL/S"
              " PERIOD/K/N NICKLISTWIDTH/K/N NOATTR/S ASKPASSW/S CHECKUPDATES/S"
              " LOG/K OLDLOG/K ANTIIDLE/K/N NOHTML/S\n");
       run = 0;
@@ -59,7 +61,6 @@ int main(int argc, char *argv[])
       puts("[-nick nick]");
       puts("[-nicklistwidth width of nicklist]");
       puts("[-noattr]");
-      puts("[-password password]");
       puts("[-period interval]");
       puts("[-port port]");
       puts("[-room room]");
@@ -71,14 +72,6 @@ int main(int argc, char *argv[])
       }
     else if (0 == strcmp(argv[i], "-askpassw") || 0 == ncsstrcmp(argv[i], "ASKPASSW"))
       {
-      /*usuniete ze wzgledow bezpieczenstwa*/
-      /*
-      if (pass != NULL)
-        {
-        free(pass);
-        }
-      puts("Password:");
-      pass = readline(input());*/
       askpassw = -1;
       }
     else if (0 == strcmp(argv[i], "-noattr") || 0 == ncsstrcmp(argv[i], "NOATTR"))
@@ -92,6 +85,10 @@ int main(int argc, char *argv[])
     else if (0 == strcmp(argv[i], "-debug") || 0 == ncsstrcmp(argv[i], "DEBUG"))
       {
       debug = -1;
+      }
+    else if (0 == strcmp(argv[i], "-coredump") || 0 == ncsstrcmp(argv[i], "COREDUMP"))
+      {
+      coredump = -1;
       }
     else if (0 == strcmp(argv[i], "-verbose") || 0 == ncsstrcmp(argv[i], "VERBOSE"))
       {
@@ -172,7 +169,6 @@ int main(int argc, char *argv[])
           free(logfn);
           }
         logfn = clonestring(argv[i]);
-        /*openlog(argv[i]);*/
         }
       }
     else if (0 == strcmp(argv[i], "-oldlog") || 0 == ncsstrcmp(argv[i], "OLDLOG"))
@@ -186,7 +182,6 @@ int main(int argc, char *argv[])
           free(logfn);
           }
         logfn = clonestring(argv[i]);
-        /*openoldlog(argv[i]);*/
         }
       }
     else if (0 == strcmp(argv[i], "-nick") || 0 == ncsstrcmp(argv[i], "NICK"))
@@ -199,18 +194,6 @@ int main(int argc, char *argv[])
           free(nick);
           }
         nick = clonestring(argv[i]);
-        }                              
-      }
-    else if (0 == strcmp(argv[i], "-password") || 0 == ncsstrcmp(argv[i], "PASSWORD"))
-      {
-      i++;
-      if (i < argc)
-        {
-        if (pass != NULL)
-          {
-          free(pass);
-          }
-        pass = clonestring(argv[i]);
         }                              
       }
     else
@@ -254,14 +237,14 @@ int main(int argc, char *argv[])
 
     init_pair(7, COLOR_YELLOW, COLOR_BLUE);
     wattron(chatwindow, COLOR_PAIR(7) | A_BOLD);
-    window_put(" " $VER " ");
+    window_put(" " VER " ");
     wattroff(chatwindow, COLOR_PAIR(7) | A_BOLD);
     window_nl();
     window_put(" Linuxowy klient Polchatu");
     window_nl();
     window_put(" By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)");
     window_nl();
-    window_put(" status wersji 0.2b: freeware (badz giftware ;-D)");
+    window_put(" status: freeware (badz giftware ;-D)");
     window_nl();
     window_put(" ze wzgledu na wczesna wersje rozwojowa,");
     window_nl();
@@ -323,6 +306,8 @@ int main(int argc, char *argv[])
         {
         if (!connected)
           {
+          freenicklist(&nicks);
+          
           sfd = -1;
           for (tres = res; tres != NULL && connected == 0; tres = tres->ai_next)
             {
@@ -389,11 +374,14 @@ int main(int argc, char *argv[])
           poll(&pol, 1, 50);
           if (((pol.revents) & POLLIN) == POLLIN)
             {
-            if (NULL != (prt = readpart(sfd)))
+            if (NULL != (/*tnk = readtank(sfd)*/ppart = readpart(sfd)))
               {
-              ppart = parsepart(prt);
-              free(prt);
-              prt = NULL;
+              /*ppart = parsetank(tnk);
+              if (coredump)
+                {
+                tankdump(tnk);
+                }
+              freetank(&tnk);*/
               processpart(ppart, sfd);
               freepart(&ppart);      
               window_print();
@@ -435,6 +423,11 @@ int main(int argc, char *argv[])
             ppart = makemsg("I'm cybernetic organism - living tissue over metal endoskeleton.");
             putmsg(ppart);
             }
+          else if (0 == ncsstrncmp(inputstring, "/jedi ", 6) || 0 == ncsstrncmp(inputstring, "/jedi", 6))
+            {
+            ppart = makemsg("May the Force be with you, my young padawan...");
+            putmsg(ppart);
+            }         
           else if (0 == ncsstrncmp(inputstring, "/debugon ", 9) || 0 == ncsstrncmp(inputstring, "/debugon", 9))
             {
             debug = -1;
@@ -465,7 +458,7 @@ int main(int argc, char *argv[])
             }
           else if (0 == ncsstrncmp(inputstring, "/ver ", 5) || 0 == ncsstrncmp(inputstring, "/ver", 5))
             {
-            window_addstr("<B>" $VER "</B>");
+            window_addstr("<B>" VER "</B>");
             wnoutrefresh(chatwindow);
             }
           else if (0 == ncsstrncmp(inputstring, "/help ", 6) || 0 == ncsstrncmp(inputstring, "/help", 6))
@@ -482,11 +475,26 @@ int main(int argc, char *argv[])
             wnoutrefresh(chatwindow);
             window_updated = -1;
             }
+          else if (0 == ncsstrncmp(inputstring, "/test ", 6) || 0 == ncsstrncmp(inputstring, "/test", 6))
+            {
+            for (testi = 0; testi < 255; testi++)
+              {
+              testbuffer[testi] = testi + 1;
+              }
+            testbuffer[255] = '\0';
+            if (NULL != (testptr = iso2utf8string((char *) testbuffer)))
+              {
+              ppart = makemsg(testptr);
+              putmsg(ppart);
+              free(testptr);
+              }
+            }
           else
             {
             ppart = makemsg(inputstring);
             putmsg(ppart);
             }
+          free(inputstring);
           }
           
         /*wnoutrefresh(consolewindow);*/

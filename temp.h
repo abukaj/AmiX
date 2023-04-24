@@ -13,3 +13,4 @@ char *iso2utf8string(char *);
 char *utf82isostring(char *);
 char *clonestring(char *);
 char *freadline(FILE *);
+char *remcontrols(char *);

@@ -14,12 +14,172 @@
 #include "temp.h"
 #include "version.h"
 
+part *tosend = NULL;
+time_t last = 0;
+
+
+part *readpart(int sfd)
+  {
+  int size;
+  int ptr = 0;
+  int i;
+  part *result = NULL;
+  tank *tnk;
+
+  if (NULL != (tnk = readtank(sfd)))
+    {
+    /*result = parsetank(tnk);*/
+    if (NULL != (result = malloc(sizeof(part))))
+      {
+      result->next = NULL;
+      size = tnk->length;
+
+      result->headerlen = ((unsigned char) tnk->data[ptr++]) << 8;
+      result->headerlen |= (unsigned char) tnk->data[ptr++];
+      result->nstrings = ((unsigned char) tnk->data[ptr++]) << 8;
+      result->nstrings |= (unsigned char) tnk->data[ptr++];
+      if (NULL != (result->header = calloc(result->headerlen, sizeof(short))))
+        {
+        for (i = 0; i < result->headerlen; i++)
+          {
+          result->header[i] = ((unsigned char) tnk->data[ptr++]) << 8;
+          result->header[i] |= (unsigned char) tnk->data[ptr++];
+          }
+        if (NULL != (result->strings = calloc(result->nstrings, sizeof(char *))))
+          {
+          for (i = 0; i < result->nstrings; i++)
+            {
+            result->strings[i] = NULL;
+            }
+          for (i = 0; i < result->nstrings; i++)
+            {
+            if (NULL == (result->strings[i] = unwrapstring(ptr + tnk->data)))
+              {
+              freepart(&result);
+              return NULL;
+              }
+            ptr += wrapsize((char *) (tnk->data + ptr));
+            }
+          }
+        else
+          {
+          free(result->header);
+          free(result);
+          return NULL;
+          }
+        }
+      else
+        {
+        free(result);
+        return NULL;
+        }
+      }
+    if (ptr != size)
+      {
+      if (debug)
+        {
+        window_put("ERROR: tank parse error!");
+        window_nl();
+        /*partdump(prt);*/
+        }
+      }
+    if (coredump)
+      {
+      tankdump(tnk);
+      }
+    freetank(&tnk);
+    }
+  else
+    {
+    window_put("ERROR: unable to read tank");
+    window_nl();
+    }
+  return result;
+  }
+
+
+part *parsetank(tank *prt)
+  {
+  int size;
+  int ptr = 0;
+  int i;
+  part *result = NULL;
+
+  if (NULL != prt)
+    {
+    if (NULL != (result = malloc(sizeof(part))))
+      {
+      result->next = NULL;
+      size = prt->length;
+
+      result->headerlen = ((unsigned char) prt->data[ptr++]) << 8;
+      result->headerlen |= (unsigned char) prt->data[ptr++];
+      result->nstrings = ((unsigned char) prt->data[ptr++]) << 8;
+      result->nstrings |= (unsigned char) prt->data[ptr++];
+      if (NULL != (result->header = calloc(result->headerlen, sizeof(short))))
+        {
+        for (i = 0; i < result->headerlen; i++)
+          {
+          result->header[i] = ((unsigned char) prt->data[ptr++]) << 8;
+          result->header[i] |= (unsigned char) prt->data[ptr++];
+          }
+        if (NULL != (result->strings = calloc(result->nstrings, sizeof(char *))))
+          {
+          for (i = 0; i < result->nstrings; i++)
+            {
+            result->strings[i] = NULL;
+            }
+
+          for (i = 0; i < result->nstrings; i++)
+            {
+            if (NULL == (result->strings[i] = unwrapstring(ptr + prt->data)))
+              {
+              freepart(&result);
+              return NULL;
+              }
+            ptr += wrapsize((char *) (prt->data + ptr));
+            }
+          }
+        else
+          {
+          free(result->header);
+          free(result);
+          return NULL;
+          }
+        }
+      else
+        {
+        free(result);
+        return NULL;
+        }
+      }
+    if (ptr != size)
+      {
+      if (debug)
+        {
+        window_put("Tank parse error!");
+        /*partdump(prt);*/
+        }
+      }
+    }
+  else
+    {
+    if (debug)
+      {
+      window_put("Error: NULL ptr given to parsetank()");
+      window_nl();
+      }
+    }
+  return result;
+  }
+
+
 part *welcome3(char *nick, char *pass, char *room, char *roompass)
   {
   char *nw = NULL, *pw = NULL, *rw = NULL, *rpw = NULL;
   char *p1 = NULL, *p2 = NULL, *p3 = NULL, *klient = NULL;
   part *result = NULL;
-  
+
   if (NULL != (nw = calloc(strlen(nick) + 1, sizeof(char))))
     {
     strcpy(nw, nick);
@@ -38,9 +198,9 @@ part *welcome3(char *nick, char *pass, char *room, char *roompass)
             if (NULL != (p3 = calloc(strlen("nlst=1&nnum=1&jlmsg=true&ignprv=false") + 1, sizeof(char))))
               {
               strcpy(p3, "nlst=1&nnum=1&jlmsg=true&ignprv=false");
-              if (NULL != (klient = calloc(strlen($VER) + 1, sizeof(char))))
+              if (NULL != (klient = calloc(strlen(VER) + 1, sizeof(char))))
                 {
-                strcpy(klient, $VER);
+                strcpy(klient, VER);
                 if (NULL != (rpw = calloc(strlen(roompass) + 1, sizeof(char))))
                   {
                   strcpy(rpw, roompass);
@@ -93,8 +253,6 @@ part *welcome3(char *nick, char *pass, char *room, char *roompass)
     }
   return result;
   }
-
-
 
 
 void processpart(part *ppart, int sfd)
@@ -152,8 +310,9 @@ void processpart(part *ppart, int sfd)
             {
             if (bell)
               {
-              window_put("\a");
-              window_nl();
+              beep();
+              /*window_put("\a");
+              window_nl();*/
               }
             if (!verbose)
               {
@@ -489,6 +648,14 @@ void processpart(part *ppart, int sfd)
               }
             connected = 0;
             close(sfd);
+            if (0 == strncmp("nieprawidłowe hasło i/lub identyfikator użytkownika", ppart->strings[0], 9))
+              {
+              if (pass != NULL)
+                {
+                free(pass);
+                }
+              pass = input_password();
+              }
             }
           else
             {
@@ -569,7 +736,7 @@ part *makemsg(char *string)
         if (NULL != (result->strings = calloc(1, sizeof(char *))))
           {
           result->nstrings = 1;
-          if (NULL == (result->strings[0] = iso2utf8string(string)))
+          if (NULL == (result->strings[0] = clonestring(string)/*iso2utf8string(string)*/))
             {
             freepart(&result);
             }
@@ -628,4 +795,156 @@ void verbosedump(part *dump)
   }
 
 
+void freepart(part **p)
+  {
+  int i;
 
+  if (*p != NULL)
+    {
+    freepart(&((*p)->next));
+    if ((*p)->header != NULL)
+      {
+      free((*p)->header);
+      }
+    if ((*p)->strings != NULL)
+      {
+      for (i = 0; i < (*p)->nstrings; i++)
+        {
+        if ((*p)->strings[i] != NULL)
+          {
+          free((*p)->strings[i]);
+          }
+        }
+      free((*p)->strings);
+      }
+    free(*p);
+    *p = NULL;
+    }
+  }
+
+
+int sendpol(part *ppart, int sfd){
+  tank *result;
+  int size = 4;/*8*/
+  int i;
+  int tmp = 0;
+  int ptr = 0;
+
+  if (NULL != ppart)
+    {
+    size += 2 * ppart->headerlen;
+    for (i = 0; i < ppart->nstrings; i++)
+      {
+      size += strlen(ppart->strings[i]) + 3;
+      }
+    if (NULL != (result = malloc(sizeof(tank))))
+      {
+      if (NULL != (result->data = malloc(size)))
+        {
+        result->length = size;
+        result->data[ptr++] = (char) (ppart->headerlen / 256);
+        result->data[ptr++] = (char) (ppart->headerlen % 256);
+        result->data[ptr++] = (char) (ppart->nstrings / 256);
+        result->data[ptr++] = (char) (ppart->nstrings % 256);
+        for (i = 0; i < ppart->headerlen; i++)
+          {
+          result->data[ptr++] = (char) (ppart->header[i] / 256);
+          result->data[ptr++] = (char) (ppart->header[i] % 256);
+          }
+        for (i = 0; i < ppart->nstrings; i++)
+          {
+          tmp = strlen(ppart->strings[i]);
+          result->data[ptr++] = (char) (tmp / 256);
+          result->data[ptr++] = (char) (tmp % 256);
+          strcpy(result->data + ptr, ppart->strings[i]);
+          ptr += tmp;
+          result->data[ptr++] = '\0';
+          }
+        sendtank(result, sfd);
+        freetank(&result);
+        if (ptr != size)
+          {
+          if (debug)
+            {
+            window_put("Error: ptr != size");
+            window_nl();
+            }
+          }
+        }
+      else
+        {
+        freetank(&result);
+        if (debug)
+          {
+          window_put("Error: unable to allocate 0x");
+          window_puthex(size, 4);
+          window_put("bytes of memory");
+          window_nl();
+          }
+        }
+      }
+    else{
+      if (debug)
+        {
+        window_put("Error: unable to allocate memory for tank");
+        window_nl();
+        }
+      }
+    }
+  else{
+    if (debug){
+      window_put("Error: NULL ptr given to sendpol");
+      window_nl();
+      }
+    }
+  return 0;
+  }
+
+
+void putmsg(part *msg){
+  part **tmp;
+
+  tmp = &tosend;
+  while (*tmp != NULL)
+    {
+    tmp = &((*tmp)->next);
+    }
+  *tmp = msg;
+  }
+
+
+void sendnext(int sfd)
+  {
+  part *tmp;
+
+  if (last == 0)
+    {
+    last = time(NULL);
+    }
+  if (NULL != tosend)
+    {
+    if (connected && (period < difftime(time(NULL), last))){
+      sendpol(tosend, sfd);
+      tmp = tosend->next;
+      tosend->next = NULL;
+      freepart(&tosend);
+      tosend = tmp;
+      last = time(NULL);
+      }
+    }
+  else
+    {
+    if (antiidle)
+      {
+      if (connected && (antiidle < difftime(time(NULL), last)))
+        {
+        if (NULL != (tmp = makemsg("/noop")))
+          {
+          sendpol(tmp, sfd);
+          freepart(&tmp);
+          last = time(NULL);
+          }
+        }
+      }
+    }
+  }

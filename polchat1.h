@@ -1,28 +1,21 @@
 /*AmiX - polchat1.h - v. 0.1 - (c) by ABUKAJ (J.M.Kowalski)*/
 #include <time.h>
 
-struct structpart{
-  short headerlen;
-  short nstrings;
-  short *header;
-  char **strings;
-  struct structpart *next;
+struct structtank{
+  long length;
+  char *data;
   };
 
-typedef struct structpart part;
+typedef struct structtank tank;
 
 char *wrapstring(char *);
 int wrapsize(char *);
 char *unwrapstring(char *);
-int partlen(char *);
-char *readpart(int);
-part *parsepart(char *);
-void freepart(part **);
-int sendpol(part *, int);
-void partdump(char *);
 
-void putmsg(part *);
-void sendnext(int);
+tank *readtank(int);
+void freetank(tank **);
+int sendtank(tank *, int);
 
-extern part *tosend;
-extern time_t last;
+void tankdump(tank *);
+
+
