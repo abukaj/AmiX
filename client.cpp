@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <locale.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -13,7 +14,7 @@
 
 #include "polchat.h"
 #include "polchat2.h"
-#include "interfeace.h"
+#include "interface.h"
 #include "temp.h"
 #include "version.h"
 
@@ -42,6 +43,8 @@ int main(int argc, char *argv[])
   unsigned char testbuffer[256];
   int testi;
   char *testptr;
+
+  setlocale(LC_ALL, "");
   
   for (i = 1; i < argc; ++i)
     {
@@ -215,7 +218,7 @@ int main(int argc, char *argv[])
 
   if (host == NULL)
     {
-    host = clonestring("polchat.pl");
+    host = clonestring("s1.polchat.pl");
     }
   if (nick == NULL)
     {
@@ -271,7 +274,7 @@ int main(int argc, char *argv[])
     window_nl();
     window_put(" Oficjalna strona projektu:");
     window_nl();
-    window_put(" http://www.student.ii.uni.wroc.pl/~abukaj/amix/");
+    window_put(" http://tapping.nazwa.pl/abukaj/amix/");
     window_nl();
 
     wnoutrefresh(chatwindow);
@@ -501,7 +504,7 @@ int main(int argc, char *argv[])
               testbuffer[testi] = testi + 1;
               }
             testbuffer[255] = '\0';
-            if (NULL != (testptr = iso2utf8string((char *) testbuffer)))
+            if (NULL != (testptr = clonestring((char *) testbuffer)))
               {
               ppart = makemsg(testptr);
               putmsg(ppart);

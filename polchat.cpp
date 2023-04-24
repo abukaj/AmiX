@@ -4,11 +4,11 @@
 #include <string.h>
 #include <time.h>
 
-#include <ncurses.h>
+#include <ncursesw/ncurses.h>
 
 #include "temp.h"
 #include "polchat.h"
-#include "interfeace.h"
+#include "interface.h"
 #include "version.h"
 
 int cud = 0;
@@ -54,8 +54,8 @@ void addnick(char *nick, short status, short unknown){
     }
   if (*nicklist != NULL){
     if (res){
-      if (NULL != (tmp = calloc(1, sizeof(nicknode)))){
-        if (NULL != (tmp->nick = calloc(strlen(nick) + 1, sizeof(char)))){
+      if (NULL != (tmp = (nicknode *) calloc(1, sizeof(nicknode)))){
+        if (NULL != (tmp->nick = (char *) calloc(strlen(nick) + 1, sizeof(char)))){
           strcpy(tmp->nick, nick);
           tmp->status = status;
           tmp->unknown = unknown;
@@ -73,8 +73,8 @@ void addnick(char *nick, short status, short unknown){
       }
     }
   else {
-    if (NULL != (*nicklist = calloc(1, sizeof(nicknode)))){
-      if (NULL != ((*nicklist)->nick = calloc(strlen(nick) + 1, sizeof(char)))){
+    if (NULL != (*nicklist = (nicknode *) calloc(1, sizeof(nicknode)))){
+      if (NULL != ((*nicklist)->nick = (char *) calloc(strlen(nick) + 1, sizeof(char)))){
         strcpy((*nicklist)->nick, nick);
         (*nicklist)->status = status;
         (*nicklist)->unknown = unknown;

@@ -1,7 +1,7 @@
-#define VERCODE "0009"
-#define VER  "AmiX v. 0.2.5a rev2"
-#define AMIXSERVER "www.student.ii.uni.wroc.pl"
-#define AMIXPATH   "/~abukaj/amix/version.txt"
+#define VERCODE "0010"
+#define VER  "AmiX v. 0.2.6a"
+#define AMIXSERVER "tapping.nazwa.pl"
+#define AMIXPATH   "/abukaj/amix/version.txt"
 
 int checkupdate();
-char *readline();
+char *readline(int);
