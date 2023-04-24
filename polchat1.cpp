@@ -13,86 +13,87 @@
 #include "interface.h"
 #include "temp.h"
 
-char *wrapstring(const char *str)
-{
-  char *result = NULL;
-  unsigned int len;
-
-  len = strlen(str);
-  if (NULL != (result = new char[len + 3]))
-  {
-    result[0] = (char) (len / 256);
-    result[1] = (char) (len % 256);
-    strncpy(result + 2, str, len);
-  }
-  return result;
-}
-
-
-unsigned int wrapsize(const char * string)
-{
-  return ((unsigned char) string[0]) * 256 + ((unsigned char) string[1]) + 3;
-}
-
-
-char *unwrapstring(const char *str){
-  char *result = NULL;
-  char *tmp;
-  unsigned int len;
-
-  len = ((unsigned char) str[0]) * 256 + (unsigned char) str[1];
-  if (NULL != (result = new char[len + 1]))
-  {
-    strncpy(result, str + 2, len);
-    result[len] = '\0';
-  }
-  return result;
-}
-
-/*wrappedString::wrappedString(std::string str)
-{
-  int len = str.length();
-
-  window_put("BBB");
-
-  if (NULL != (content = new char [len + 3]))
-  {
-    content[0] = (char) (len / 256);
-    content[1] = (char) (len % 256);
-    strcpy(content + 2, str.c_str());
-  }
-}*/
-
-wrappedString::wrappedString(const char * str)
-{
-  int len = wraplength(str);
-
-  if (NULL != (content = new char [len]))
-  {
-    memcpy(content, str, len);
-    content[len - 1] = '\0';
-  }
-}
-
-
-char * wrappedString::c_str()
-{
-  char *result = NULL;
-  int len = size() - 3;
-
-  if (NULL != (result = new char [len + 1]))
-  {
-    strcpy(result, content + 2);
-  }
-  return result;
-}
-
-
-
-int partlen(char *part){
-  return (((unsigned char) part[0] * 256 + (unsigned char) part[1]) * 256
-              + (unsigned char) part[2]) * 256 + (unsigned char) part[3];
-  }
+//char *wrapstring(const char *str)
+//{
+//  char *result = NULL;
+//  unsigned int len;
+//
+//  len = strlen(str);
+//  if (NULL != (result = new char[len + 3]))
+//  {
+//    result[0] = (char) (len / 256);
+//    result[1] = (char) (len % 256);
+//    strncpy(result + 2, str, len);
+//  }
+//  return result;
+//}
+//
+//
+//unsigned int wrapsize(const char * string)
+//{
+//  return ((unsigned char) string[0]) * 256 + ((unsigned char) string[1]) + 3;
+//}
+//
+//
+//char *unwrapstring(const char *str){
+//  char *result = NULL;
+//  char *tmp;
+//  unsigned int len;
+//
+//  len = ((unsigned char) str[0]) * 256 + (unsigned char) str[1];
+//  if (NULL != (result = new char[len + 1]))
+//  {
+//    strncpy(result, str + 2, len);
+//    result[len] = '\0';
+//  }
+//  return result;
+//}
+//
+///*wrappedString::wrappedString(std::string str)
+//{
+//  int len = str.length();
+//
+//  window_put("BBB");
+//
+//  if (NULL != (content = new char [len + 3]))
+//  {
+//    content[0] = (char) (len / 256);
+//    content[1] = (char) (len % 256);
+//    strcpy(content + 2, str.c_str());
+//  }
+//}*/
+//
+//wrappedString::wrappedString(const char * str)
+//{
+//  int len = wraplength(str);
+//
+//  if (NULL != (content = new char [len]))
+//  {
+//    memcpy(content, str, len);
+//    content[len - 1] = '\0';
+//  }
+//}
+//
+//
+//char * wrappedString::c_str()
+//{
+//  char *result = NULL;
+//  int len = size() - 3;
+//
+//  if (NULL != (result = new char [len + 1]))
+//  {
+//    strcpy(result, content + 2);
+//  }
+//  return result;
+//}
+//
+//
+//
+//int partlen(char *part)
+//{
+//  return (((unsigned char) part[0] * 256 + (unsigned char) part[1]) * 256
+//              + (unsigned char) part[2]) * 256 + (unsigned char) part[3];
+//}
 
 
 tank::~tank()
@@ -196,21 +197,21 @@ void tank::dump()
   window_puthex((unsigned long) length, 8);
   window_nl();
   size = length;
-  for (i = 0; i < size / 16; i++)
+  for (i = 0; i < size / 32; i++)
   {
     window_put("0x");
-    window_puthex(i << 4, 4);
-    for (j = 0; j < 16; j++)
+    window_puthex(i * 32, 4);
+    for (j = 0; j < 32; j++)
     {
       window_putchar(' ');
-      window_puthex((unsigned char) data[i * 16 + j], 2);
+      window_puthex((unsigned char) data[i * 32 + j], 2);
     }
     window_put("  ");
-    for (j = 0; j < 16; j++)
+    for (j = 0; j < 32; j++)
     {
-      if (isgraph((unsigned char) data[i * 16 + j]))
+      if (isgraph((unsigned char) data[i * 32 + j]))
       {
-        window_putchar((unsigned char) data[i * 16 + j]);
+        window_putchar((unsigned char) data[i * 32 + j]);
       }
       else
       {
@@ -221,22 +222,22 @@ void tank::dump()
   }
 
   window_put("0x");
-  window_puthex(i << 4, 4);
-  for (j = 0; j < size % 16; j++)
+  window_puthex(i * 32, 4);
+  for (j = 0; j < size % 32; j++)
   {
     window_putchar(' ');
-    window_puthex((unsigned char) data[i * 16 + j], 2);
+    window_puthex((unsigned char) data[i * 32 + j], 2);
   }
-  for (; j < 16; j++)
+  for (; j < 32; j++)
   {
     window_put("   ");
   }
   window_put("  ");
-  for (j = 0; j < size % 16; j++)
+  for (j = 0; j < size % 32; j++)
   {
-    if (isgraph((unsigned char) data[i * 16 + j]))
+    if (isgraph((unsigned char) data[i * 32 + j]))
     {
-      window_putchar((unsigned char) data[i * 16 + j]);
+      window_putchar((unsigned char) data[i * 32 + j]);
     }
     else
     {
