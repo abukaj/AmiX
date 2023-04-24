@@ -86,3 +86,5 @@ void console_update();
 int transformrgb(int, int, int);
 
 void priv(privinfo, char *, char *);
+
+char *input_password();
