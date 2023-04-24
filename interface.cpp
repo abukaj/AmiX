@@ -7,7 +7,6 @@
 #include "polchat.h"
 #include "temp.h"
 
-line window[MSGSTOREMAX];
 WINDOW *chatwindow = NULL;
 WINDOW *nickwindow = NULL;
 WINDOW *titlewindow = NULL;
@@ -96,14 +95,8 @@ void window_attroff(int attr)
   }
 
 
-void window_init(){
-  int i;
-
-  for (i = 0; i < MSGSTOREMAX; ++i)
-    {
-    window->string = NULL;
-    }
-  
+void window_init()
+{
   getmaxyx(stdscr, scr_rows, scr_cols);
   window_h = scr_rows - WINDOW_Y - CONSOLE_H;
   window_w = scr_cols - NICKLIST_WIDTH - WINDOW_X;
@@ -128,16 +121,16 @@ void window_init(){
   
   title_w = scr_cols - NICKLIST_WIDTH - TITLE_X;
   titlewindow = newwin(TITLE_H, title_w, TITLE_Y, TITLE_X);
-  wborder(titlewindow, '|', '|', '-', '-', '/', '\\', '\\', '/');
+  //wborder(titlewindow, '|', '|', '-', '-', '/', '\\', '\\', '/');
   wrefresh(titlewindow);
 
   console_y = scr_rows - CONSOLE_H;
   console_w = scr_cols - CONSOLE_X - NICKLIST_WIDTH;
   consolewindow = newwin(CONSOLE_H, console_w, console_y, CONSOLE_X);
-  wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
+  //wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
   wmove(consolewindow, 1, 1);
   wrefresh(consolewindow);
-  }
+}
 
 
 void window_resize()
@@ -161,13 +154,13 @@ void window_resize()
   wresize(nickwindow, nicklist_h, NICKLIST_WIDTH);
   wborder(nickwindow, '|', '|', '-', '-', '+', '+', '+', '+');
   mvwaddstr(nickwindow, 0, NICKLIST_WIDTH / 2 - 4, " NICKS: ");
-  printnicks();
+  printnicklist();
   wnoutrefresh(nickwindow);
   
   title_w = scr_cols - NICKLIST_WIDTH - TITLE_X;
   mvwin(titlewindow, TITLE_Y, TITLE_X);
   wresize(titlewindow, TITLE_H, title_w);
-  wborder(titlewindow, '|', '|', '-', '-', '/', '\\', '\\', '/');
+  //wborder(titlewindow, '|', '|', '-', '-', '/', '\\', '\\', '/');
   printtitle();
   wnoutrefresh(titlewindow);
   
@@ -175,7 +168,7 @@ void window_resize()
   console_w = scr_cols - CONSOLE_X - NICKLIST_WIDTH;
   mvwin(consolewindow, console_y, CONSOLE_X);
   wresize(consolewindow, CONSOLE_H, console_w);
-  wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
+  //wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
 
   console_update();
   
@@ -184,74 +177,45 @@ void window_resize()
 
 
 void window_redraw()
-  {
-  int i, j;
-  static char buffer[15];
+{
+  std::list<line> & lines = chatrooms.currentroom().lines;
 
   wmove(chatwindow, 1, 0);
-  for (i = 0; i < MSGSTOREMAX; ++i)
+
+  for (int i = lines.size(); i < MSGSTOREMAX; i++)
+  {
+    for (int j = 0; j < window_w; ++j)
     {
-    if (NULL != window[i].string)
-      {
-      strftime(buffer, 14, "%H:%M:%S ", localtime(&(window[i].time)));
-      window_put(buffer);
-      printpol(window[i].string);
-      }
-    else
-      {
-      for (j = 0; j < window_w; ++j)
-        {
-        waddch(chatwindow, ' ');
-        }
-      waddch(chatwindow, '\n');
-      }
+      waddch(chatwindow, ' ');
     }
+    waddch(chatwindow, '\n');
   }
-
-
-void window_addstr(char *string){
-  int i;
-  static char buffer[15];
   
-  if (NULL != string)
-    {
-    if (NULL != window[0].string)
-      {
-      free(window[0].string);
-      }
-    for (i = 0; i < MSGSTOREMAX - 1; ++i)
-      {
-      window[i] = window[i + 1];
-      }
-    if (NULL != (window[MSGSTOREMAX - 1].string = clonestring(string))) //remcontrols()!
-      {
-      window[MSGSTOREMAX - 1].time = time(NULL);
-      strftime(buffer, 14, "%H:%M:%S ", localtime(&(window[MSGSTOREMAX - 1].time)));
-      window_put(buffer);
-      printpol(window[MSGSTOREMAX - 1].string);
-      }
-    }
-  }
+  for (std::list<line>::iterator it = lines.begin(); 
+       it != lines.end();
+       it++)
 
+  {
+    window_put((*it).timestring.c_str());
+    printpol((*it).text.c_str());
+  }
+}
+
+void update_all()
+{
+  printtitle();
+  printnicklist();
+  window_redraw();
+  wnoutrefresh(chatwindow);
+}
 
 void window_done()
-  {
-  int i;
-
+{
   delwin(chatwindow);
   delwin(nickwindow);
   delwin(consolewindow);
   delwin(titlewindow);
-  
-  for (i = 0; i < MSGSTOREMAX; i++)
-    {
-    if (NULL != window[i].string)
-      {
-      free(window[i].string);
-      window[i].string = NULL;
-      }
-    }
-  }
+}
 
 
 void window_nl(){
@@ -289,7 +253,7 @@ void window_puthex(unsigned int n, unsigned int len)
   }
 
 
-void window_put(char *word){
+void window_put(const char *word){
   char *tmp;
   int len;
   int ptr;
@@ -399,7 +363,7 @@ void window_print(){
   }
 
 
-char *readtoken(char *string){
+char *readtoken(const char *string){
   static int ptr = 0;
   static int done = 0;
   static int link = 0;
@@ -528,27 +492,73 @@ char *readtoken(char *string){
 
 
 void printtitle()
+{
+  for (int i = 0; i < title_w; i++)
   {
-  int i;
-
-  for (i = 1; i < title_w - 1; i++)
-    {
+    mvwaddch(titlewindow, 0, i, ' ');
     mvwaddch(titlewindow, 1, i, ' ');
-    mvwaddch(titlewindow, 2, i, ' ');
-    }
-  if (NULL != roomname)
-    {
-    mvwaddnstr(titlewindow, 1, 1, roomname, title_w - 2);
-    }
-  if (NULL != roomdesc)
-    {
-    mvwaddnstr(titlewindow, 2, 1, roomdesc, title_w - 2);
-    }  
-  wrefresh(titlewindow);
   }
 
+  int written = 0;
+  for (std::list<roomname>::iterator it = chatrooms.roomlist.begin();
+       it != chatrooms.roomlist.end();
+       it++)
+  {
+    std::map<std::string, chatroom> & rooms = (*it).room?chatrooms.room:chatrooms.priv;
 
-void printpol(char *string)
+    chatroom & cr = rooms[(*it).name];
+    int len = utf8strlen((unsigned char *) cr.name.c_str());
+
+    if (written + len + 2 > title_w)
+    {
+      mvwaddnstr(titlewindow, 0, written, "...", title_w - written);      
+      break;
+    }
+
+    if (!(*it).room)
+    {
+      wattron(titlewindow, A_UNDERLINE);
+    }
+
+    if (it == chatrooms.current)
+    {
+      wattron(titlewindow, A_BOLD);
+      mvwaddch(titlewindow, 0, written++, '>');
+    }
+    else
+    {
+      mvwaddch(titlewindow, 0, written++, ':');
+    }
+
+
+
+    mvwaddstr(titlewindow, 0, written, cr.name.c_str());
+
+    written += len;
+
+    if (it == chatrooms.current)
+    {
+      mvwaddch(titlewindow, 0, written++, '<');
+      wattroff(titlewindow, A_BOLD);
+    }
+    else
+    {
+      mvwaddch(titlewindow, 0, written++, ':');
+    }
+
+    if (!(*it).room)
+    {
+      wattroff(titlewindow, A_UNDERLINE);
+    }
+  }
+
+  //mvwaddnstr(titlewindow, 0, 0, chatrooms.currentroom().name.c_str(), title_w);
+  mvwaddnstr(titlewindow, 1, 0, chatrooms.currentroom().description.c_str(), title_w);
+  wrefresh(titlewindow);
+}
+
+
+void printpol(const char *string)
   {
   int mode = 0;
   int tokens = -1;
@@ -693,8 +703,8 @@ char *console_input()
       case '\n':
       case '\r':
         buffer[len] = '\0';
-        wmove(consolewindow, 1, 1);
-        for (j = 1; j < console_w - 1; j++)
+        wmove(consolewindow, 0, 0);
+        for (j = 0; j < console_w; j++)
         {
           waddch(consolewindow, ' ');
         }
@@ -756,12 +766,12 @@ char *console_input()
           }
           while (not isutf8charbeginning(buffer[ptr]) && ptr > 0);
 
-          consptr--;
-          wmove(consolewindow, 1, 1 + consptr);
-          if (consptr /*+1*/ > window_w - 3/*-2*/)
+          if (consptr > window_w)
           {
             updated = -1;
           }
+          consptr--;
+          wmove(consolewindow, 0, consptr);
         }
         break;
       case KEY_RESIZE:
@@ -777,8 +787,8 @@ char *console_input()
           while (not isutf8charbeginning(buffer[ptr]) && ptr < BUFFSIZE - 1 && ptr < len);
 
           consptr++;
-          wmove(consolewindow, 1, 1 + consptr);
-          if (consptr > window_w - 2)
+          wmove(consolewindow, 0, consptr);
+          if (consptr > window_w)
           {
             updated = -1;
           }
@@ -794,7 +804,7 @@ char *console_input()
         }
         tptr++;/*korekta dlugosci*/
         tlen--;
-        if (NULL != (nick = (unsigned char *) getnickbyprefix((char *) buffer + tptr, tlen, nicks)))
+        if (NULL != (nick = (unsigned char *) chatrooms.currentroom().getnickbyprefix((char *) buffer + tptr, tlen).c_str()))
         {
           delta = strlen((char *) nick) - tlen;
           if (len + delta < BUFFSIZE)
@@ -812,18 +822,27 @@ char *console_input()
                 consptr++;
               }
             }
+            wmove(consolewindow, 0, consptr);
             updated = -1;
           }
           nick = NULL;
         }
         break;
+      case KEY_F(1):
+        chatrooms.prev();
+        printtitle();
+        window_redraw();
+        printnicklist();
+        break;
+      case KEY_F(2):
+        chatrooms.next();
+        printtitle();
+        window_redraw();
+        printnicklist();
+        break;
       default:
         if (ptr < BUFFSIZE - 1 && len < BUFFSIZE - 1)
         {
-          if (debug)
-          {
-            mvwprintw(consolewindow, 0, 1, "0x%X %c", c, c);
-          }
           for (j = len; j > ptr; j--)
           {
             buffer[j] = buffer[j - 1];
@@ -857,9 +876,9 @@ void console_update()
   int d = 0;
   int utf8d = 0;
 
-  if (consptr > console_w - 2)
+  if (consptr > console_w)
   {
-    d = consptr + 2 - console_w;
+    d = consptr + console_w;
   }
   int tmp = d;
   while (tmp != 0)
@@ -876,8 +895,8 @@ void console_update()
     utf8d++;
   }
 
-  wmove(consolewindow, 1, 1);
-  while (i + utf8d < len && j < console_w - 2)
+  wmove(consolewindow, 0, 0);
+  while (i + utf8d < len && j < console_w)
   {
     unsigned char c = buffer[utf8d + i++];
     waddch(consolewindow, c);
@@ -886,38 +905,105 @@ void console_update()
       j++;
     }
   }
-  while (j++ < console_w - 2)
+  while (j++ < console_w)
   {
     waddch(consolewindow, ' ');
   }
-  wmove(consolewindow, 1, consptr + 1);
+  wmove(consolewindow, 0, consptr);
   wnoutrefresh(consolewindow);
   
   window_updated = -1;
 }
 
 
-void priv(privinfo info, char *who, char *what)
+void printnicklist()
+{
+  int i = 1;
+
+  std::list<nicknode> & nicklist = chatrooms.currentroom().nicklist;
+
+  for (std::list<nicknode>::iterator it = nicklist.begin(); 
+       it != nicklist.end() && i < nicklist_h - 1;
+       it++)
   {
-  window_attron(A_BLINK);
-  switch (info)
+    int colour = colourt[((*it).status & 0x0070) >> 4];
+
+    if (colour != COLOR_WHITE && colour != COLOR_BLACK && useattr)
     {
-    case PRIV_FROM:
-      window_put("<-- ");
-      break;
-    case PRIV_TO:
-      window_put("--> ");
-      break;
+      wattron(nickwindow, COLOR_PAIR(colour) | A_BOLD);
     }
-  window_attroff(A_BLINK);
-  window_put(who);
-  window_put(": ");
-  if (!verbose)
+    
+    if ((*it).status & 0x0002)
     {
-    window_addstr(what);
+      mvwprintw(nickwindow, i, 1, "OP ");
     }
-  printlog(who, what);
+    else
+    {
+      mvwprintw(nickwindow, i, 1, "   ");
+    }
+
+    if (((*it).status & 0x0001) && useattr)
+    {
+      wattron(nickwindow, A_UNDERLINE);
+    }
+
+    mvwaddnstr(nickwindow, i, 4, (*it).nick.c_str(), NICKLIST_WIDTH - 5);
+    if ((*it).nick.length() > NICKLIST_WIDTH - 4)
+    {
+      mvwaddstr(nickwindow, i, NICKLIST_WIDTH - 4, "...");
+    }
+
+    if (((*it).status & 0x0001) && useattr)
+    {
+      wattroff(nickwindow, A_UNDERLINE);
+    }
+
+    for (int j = (*it).nick.length() + 4; j < NICKLIST_WIDTH - 1; j++)
+    {
+      mvwaddch(nickwindow, i, j, ' ');
+    }
+    i++;
+    
+    if (colour != COLOR_WHITE && colour != COLOR_BLACK && useattr)
+    {
+      wattroff(nickwindow, COLOR_PAIR(colour) | A_BOLD);
+    }  
   }
+
+  while (i < nicklist_h - 1)
+  {
+    wmove(nickwindow, i, 1);
+    for (int j = 2; j < NICKLIST_WIDTH; j++)
+    {
+      waddch(nickwindow, ' ');
+    }
+    i++;
+  }
+  wnoutrefresh(nickwindow);
+  window_updated = -1;
+}
+
+//void priv(privinfo info, const char * who, const char *what)
+//  {
+//  window_attron(A_BLINK);
+//  switch (info)
+//    {
+//    case PRIV_FROM:
+//      window_put("<-- ");
+//      break;
+//    case PRIV_TO:
+//      window_put("--> ");
+//      break;
+//    }
+//  window_attroff(A_BLINK);
+//  window_put(who);
+//  window_put(": ");
+//  if (!verbose)
+//    {
+//    window_addstr(what);
+//    }
+//  printlog(who, what);
+//  }
 
 
 char *input_password()

@@ -1,11 +1,13 @@
 /*ABUKAJtools - temp.h - v. 0.4 - Jakub Mateusz Kowalski*/
-/*#define false 0
-#define true (~false)*/
+#ifndef AMIX_TEMP_H
+#define AMIX_TEMP_H
+
+#include <string>
 
 void clearscreen();
 void mypause();
-int ncsstrcmp(char *, char *);
-int ncsstrncmp(char *, char *, int);
+int ncsstrcmp(const char *, const char *);
+int ncsstrncmp(const char *, const char *, int);
 char inttohex(int);
 unsigned char unicode2iso(unsigned int);
 unsigned int iso2unicode(unsigned char);
@@ -14,6 +16,9 @@ bool isutf8charbeginning(unsigned int);
 int utf8charlen(const unsigned char *);
 char *utf82isostring(char *);
 int utf8strlen(const unsigned char *);
-char *clonestring(char *);
+char *clonestring(const char *);
 char *freadline(FILE *);
 char *remcontrols(char *);
+std::string lowercase(std::string);
+
+#endif

@@ -37,7 +37,7 @@ void mypause(){
 
 /*****************************************************************************\
 \*****************************************************************************/
-int ncsstrcmp(char *cs, char *ct){
+int ncsstrcmp(const char *cs, const char *ct){
   while (*cs != '\0' && tolower(*cs) == tolower(*ct)){
     cs++; ct++;
     }
@@ -47,7 +47,7 @@ int ncsstrcmp(char *cs, char *ct){
 
 /*****************************************************************************\
 \*****************************************************************************/
-int ncsstrncmp(char *cs, char *ct, int n){
+int ncsstrncmp(const char *cs, const char *ct, int n){
   if (n == 0)
     return 0;
   while (*cs != '\0' && tolower(*cs) == tolower(*ct) && --n > 0){
@@ -908,7 +908,7 @@ int utf8strlen(const unsigned char *string)
 /*****************************************************************************\
 \*****************************************************************************/
 
-char *clonestring(char *string)
+char *clonestring(const char *string)
   {
   char *result = NULL;
 
@@ -1007,14 +1007,26 @@ char *freadline(FILE *fh)
 /*****************************************************************************\
 \*****************************************************************************/
 char *remcontrols(char *string)
-  {
+{
   unsigned char *ptr;
   for (ptr = (unsigned char *) string; *ptr != '\0'; ptr++)
-    {
+  {
     if (*ptr < 0x0020 || (*ptr >= 0x0080 && *ptr < 0x00A0))
-      {
+    {
       *ptr = '$';
-      }
     }
-  return string;
   }
+  return string;
+}
+
+/*****************************************************************************\
+\*****************************************************************************/
+std::string lowercase(std::string src)
+{
+  std::string res = "";
+  for (const char * c = src.c_str(); *c != '\0'; c++)
+  {
+    res += tolower(*c);
+  }
+  return res;
+}

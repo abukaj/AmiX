@@ -20,318 +20,160 @@ time_t last = 0;
 
 part *readpart(int sfd)
 {
-  int ptr = 0;
-  int i;
-  part *result = NULL;
   tank *tnk = readtank(sfd);
 
   if (NULL != tnk)
   {
-    int size = tnk->len();
-
-    if (NULL != (result = (part *) malloc(sizeof(part))))
-    {
-      result->next = NULL;
-      const char * data = tnk->get();
-
-      result->headerlen = ((unsigned char) data[ptr++]) << 8;
-      result->headerlen |= (unsigned char) data[ptr++];
-      result->nstrings = ((unsigned char) data[ptr++]) << 8;
-      result->nstrings |= (unsigned char) data[ptr++];
-      if (NULL != (result->header = (short int *) calloc(result->headerlen, sizeof(short))))
-      {
-        for (i = 0; i < result->headerlen; i++)
-        {
-          result->header[i] = ((unsigned char) data[ptr++]) << 8;
-          result->header[i] |= (unsigned char) data[ptr++];
-        }
-        if (NULL != (result->strings = (char **) calloc(result->nstrings, sizeof(char *))))
-        {
-          for (i = 0; i < result->nstrings; i++)
-          {
-            result->strings[i] = NULL;
-          }
-          for (i = 0; i < result->nstrings; i++)
-          {
-            if (NULL == (result->strings[i] = wrappedString(ptr + data).c_str()))
-            {
-              freepart(&result);
-              delete tnk;
-              return NULL;
-            }
-            ptr += wrappedString::wraplength((char *) (data + ptr));
-          }
-        }
-        else
-        {
-          free(result->header);
-          free(result);
-          delete tnk;
-          return NULL;
-        }
-      }
-      else
-      {
-        free(result);
-        delete tnk;
-        return NULL;
-      }
-    }
-    if (ptr != size)
-    {
-      if (debug)
-      {
-        window_put("ERROR: tank parse error!");
-        window_nl();
-        /*partdump(prt);*/
-      }
-    }
-    if (coredump)
-    {
-      tnk->dump();
-    }
+    part * result = new part(*tnk);
     delete tnk;
+    return result;
   }
   else
   {
     window_put("ERROR: unable to read tank");
     window_nl();
   }
-  return result;
+  return NULL;
 }
 
 
-part *parsetank(tank *prt)
+part::part(tank &prt)
 {
   int ptr = 0;
-  int i;
-  part *result = NULL;
 
-  if (NULL != prt)
+  int size = prt.len();
+
+  this->next = NULL;
+  const char * data = prt.get();
+
+  this->headerlen = ((unsigned char) data[ptr++]) << 8;
+  this->headerlen |= (unsigned char) data[ptr++];
+  this->nstrings = ((unsigned char) data[ptr++]) << 8;
+  this->nstrings |= (unsigned char) data[ptr++];
+
+  this->header = new short int [this->headerlen];
+
+  for (int i = 0; i < this->headerlen; i++)
   {
-    int size = prt->len();
-    if (NULL != (result = (part *) malloc(sizeof(part))))
-    {
-      result->next = NULL;
-      const char * data = prt->get();
-
-      result->headerlen = ((unsigned char) data[ptr++]) << 8;
-      result->headerlen |= (unsigned char) data[ptr++];
-      result->nstrings = ((unsigned char) data[ptr++]) << 8;
-      result->nstrings |= (unsigned char) data[ptr++];
-      if (NULL != (result->header = (short int *) calloc(result->headerlen, sizeof(short))))
-      {
-        for (i = 0; i < result->headerlen; i++)
-        {
-          result->header[i] = ((unsigned char) data[ptr++]) << 8;
-          result->header[i] |= (unsigned char) data[ptr++];
-        }
-        if (NULL != (result->strings = (char **) calloc(result->nstrings, sizeof(char *))))
-        {
-          for (i = 0; i < result->nstrings; i++)
-          {
-            result->strings[i] = NULL;
-          }
-
-          for (i = 0; i < result->nstrings; i++)
-          {
-            if (NULL == (result->strings[i] = wrappedString(ptr + data).c_str()))
-            {
-              freepart(&result);
-              delete [] data;
-              return NULL;
-            }
-            ptr += wrappedString::wraplength(data + ptr);
-          }
-        }
-        else
-        {
-          free(result->header);
-          free(result);
-          return NULL;
-        }
-      }
-      else
-      {
-        free(result);
-        return NULL;
-      }
-    }
-    if (ptr != size)
-    {
-      if (debug)
-      {
-        window_put("Tank parse error!");
-        /*partdump(prt);*/
-      }
-    }
+    this->header[i] = ((unsigned char) data[ptr++]) << 8;
+    this->header[i] |= (unsigned char) data[ptr++];
   }
-  else
+
+  this->strings = new std::string [this->nstrings];
+
+  for (int i = 0; i < this->nstrings; i++)
+  {
+    int len = ((unsigned char) data[ptr++]) << 8;
+    len |= (unsigned char) data[ptr++];
+    this->strings[i] = std::string(data + ptr, len);
+    ptr += len + 1;
+  }
+
+  if (ptr != size)
   {
     if (debug)
     {
-      window_put("Error: NULL ptr given to parsetank()");
-      window_nl();
+      window_put("Tank parse error!");
+      /*partdump(prt);*/
     }
   }
-  return result;
 }
 
 
-part *welcome(char *nick, char *pass, char *room, char *roompass, char *referer)
+//welcome message
+part::part(std::string nick,
+           std::string pass,
+           std::string room,
+           std::string roompass,
+           std::string referer="http://www.polchat.pl/chat/room.phtml/?room=Sekciarz")
 {
-  char *nw = NULL, *pw = NULL, *rw = NULL, *rpw = NULL;
-  char *ref = NULL, *p2 = NULL, *p3 = NULL, *klient = NULL;
-  part *result = NULL;
+  this->headerlen = 1;
+  this->header = new short int [1];
+  this->header[0] = 0x0578;
 
-  if (NULL != (nw = clonestring(nick)))
-  {
-    if (NULL != (pw = clonestring(pass)))
-    {
-      if (NULL != (rw = clonestring(room)))
-      {
-        if (NULL != (ref = clonestring(referer)))
-        {
-          if (NULL != (p2 = clonestring("polchat.pl")))
-          {
-            if (NULL != (p3 = clonestring("nlst=1&nnum=1&jlmsg=true&ignprv=false")))
-            {
-              if (NULL != (klient = clonestring(VER)))
-              {
-                if (NULL != (rpw = clonestring(roompass)))
-                {
-                  strcpy(rpw, roompass);
-                  if (NULL != (result = (part *) calloc(1, sizeof(part))))
-                  {
-                    result->headerlen = 1;
-                    result->nstrings = 8;                      
-                    if (NULL != (result->header = (short int *) calloc(1, sizeof(short))))
-                    {
-                      result->header[0] = 0x0578;
-                      if (NULL != (result->strings = (char **) calloc(8, sizeof(char *))))
-                      {
-                        result->strings[0] = nw;
-                        result->strings[1] = pw;
-                        result->strings[2] = rpw;
-                        result->strings[3] = rw;
-                        result->strings[4] = ref;
-                        result->strings[5] = p2;
-                        result->strings[6] = p3;
-                        result->strings[7] = klient;
-                      }
-                      else
-                      {
-                        free(result->header);
-                        free(result);
-                        result = NULL;    
-                      }
-                    }
-                    else
-                    {
-                      free(result);
-                      result = NULL;
-                    }
-                  }                  
-                  if (result == NULL) free(rpw);
-                }
-                if (result == NULL) free(klient);
-              }
-              if (result == NULL) free(p3);
-            }
-            if (result == NULL) free(p2);
-          }
-          if (result == NULL) free(ref);
-        }
-        if (result == NULL) free(rw);
-      }
-      if (result == NULL) free(pw);
-    }
-    if (result == NULL) free(nw);
-  }
-  return result;
+  this->nstrings = 8;
+  this->strings =new std::string [8];
+
+  this->strings[0] = nick;
+  this->strings[1] = pass;
+  this->strings[2] = roompass;
+  this->strings[3] = room;
+  this->strings[4] = referer;
+  this->strings[5] = "polchat.pl";
+  this->strings[6] = "nlst=1&nnum=1&jlmsg=true&ignprv=false";
+  this->strings[7] = VER;
 }
 
-
-
-part *welcome3(char *nick, char *pass, char *room, char *roompass)
+//message
+part::part(const char * string)
 {
-  char *nw = NULL, *pw = NULL, *rw = NULL, *rpw = NULL;
-  char *p1 = NULL, *p2 = NULL, *p3 = NULL, *klient = NULL;
-  part *result = NULL;
+  this->next = NULL;
 
-  if (NULL != (nw = (char *) calloc(strlen(nick) + 1, sizeof(char))))
-  {
-    strcpy(nw, nick);
-    if (NULL != (pw = (char *) calloc(strlen(pass) + 1, sizeof(char))))
-    {
-      strcpy(pw, pass);
-      if (NULL != (rw = (char *) calloc(strlen(room) + 1, sizeof(char))))
-      {
-        strcpy(rw, room);
-        if (NULL != (p1 = clonestring("http://www.polchat.pl/chat/room.phtml/?room=Sekciarz")))
-        {
-          if (NULL != (p2 = (char *) calloc(strlen("polchat.pl") + 1, sizeof(char))))
-          {
-            strcpy(p2, "polchat.pl");  
-            if (NULL != (p3 = (char *) calloc(strlen("nlst=1&nnum=1&jlmsg=true&ignprv=false") + 1, sizeof(char))))
-            {
-              strcpy(p3, "nlst=1&nnum=1&jlmsg=true&ignprv=false");
-              if (NULL != (klient = (char *) calloc(strlen(VER) + 1, sizeof(char))))
-              {
-                strcpy(klient, VER);
-                if (NULL != (rpw = (char *) calloc(strlen(roompass) + 1, sizeof(char))))
-                {
-                  strcpy(rpw, roompass);
-                  if (NULL != (result = (part *) calloc(1, sizeof(part))))
-                  {
-                    result->headerlen = 1;
-                    result->nstrings = 8;                      
-                    if (NULL != (result->header = (short int *) calloc(1, sizeof(short))))
-                    {
-                      result->header[0] = 0x0578;
-                      if (NULL != (result->strings = (char **) calloc(8, sizeof(char *))))
-                      {
-                        result->strings[0] = nw;
-                        result->strings[1] = pw;
-                        result->strings[2] = rpw;
-                        result->strings[3] = rw;
-                        result->strings[4] = p1;
-                        result->strings[5] = p2;
-                        result->strings[6] = p3;
-                        result->strings[7] = klient;
-                      }
-                      else
-                      {
-                        free(result->header);
-                        free(result);
-                        result = NULL;    
-                      }
-                    }
-                    else
-                    {
-                      free(result);
-                      result = NULL;
-                    }
-                  }                  
-                  if (result == NULL) free(rpw);
-                }
-                if (result == NULL) free(klient);
-              }
-              if (result == NULL) free(p3);
-            }
-            if (result == NULL) free(p2);
-          }
-          if (result == NULL) free(p1);
-        }
-        if (result == NULL) free(rw);
-      }
-      if (result == NULL) free(pw);
-    }
-    if (result == NULL) free(nw);
-  }
-  return result;
+  this->header = new short int [1];
+
+  this->headerlen = 1;
+  this->header[0] = 0x019a;
+
+  this->strings = new std::string [1];
+  this->nstrings = 1;
+  this->strings[0] = std::string(string);
 }
 
+//message
+part::part(const char * string, std::string & room)
+{
+  this->next = NULL;
+
+  this->header = new short int [1];
+
+  this->headerlen = 1;
+  this->header[0] = 0x019a;
+
+  this->strings = new std::string [2];
+  this->nstrings = 2;
+  this->strings[0] = std::string(string);
+  this->strings[1] = room;
+}
+
+void part::dump()
+{
+  window_put("HEADER: ");
+  //window_nl();
+  for (int i = 0; i < this->headerlen; i++)
+  {
+    window_puthex(this->header[i], 4);
+    window_putchar(' ');
+  }
+
+  window_nl();
+  window_put("STRINGS ");
+  window_puthex(this->nstrings, 4);
+  window_nl();
+  for (int i = 0; i < this->nstrings; i++)
+  {
+    window_put(this->strings[i].c_str());
+    window_nl();
+  }
+  //window_nl();
+}
+
+part::~part()
+{
+  if (this->next !=NULL)
+  {
+    delete this->next;
+  }
+
+  if (this->strings != NULL)
+  {
+    delete [] this->strings;
+  }
+
+  if (this->header != NULL)
+  {
+    delete [] this->header;
+  }
+}
 
 void processpart(part *ppart, int sfd)
 {
@@ -361,7 +203,7 @@ void processpart(part *ppart, int sfd)
             window_nl();
             if (!verbose)
             {
-              verbosedump(ppart);
+              ppart->dump();
             }
           }
           break;
@@ -378,13 +220,13 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }     
           break;
         case 0x0262:/*MSG*/                
-          if (headerlen == 0x0001 /*&& nstrings == 0x0001*/)
+          if (headerlen == 0x0001 && nstrings == 0x0002)
           {
             if (bell)
             {
@@ -394,8 +236,8 @@ void processpart(part *ppart, int sfd)
             }
             if (!verbose)
             {
-              window_addstr(ppart->strings[0]);
-              printlog("-msg-", ppart->strings[0]);
+              chatrooms.roommsg(ppart->strings[1], ppart->strings[0]);
+              printlog("-msg-", ppart->strings[0].c_str());
             }
           }
           else
@@ -406,19 +248,23 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
           break;
         case 0x0263:/*Priv. msg*/
-          if (headerlen == 0x0001 /*&& nstrings == 0x0002*/)
+          if (headerlen == 0x0001 && nstrings == 0x0002)
           {
-            priv(PRIV_FROM, ppart->strings[1], ppart->strings[0]);
+            //window_put(ppart->strings[1].c_str()); window_nl();
+
+            chatrooms.privmsg(ppart->strings[1], ppart->strings[0]);
+            //priv(PRIV_FROM, ppart->strings[1].c_str(), ppart->strings[0].c_str());
           }
           else if (headerlen == 0x0001 && nstrings == 0x0003)
           {
-            priv(PRIV_TO, ppart->strings[2], ppart->strings[0]);
+            chatrooms.privmsg(ppart->strings[2], ppart->strings[0]);
+            //priv(PRIV_TO, ppart->strings[2].c_str(), ppart->strings[0].c_str());
           }
           else
           {
@@ -428,7 +274,7 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
@@ -439,7 +285,7 @@ void processpart(part *ppart, int sfd)
             if (debug)
             {
               window_put("CLIENT CONFIG: ");
-              window_put(ppart->strings[0]);
+              window_put(ppart->strings[0].c_str());
               window_nl();
             }
           }
@@ -451,7 +297,7 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
@@ -459,16 +305,19 @@ void processpart(part *ppart, int sfd)
         case 0x0267:/*nick entered*/
           if (headerlen == 0x0002 && nstrings == 0x0003)
           {
-            addnick(ppart->strings[0],
-                    ppart->strings[1],
-                    ppart->strings[2],
-                    ppart->header[1],
-                    0x0000);
-            printnicks(/*nicks*/);
+            std::string &room = ppart->strings[1];
+
+            chatrooms.room[room].addnick(ppart->strings[0],
+                                         ppart->strings[2],
+                                         ppart->header[1]);
+            if ((*(chatrooms.current)).name == room)
+            {
+              printnicklist();
+            }
             if ((ppart->header[1] & 0x00ff8c) != 0x0000 && debug)
             {
               window_put("Unknown status of: ");
-              window_put(ppart->strings[0]);
+              window_put(ppart->strings[0].c_str());
               window_put(" : ");
               window_puthex(ppart->header[1], 4);
               window_nl();
@@ -482,7 +331,7 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
@@ -490,8 +339,13 @@ void processpart(part *ppart, int sfd)
         case 0x0268:/*nick left*/
           if (headerlen == 0x0001 && nstrings == 0x0002)
           {
-            remnick(ppart->strings[0], ppart->strings[1]);
-            printnicks(/*nicks*/);
+            std::string &room = ppart->strings[1];
+
+            chatrooms.room[room].removenick(ppart->strings[0]);
+            if ((*(chatrooms.current)).name == room)
+            {
+              printnicklist();
+            }
           }
           else
           {
@@ -501,7 +355,7 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
@@ -509,12 +363,17 @@ void processpart(part *ppart, int sfd)
         case 0x0269:/*NICK update*/
           if (headerlen == 0x0002 && nstrings == 0x0002)
           {
-            updatenick(ppart->strings[0], ppart->strings[1], ppart->header[1], 0x0000);
-            printnicks(/*nicks*/);
+            std::string &room = ppart->strings[1];
+
+            chatrooms.room[room].updatenick(ppart->strings[0], ppart->header[1]);
+            if ((*(chatrooms.current)).name == room)
+            {
+              printnicklist();
+            }
             if ((ppart->header[1] & 0x00ff8c) != 0x0000 && debug)
             {
               window_put("Unknown status of: ");
-              window_put(ppart->strings[0]);
+              window_put(ppart->strings[0].c_str());
               window_put(" : ");
               window_puthex(ppart->header[1], 4);
               window_nl();
@@ -528,13 +387,13 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }  
             }
           }
           break;
         case 0x026a:/*I have absolutly no idea - chyba ze wlazlem jako ja???*/
-          if (headerlen == 0x0002 /*&& nstrings == 0x0001*/)
+          if (headerlen == 0x0002 && nstrings == 0x0001)
           {
             if ((verbose || debug) && ppart->header[1] != 0x0004)
             {
@@ -545,7 +404,7 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                window_put(ppart->strings[0]);
+                window_put(ppart->strings[0].c_str());
                 window_nl();
               }
             }
@@ -558,7 +417,7 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
@@ -568,18 +427,16 @@ void processpart(part *ppart, int sfd)
             ppart->header[2] == 0x0001 && ppart->header[3] == 0x0001 &&
             ppart->header[4] == 0x0000)
           {
-            char * room = ppart->strings[0];
+            chatroom & room = chatrooms.room[ppart->strings[0]];
             for (i = 1; i < nstrings; i += 2)
             {
-              addnick(ppart->strings[i],
-                      room,
-                      ppart->strings[i + 1],
-                      ppart->header[i + 4],
-                      ppart->header[i + 5]);
+              room.addnick(ppart->strings[i],
+                           ppart->strings[i + 1],
+                           ppart->header[i + 4]);
               if (((ppart->header[i + 4] & 0x00ff8c) != 0x0000 || ppart->header[i + 5] != 0x0000) && debug)
               {
                 window_put("Unknown status of: ");
-                window_put(ppart->strings[i]);
+                window_put(ppart->strings[i].c_str());
                 window_put(" : ");
                 window_puthex(ppart->header[i + 4], 4);
                 window_put(" : ");
@@ -587,7 +444,10 @@ void processpart(part *ppart, int sfd)
                 window_nl();
               }
             }
-            printnicks(/*nicks*/);
+            if (room.name == (*(chatrooms.current)).name)
+            {
+              printnicklist();
+            }
           }
           else
           {
@@ -597,13 +457,13 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
           break;
         case 0x026C: /*#nicks*/
-          if (headerlen == 0x0002 /*&& nstrings == 0x0000*/)
+          if (headerlen == 0x0002 && nstrings == 0x0000)
           {
             nickn = ppart->header[1];
             if (debug)
@@ -621,7 +481,7 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
@@ -629,24 +489,7 @@ void processpart(part *ppart, int sfd)
         case 0x0271: /*ROOMINFO*/
           if (headerlen == 0x0002 && nstrings == 0x0002)
           {
-            if (NULL != roomname)
-            {
-              free(roomname);
-              roomname = NULL;
-            }
-            if (NULL != (roomname = (char *) calloc(1 + strlen(ppart->strings[0]), sizeof(char))))
-            {
-              strcpy(roomname, ppart->strings[0]);
-            }
-            if (NULL != roomdesc)
-            {
-              free(roomdesc);
-              roomdesc = NULL;
-            }
-            if (NULL != (roomdesc = (char *) calloc(1 + strlen(ppart->strings[1]), sizeof(char))))
-            {
-              strcpy(roomdesc, ppart->strings[1]);
-            }
+            chatrooms.room[ppart->strings[0]].setdesc(ppart->strings[1]);
             printtitle();
           }
           else
@@ -657,7 +500,7 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
@@ -665,19 +508,19 @@ void processpart(part *ppart, int sfd)
         case 0x0272:/*PIERDOLY... konfiguracja pokoju ;-D*/
           if (headerlen == 0x0001 && nstrings == 0x0002)
           {
-            if (NULL != (ptr = strstr(ppart->strings[0], "color_user=")))
+            if (NULL != (ptr = strstr((char *) ppart->strings[0].c_str(), "color_user=")))
             {
               ptr += 11;
               sscanf(ptr, "#%x", &tmp);
               colourt[0] = transformrgb((tmp >> 16) & 0x00FF, (tmp >> 8) & 0x00FF, tmp & 0x00FF);
             }
-            if (NULL != (ptr = strstr(ppart->strings[0], "color_op=")))
+            if (NULL != (ptr = strstr((char *) ppart->strings[0].c_str(), "color_op=")))
             {
               ptr += 9;
               sscanf(ptr, "#%x", &tmp);
               colourop = transformrgb((tmp >> 16) & 0x00FF, (tmp >> 8) & 0x00FF, tmp & 0x00FF);
             }
-            if (NULL != (ptr = strstr(ppart->strings[0], "color_guest=")))
+            if (NULL != (ptr = strstr((char *) ppart->strings[0].c_str(), "color_guest=")))
             {
               ptr += 12;
               tmp = sscanf(ptr, "#%x #%x #%x #%x #%x #%x #%x", &tempt[0],
@@ -697,18 +540,19 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
           break;
         case 0x0276:/*MSG powitalny*/
-          if (headerlen == 0x0001 /*&& nstrings == 0x0001*/)
+          if (headerlen == 0x0001 && nstrings == 0x0002)
           {
+            chatrooms.join(ppart->strings[1]);
             if (!verbose)
             {
-              window_addstr(ppart->strings[0]);
-              printlog("-hi-", ppart->strings[0]);
+              chatrooms.roommsg(ppart->strings[1], ppart->strings[0]);
+              printlog("-hi-", ppart->strings[0].c_str());
               window_colouroff();
             }
           }
@@ -720,20 +564,21 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
           break;
         case 0x0277:/*MSG pozegnalny*/
-          if (headerlen == 0x0001 /*&& nstrings == 0x0001*/)
+          if (headerlen == 0x0001 && nstrings == 0x0002)
           {
-            freenicklist(&nicks);
-            printnicks(/*nicks*/);
+            chatrooms.part(ppart->strings[1], false);
+            update_all();
+
             if (!verbose)
             {
-              window_addstr(ppart->strings[0]);
-              printlog("-bye-", ppart->strings[0]);
+              chatrooms.roommsg(ppart->strings[1], ppart->strings[0]);
+              printlog("-bye-", ppart->strings[0].c_str());
               window_colouroff();
             }
           }
@@ -745,7 +590,7 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             } 
           }
@@ -755,7 +600,7 @@ void processpart(part *ppart, int sfd)
           {
             window_put("REKLAMY");
             window_nl();
-            verbosedump(ppart);
+            ppart->dump();
           }
           break;
         case (short) 0xffff:/*MSG -*/
@@ -763,12 +608,17 @@ void processpart(part *ppart, int sfd)
           {
             if (!verbose)
             {
-              window_addstr(ppart->strings[0]);
-              printlog("---", ppart->strings[0]);
+              //TODO: rethink it
+              chatrooms.currentroom().addline(ppart->strings[0].c_str());
+              line & tmp = chatrooms.currentroom().lines.back();
+              window_put(tmp.timestring.c_str());
+              printpol(tmp.text.c_str());
+
+              printlog("---", ppart->strings[0].c_str());
             }
             connected = 0;
             close(sfd);
-            if (0 == strncmp("nieprawidłowe hasło i/lub identyfikator użytkownika", ppart->strings[0], 9))
+            if (0 == strncmp("nieprawidłowe hasło i/lub identyfikator użytkownika", ppart->strings[0].c_str(), 9))
             {
               if (pass != NULL)
               {
@@ -785,7 +635,7 @@ void processpart(part *ppart, int sfd)
               window_nl();
               if (!verbose)
               {
-                verbosedump(ppart);
+                ppart->dump();
               }
             }
           }
@@ -797,7 +647,7 @@ void processpart(part *ppart, int sfd)
             window_nl();
             if (!verbose)
             {
-              verbosedump(ppart);
+              ppart->dump();
             }
           }
           break;
@@ -811,7 +661,7 @@ void processpart(part *ppart, int sfd)
         window_nl();
         if (!verbose)
         {
-          verbosedump(ppart);
+          ppart->dump();
         }
       }
       if (headerlen == 0x0000 && nstrings == 0x0000)
@@ -827,7 +677,7 @@ void processpart(part *ppart, int sfd)
     }     
     if (verbose)
     {
-      verbosedump(ppart);
+      ppart->dump();
     }
   }
   else
@@ -837,113 +687,6 @@ void processpart(part *ppart, int sfd)
       window_put("Error: NULL ptr given to processpart()");
       window_nl();
     }
-  }
-}
-
-
-part *makemsg(char *string)
-{
-  part *result = NULL;
-  
-  if (string != NULL)
-  {
-    if (NULL != (result = (part *) calloc(1, sizeof(part))))
-    {
-      result->next = NULL;
-      if (NULL != (result->header = (short int *) calloc(1, sizeof(short))))
-      {
-        result->headerlen = 1;
-        result->header[0] = 0x019a;
-        if (NULL != (result->strings = (char **) calloc(1, sizeof(char *))))
-        {
-          result->nstrings = 1;
-          if (NULL == (result->strings[0] = clonestring(string)/*iso2utf8string(string)*/))
-          {
-            freepart(&result);
-          }
-        }
-        else
-        {
-          freepart(&result);
-        }
-      }
-      else
-      {
-        freepart(&result);
-      }
-    }
-  }
-  else
-  {
-    if (debug)
-    {
-      window_put("Error: NULL ptr given to makemsg()");
-      window_nl();
-    }
-  }
-  return result;
-}
-
-
-void verbosedump(part *dump)
-{
-  int i;
-  
-  if (dump != NULL)
-  {
-    window_put("HEADER:");
-    window_nl();
-    for (i = 0; i < dump->headerlen; i++)
-    {
-      window_puthex(dump->header[i], 4);
-      window_putchar(' ');
-    }
-    window_nl();
-    window_put("STRINGS ");
-    window_puthex(dump->nstrings, 4);
-    window_nl();
-    for (i = 0; i < dump->nstrings; i++)
-    {
-      window_put(dump->strings[i]);
-      window_nl();
-    }
-    window_nl();
-  }
-  else
-  {
-    if (debug)
-    {
-      window_put("Error: NULL ptr given to verbosedump()");
-      window_nl();
-    }
-  }
-}
-
-
-void freepart(part **p)
-{
-  int i;
-
-  if (*p != NULL)
-  {
-    freepart(&((*p)->next));
-    if ((*p)->header != NULL)
-    {
-      free((*p)->header);
-    }
-    if ((*p)->strings != NULL)
-    {
-      for (i = 0; i < (*p)->nstrings; i++)
-      {
-        if ((*p)->strings[i] != NULL)
-        {
-          delete [] (*p)->strings[i];
-        }
-      }
-      free((*p)->strings);
-    }
-    free(*p);
-    *p = NULL;
   }
 }
 
@@ -960,7 +703,7 @@ int sendpol(part *ppart, int sfd)
     size += 2 * ppart->headerlen;
     for (i = 0; i < ppart->nstrings; i++)
     {
-      size += strlen(ppart->strings[i]) + 3;
+      size += ppart->strings[i].length() + 3;
     }
     char * data = new char[size];
 
@@ -979,10 +722,10 @@ int sendpol(part *ppart, int sfd)
 
       for (i = 0; i < ppart->nstrings; i++)
       {
-        tmp = strlen(ppart->strings[i]);
+        tmp = ppart->strings[i].length();
         data[ptr++] = (char) (tmp / 256);
         data[ptr++] = (char) (tmp % 256);
-        strcpy(data + ptr, ppart->strings[i]);
+        strcpy(data + ptr, ppart->strings[i].c_str());
         ptr += tmp;
         data[ptr++] = '\0';
       }
@@ -1054,7 +797,7 @@ void sendnext(int sfd)
       sendpol(tosend, sfd);
       tmp = tosend->next;
       tosend->next = NULL;
-      freepart(&tosend);
+      delete tosend;
       tosend = tmp;
       last = time(NULL);
     }
@@ -1065,10 +808,10 @@ void sendnext(int sfd)
     {
       if (connected && (antiidle < difftime(time(NULL), last)))
       {
-        if (NULL != (tmp = makemsg("/noop")))
+        if (NULL != (tmp = new part("/noop")))
         {
           sendpol(tmp, sfd);
-          freepart(&tmp);
+          delete tmp;
           last = time(NULL);
         }
       }

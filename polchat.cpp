@@ -1,8 +1,7 @@
-/*AmiX - polchat.c - v. 0.2 - (c) by ABUKAJ (J.M.Kowalski)*/
+/*AmiX - polchat.cpp - (c) by ABUKAJ (J.M.Kowalski)*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
 #include <ncursesw/ncurses.h>
 
@@ -22,251 +21,268 @@ int askpassw = 0;
 int antiidle = 0;
 int html = -1;
 double period = 1.0;
-nicknode *nicks = NULL;
-char *roomname = NULL;
-char *roomdesc = NULL;
 char *pass = NULL;
 FILE *logfh = NULL;
 short nickn;
+chat chatrooms;
 
 int colourt[8] = {COLOR_BLACK, COLOR_BLUE, COLOR_CYAN, COLOR_MAGENTA, COLOR_YELLOW, COLOR_BLACK, COLOR_CYAN, COLOR_BLUE};
 int colourop = COLOR_RED;
 
-void addnick(char *nick, char *room, char *client, short status, short unknown)
+
+nicknode::nicknode(std::string & nn, std::string & nc, short ns)
 {
-  nicknode **nicklist;
-  nicknode *tmp;
-  int size;
-  int res;
-
-  if (unknown != 0x0000)
-  {
-    if (debug)
-    {
-      window_put("NICK: ");
-      window_put(nick);
-      window_put(" unknown: ");
-      window_puthex(unknown, 4);
-      window_nl();
-    }
-  }
-
-  nicklist = &nicks;
-  while ((*nicklist) != NULL && (res = ncsstrcmp(nick, (*nicklist)->nick)) > 0)
-  {
-    nicklist = &((*nicklist)->next);
-  }
-  if (*nicklist != NULL)
-  {
-    if (res)
-    {
-      if (NULL != (tmp = (nicknode *) calloc(1, sizeof(nicknode))))
-      {
-        tmp->nick = clonestring(nick);
-        tmp->client = clonestring(client);
-        tmp->status = status;
-        tmp->unknown = unknown;
-        tmp->next = *nicklist;
-        *nicklist = tmp;
-      }
-    }
-    else
-    {
-      (*nicklist)->status = status;
-      (*nicklist)->unknown = unknown;
-    }
-  }
-  else 
-  {
-    if (NULL != (*nicklist = (nicknode *) calloc(1, sizeof(nicknode))))
-    {
-      (*nicklist)->nick = clonestring(nick);
-      (*nicklist)->client = clonestring(client);
-      (*nicklist)->status = status;
-      (*nicklist)->unknown = unknown;
-    }
-    else
-    {
-      if (debug)
-      {
-        window_put("Error: unable to allocate memory for nicknode");
-        window_nl();
-      }
-    }
-  }
+  this->nick = nn;
+  this->client = nc;
+  this->status = ns;
 }
 
-void updatenick(char *nick, char *room, short status, short unknown)
+line::line(std::string & str)
 {
-  nicknode **nicklist;
-  nicknode *tmp;
-  int size;
-  int res;
+  char buffer[15];
+  time_t tmp;
 
-  if (unknown != 0x0000)
-  {
-    if (debug)
-    {
-      window_put("NICK: ");
-      window_put(nick);
-      window_put(" unknown: ");
-      window_puthex(unknown, 4);
-      window_nl();
-    }
-  }
+  tmp = time(NULL);
+  strftime(buffer, 14, "%H:%M:%S ", localtime(&tmp));
 
-  nicklist = &nicks;
-  while ((*nicklist) != NULL && (res = ncsstrcmp(nick, (*nicklist)->nick)) > 0)
-  {
-    nicklist = &((*nicklist)->next);
-  }
-  if (*nicklist != NULL)
-  {
-    if (res == 0)
-    {
-      (*nicklist)->status = status;
-      (*nicklist)->unknown = unknown;
-    }
-  }
+  this->timestring = buffer;
+  this->text = str;
 }
 
-
-void remnick(char *nick, char *room)
+void chatroom::addnick(std::string & nick,
+                       std::string & client,
+                       short status)
 {
-  nicknode **nicklist;
-  nicknode *tmp;
+  std::list<nicknode>::iterator it;
+  bool found = false;
+  
+  for (it = this->nicklist.begin(); 
+       it != this->nicklist.end();
+       it++)
+  {
+    int res = ncsstrcmp(nick.c_str(), (*it).nick.c_str());
 
-  nicklist = &nicks;
-  while ((*nicklist) != NULL && 0 != ncsstrcmp(nick, (*nicklist)->nick))
-  {
-    nicklist = &((*nicklist)->next);
+    if (res <= 0)
+    {
+      found = res == 0;
+      break;
+    }
   }
-  if (*nicklist != NULL)
+
+  if (!found)
   {
-    tmp = *nicklist;
-    *nicklist = (*nicklist)->next;
-    if (NULL != tmp->nick)
-    {
-      free(tmp->nick);
-    }
-    if (NULL != tmp->client)
-    {
-      free(tmp->client);
-    }
-    free(tmp);
+    this->nicklist.insert(it, nicknode(nick, client, status));
   }
   else
   {
     if (debug)
     {
-      window_put("Error: no nick to delete");
+      window_put("NICK: ");
+      window_put(nick.c_str());
+      window_put(" already found in room: ");
+      window_put(this->name.c_str());
       window_nl();
     }
   }
 }
 
-
-void printnicks()
+void chatroom::updatenick(std::string & nick,
+                          short status)
 {
-  int i = 1;
-  int j;
-  int colour;
-  nicknode *nicklist;
-
-  nicklist = nicks;
-  while (NULL != nicklist && i < nicklist_h - 1)
+  //bool found = false;
+  std::list<nicknode>::iterator it;
+  
+  for (it = this->nicklist.begin(); 
+       it != this->nicklist.end();
+       it++)
   {
-    colour = colourt[(nicklist->status & 0x0070) >> 4];
-    if (colour != COLOR_WHITE && colour != COLOR_BLACK && useattr)
+    int res = ncsstrcmp(nick.c_str(), (*it).nick.c_str());
+
+    if (res == 0)
     {
-      wattron(nickwindow, COLOR_PAIR(colour) | A_BOLD);
-    }
-    
-    if (nicklist->status & 0x0002)
-    {
-      mvwprintw(nickwindow, i, 1, "OP ");
-    }
-    else
-    {
-      mvwprintw(nickwindow, i, 1, "   ");
+      //found = true;
+      (*it).status = status;
+      break;
     }
 
-    if ((nicklist->status & 0x0001) && useattr)
+    if (res < 0)
     {
-      wattron(nickwindow, A_UNDERLINE);
+      break;
     }
-
-    mvwaddnstr(nickwindow, i, 4, nicklist->nick, NICKLIST_WIDTH - 5);
-    if (strlen(nicklist->nick) > NICKLIST_WIDTH - 4)
-    {
-      mvwaddstr(nickwindow, i, NICKLIST_WIDTH - 4, "...");
-    }
-
-    if ((nicklist->status & 0x0001) && useattr)
-    {
-      wattroff(nickwindow, A_UNDERLINE);
-    }
-
-    for (j = strlen(nicklist->nick) + 4; j < NICKLIST_WIDTH - 1; j++)
-    {
-      mvwaddch(nickwindow, i, j, ' ');
-    }
-    i++;
-    nicklist = nicklist->next;
-    
-    if (colour != COLOR_WHITE && colour != COLOR_BLACK && useattr)
-    {
-      wattroff(nickwindow, COLOR_PAIR(colour) | A_BOLD);
-    }  
   }
 
-  while (i < nicklist_h - 1)
-  {
-    wmove(nickwindow, i, 1);
-    for (j = 2; j < NICKLIST_WIDTH; j++)
-    {
-      waddch(nickwindow, ' ');
-    }
-    i++;
-  }
-  wnoutrefresh(nickwindow);
-  window_updated = -1;
+  //updatenick message is sent BEFORE nick entered and AFTER nick left
+  //if (!found && debug)
+  //{
+  //  window_put("(updatenick) NICK: ");
+  //  window_put(nick.c_str());
+  //  window_put(" not found in room: ");
+  //  window_put(this->name.c_str());
+  //  window_nl();
+  //}
 }
 
 
-void freenicklist(nicknode **nicklist)
+void chatroom::removenick(std::string & nick)
 {
-  if (*nicklist != NULL)
+  bool found = false;
+  std::list<nicknode>::iterator it;
+  
+  for (it = this->nicklist.begin(); 
+       it != this->nicklist.end();
+       it++)
   {
-    freenicklist(&((*nicklist)->next));
-    if (NULL != (*nicklist)->nick)
+    int res = ncsstrcmp(nick.c_str(), (*it).nick.c_str());
+
+    if (res == 0)
     {
-      free((*nicklist)->nick);
+      found = true;
+      this->nicklist.erase(it);
+      break;
     }
-    if (NULL != (*nicklist)->client)
+
+    if (res < 0)
     {
-      free((*nicklist)->client);
+      break;
     }
-    free(*nicklist);
-    *nicklist = NULL;
+  }
+
+  if (!found && debug)
+  {
+    window_put("(removenick) NICK: ");
+    window_put(nick.c_str());
+    window_put(" not found in room: ");
+    window_put(this->name.c_str());
+    window_nl();
   }
 }
 
 
-const char *getnickbyprefix(char *prefix, int len, nicknode *node)
+std::string chatroom::getnickbyprefix(char * prefix, int len)
 {
-  if (NULL != node)
+  for (std::list<nicknode>::iterator it = this->nicklist.begin(); 
+       it != this->nicklist.end();
+       it++)
   {
-    if (0 == ncsstrncmp(prefix, node->nick, len))
+    int res = ncsstrncmp(prefix, (*it).nick.c_str(), len);
+
+    if (res == 0)
     {
-      return node->nick;
+      return (*it).nick;
     }
-    else
+
+    if (res < 0)
     {
-      return getnickbyprefix(prefix, len, node->next);
+      break;
     }
   }
-  return NULL;
+  return std::string(prefix, len);
+}
+
+void chatroom::addline(std::string text)
+{
+  this->lines.push_back(line(text));
+  if (this->lines.size() > MSGSTOREMAX)
+  {
+    this->lines.pop_front();
+  }
+}
+
+
+void chat::join(std::string name)
+{
+  if (this->room.count(name) != 0)
+  {
+    if (debug)
+    {
+      window_put("YOU ARE ALREADY IN ROOM: ");
+      window_put(name.c_str());
+      window_nl();
+    }
+    return;
+  }
+  this->roomlist.push_back(roomname(name));
+  this->room[name] = chatroom(name);
+}
+
+void chat::part(std::string name, bool priv=false)
+{
+  if (priv)
+  {
+    this->priv.erase(name);
+  }
+  else
+  {
+    this->room.erase(name);
+  }
+
+  roomname toremove = roomname(name, !priv);
+
+  if (toremove == *(this->current))
+  {
+    this->current = this->roomlist.erase(this->current);
+  }
+  else
+  {
+    this->roomlist.remove(toremove);
+  }
+
+  if (this->current == this->roomlist.end())
+  {
+    this->current--;
+  }
+}
+
+void chat::prev()
+{
+  if (this->current != this->roomlist.begin())
+  {
+    this->current--;
+  }
+  update_all();
+}
+
+void chat::next()
+{
+  this->current++;
+  if (this->current == this->roomlist.end())
+  {
+    this->current--;
+  }
+  update_all();
+}
+
+void chat::privmsg(std::string name, std::string msg)
+{
+  std::string lowname = lowercase(name);
+
+  if (this->priv.count(lowname) == 0)
+  {
+    std::string tmp = "Private chat with " + name;
+    this->priv[lowname] = chatroom(lowname, tmp);
+    this->roomlist.push_back(roomname(lowname, false));
+
+    //TODO: refactoring
+    printtitle();
+  }
+  this->priv[lowname].addline(msg);
+  if (!(*(this->current)).room && (*(this->current)).name == lowname)
+  {
+    line & tmp = this->priv[lowname].lines.back();
+    window_put(tmp.timestring.c_str());
+    printpol(tmp.text.c_str());
+  }
+}
+
+void chat::roommsg(std::string name, std::string msg)
+{
+  this->room[name].addline(msg);
+  if ((*(this->current)).room && (*(this->current)).name == name)
+  {
+    line & tmp = this->room[name].lines.back();
+    window_put(tmp.timestring.c_str());
+    printpol(tmp.text.c_str());
+  }
 }
 
 
@@ -324,7 +340,7 @@ void closelog()
 }
 
 
-int printlog(char *descr, char *msg)
+int printlog(const char *descr, const char *msg)
 {
   time_t t;
   static char buffer[15];

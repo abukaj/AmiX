@@ -2,6 +2,8 @@
 
 #include <ncursesw/ncurses.h>
 
+#include "polchat.h"
+
 #ifndef AMIX_INTERFACE_H
 #define AMIX_INTERFACE_H
 
@@ -11,26 +13,19 @@
 #define NICKLIST_HEIGHT nicklist_h
 
 #define WINDOW_X 0
-#define WINDOW_Y 4 
+#define WINDOW_Y 2 
 #define WINDOW_WIDTH window_w 
 #define WINDOW_HEIGHT window_h
 
 #define CONSOLE_X 0
-#define CONSOLE_H 3
+#define CONSOLE_H 1
 
 #define TITLE_X 0
 #define TITLE_Y 0
-#define TITLE_H 4
-
-#define MSGSTOREMAX 100
+#define TITLE_H 2
 
 #define BUFFSIZE 10240
 
-typedef struct
-  {
-  time_t time;
-  char *string;
-  } line;
 
 typedef enum
   {
@@ -38,7 +33,6 @@ typedef enum
   PRIV_TO = 1
   } privinfo;
 
-extern line window[];
 extern WINDOW *chatwindow;
 extern WINDOW *nickwindow;
 extern WINDOW *titlewindow;
@@ -63,7 +57,7 @@ extern int window_updated;
 void window_init();
 void window_nl();
 void window_done();
-void window_put(char *);
+void window_put(const char *);
 void window_putchar(unsigned char);
 void window_puthex(unsigned int, unsigned int);
 void window_putforce(char *);
@@ -75,20 +69,22 @@ void window_attroff(int);
 
 void window_resize();
 void window_redraw();
-void window_addstr(char *);
+void update_all();
 
-char *readtoken(char *);
+char *readtoken(const char *);
 /*void remsn(stringnode **);
 stringnode *newsn(char *);
 void addstringnode(stringnode **, char *);*/
 void printtitle();
-void printpol(char *);
+void printpol(const char *);
 char *console_input();
 void console_update();
 
+void printnicklist();
+
 int transformrgb(int, int, int);
 
-void priv(privinfo, char *, char *);
+//void priv(privinfo, const char *, const char *);
 
 char *input_password();
 
