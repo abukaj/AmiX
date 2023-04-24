@@ -14,201 +14,10 @@
 #include "temp.h"
 #include "version.h"
 
-unsigned char *welcome(unsigned char *nick, unsigned char *pass,
-                       unsigned char *room, int sfd)
+part *welcome3(char *nick, char *pass, char *room, char *roompass)
   {
-  unsigned char *nw = NULL, *pw = NULL, *rw = NULL;
-  unsigned char *p1 = NULL, *p2 = NULL, *p3 = NULL;
-  unsigned char *result = NULL;
-  int size;
-  int tmp;
-  int ptr;
-  
-  if (NULL != (nw = wrapstring(nick)))
-    {
-    if (NULL != (pw = wrapstring(pass)))
-      {
-      if (NULL != (rw = wrapstring(room)))
-        {
-        if (NULL != (p1 = wrapstring("http://www.polchat.pl/chat/")))
-          {
-          if (NULL != (p2 = wrapstring("http://s9.polchat.pl/")))
-            {
-            if (NULL != (p3 = wrapstring("nlst=1&nnum=1&jlmsg=true&ignprv=false")))
-              {
-              size = 4; /*sam size*/
-              size += 6; /*header*/
-              size += wrapsize(nw); /*nick*/
-              size += wrapsize(pw); /*pass*/
-              size += 3; /*nie mam pojecia co - 3*0x00... Pusty string?*/
-              size += wrapsize(rw); /*room*/
-              size += wrapsize(p1);
-              size += wrapsize(p2);
-              size += wrapsize(p3);/*jakies opcje*/
-              if (NULL != (result = calloc(size, sizeof(char))))
-                {
-                /*przepisuje rozmiar*/
-                result[3] = size % 256;
-                tmp = size / 256;
-                result[2] = tmp % 256;
-                tmp /= 256;
-                result[1] = tmp % 256;
-                tmp /= 256;
-                result[0] = tmp;
-                ptr = 4;
-                
-                result[ptr++] = 0x00;/*naglowek*/
-                result[ptr++] = 0x01;
-                result[ptr++] = 0x00;
-                result[ptr++] = 0x07;
-                result[ptr++] = 0x05;
-                result[ptr++] = 0x78;
-
-                memcpy(result + ptr, nw, wrapsize(nw));
-                ptr += wrapsize(nw);
-                memcpy(result + ptr, pw, wrapsize(pw));
-                ptr += wrapsize(pw);
-
-                result[ptr++] = 0x00;
-                result[ptr++] = 0x00;
-                result[ptr++] = 0x00;
-                
-                memcpy(result + ptr, rw, wrapsize(rw));
-                ptr += wrapsize(rw);
-                memcpy(result + ptr, p1, wrapsize(p1));
-                ptr += wrapsize(p1);
-                memcpy(result + ptr, p2, wrapsize(p2));
-                ptr += wrapsize(p2);
-                memcpy(result + ptr, p3, wrapsize(p3));
-                ptr += wrapsize(p3);
-                if (ptr != size){
-                  window_put("Error: ptr != size");
-                  window_put("\n");
-                  }
-                write(sfd, result, size);/*i od razu wyslemy co trzeba*/
-                free(result);
-                result = NULL;
-                }
-              free(p3);
-              }
-            free(p2);
-            }
-          free(p1);
-          }
-        free(rw);
-        }
-      free(pw);
-      }
-    free(nw);
-    }
-  return result;
-  }
-
-
-unsigned char *welcome2(unsigned char *nick, unsigned char *pass,
-                       unsigned char *room, int sfd)
-  {
-  unsigned char *nw = NULL, *pw = NULL, *rw = NULL;
-  unsigned char *p1 = NULL, *p2 = NULL, *p3 = NULL, *klient = NULL;
-  unsigned char *result = NULL;
-  int size;
-  int tmp;
-  int ptr;
-  
-  if (NULL != (nw = wrapstring(nick)))
-    {
-    if (NULL != (pw = wrapstring(pass)))
-      {
-      if (NULL != (rw = wrapstring(room)))
-        {
-        if (NULL != (p1 = wrapstring("http://www.polchat.pl/chat/room.phtml/?room=AmiX")))
-          {
-          if (NULL != (p2 = wrapstring("polchat.pl")))
-            {
-            if (NULL != (p3 = wrapstring("nlst=1&nnum=1&jlmsg=true&ignprv=false")))
-              {
-              if (NULL != (klient = wrapstring($VER)))
-                {
-                size = 4; /*sam size*/
-                size += 6; /*header*/
-                size += wrapsize(nw); /*nick*/
-                size += wrapsize(pw); /*pass*/
-                size += 3; /*nie mam pojecia co - 3*0x00... Pusty string?*/
-                size += wrapsize(rw); /*room*/
-                size += wrapsize(p1);
-                size += wrapsize(p2);
-                size += wrapsize(p3);/*jakies opcje*/
-                size += wrapsize(klient);
-                if (NULL != (result = calloc(size, sizeof(char))))
-                  {
-                  /*przepisuje rozmiar*/
-                  result[3] = size % 256;
-                  tmp = size / 256;
-                  result[2] = tmp % 256;
-                  tmp /= 256;
-                  result[1] = tmp % 256;
-                  tmp /= 256;
-                  result[0] = tmp;
-                  ptr = 4;
-                
-                  result[ptr++] = 0x00;/*naglowek*/
-                  result[ptr++] = 0x01;
-                  result[ptr++] = 0x00;
-                  result[ptr++] = 0x08;
-                  result[ptr++] = 0x05;
-                  result[ptr++] = 0x78;
-
-                  memcpy(result + ptr, nw, wrapsize(nw));
-                  ptr += wrapsize(nw);
-                  memcpy(result + ptr, pw, wrapsize(pw));
-                  ptr += wrapsize(pw);
-
-                  result[ptr++] = 0x00;
-                  result[ptr++] = 0x00;
-                  result[ptr++] = 0x00;
-                
-                  memcpy(result + ptr, rw, wrapsize(rw));
-                  ptr += wrapsize(rw);
-                  memcpy(result + ptr, p1, wrapsize(p1));
-                  ptr += wrapsize(p1);
-                  memcpy(result + ptr, p2, wrapsize(p2));
-                  ptr += wrapsize(p2);
-                  memcpy(result + ptr, p3, wrapsize(p3));
-                  ptr += wrapsize(p3);
-                  memcpy(result + ptr, klient, wrapsize(klient));
-                  ptr += wrapsize(klient);
-                  if (ptr != size)
-                    {
-                    window_put("Error: ptr != size");
-                    window_put("\n");
-                    }
-                  write(sfd, result, size);/*i od razu wyslemy co trzeba*/
-                  free(result);
-                  result = NULL;
-                  }
-                free(klient);
-                }
-              free(p3);
-              }
-            free(p2);
-            }
-          free(p1);
-          }
-        free(rw);
-        }
-      free(pw);
-      }
-    free(nw);
-    }
-  return result;
-  }
-
-
-part *welcome3(unsigned char *nick, unsigned char *pass,
-               unsigned char *room, unsigned char *roompass)
-  {
-  unsigned char *nw = NULL, *pw = NULL, *rw = NULL, *rpw = NULL;
-  unsigned char *p1 = NULL, *p2 = NULL, *p3 = NULL, *klient = NULL;
+  char *nw = NULL, *pw = NULL, *rw = NULL, *rpw = NULL;
+  char *p1 = NULL, *p2 = NULL, *p3 = NULL, *klient = NULL;
   part *result = NULL;
   
   if (NULL != (nw = calloc(strlen(nick) + 1, sizeof(char))))
@@ -297,8 +106,8 @@ void processpart(part *ppart, int sfd)
   short nstrings;
   int i;
   char *ptr;
-  int tmp;
-  int tempt[7];
+  unsigned int tmp;
+  unsigned int tempt[7];
   
   if (NULL != ppart)
     {
@@ -349,6 +158,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
+              printlog(" ", ppart->strings[0]);
               }
             }
           else
@@ -366,7 +176,7 @@ void processpart(part *ppart, int sfd)
           break;
         case 0x0263:/*Priv. msg*/
           if (headerlen == 0x0001 && nstrings == 0x0002)
-            {
+            {/*
             window_attron(A_BLINK);
             window_put("<-- ");
             window_attroff(A_BLINK);
@@ -375,10 +185,11 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
-              }    
+              }*/
+            priv(PRIV_FROM, ppart->strings[1], ppart->strings[0]);
             }
           else if (headerlen == 0x0001 && nstrings == 0x0003)
-            {
+            {/*
             window_attron(A_BLINK);
             window_put("--> ");
             window_attroff(A_BLINK);
@@ -387,7 +198,8 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
-              }
+              }*/
+            priv(PRIV_TO, ppart->strings[2], ppart->strings[0]);
             }
           else
             {
@@ -643,6 +455,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
+              printlog(" ", ppart->strings[0]);
               window_colouroff();
               }
             }
@@ -667,6 +480,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
+              printlog(" ", ppart->strings[0]);
               window_colouroff();
               }
             }
@@ -689,6 +503,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
+              printlog(" ", ppart->strings[0]);
               }
             connected = 0;
             close(sfd);
@@ -756,7 +571,7 @@ void processpart(part *ppart, int sfd)
   }
 
 
-part *makemsg(unsigned char *string)
+part *makemsg(char *string)
   {
   part *result = NULL;
   

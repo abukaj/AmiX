@@ -553,7 +553,7 @@ void printpol(char *string)
   int tokens = -1;
   char *token = NULL;
   char *ptr;
-  int tmp;
+  unsigned int tmp;
   int col;
   
   if (string != NULL)
@@ -833,3 +833,25 @@ void console_update()
   window_updated = -1;
   }
 
+
+void priv(privinfo info, char *who, char *what)
+  {
+  window_attron(A_BLINK);
+  switch (info)
+    {
+    case PRIV_FROM:
+      window_put("<-- ");
+      break;
+    case PRIV_TO:
+      window_put("--> ");
+      break;
+    }
+  window_attroff(A_BLINK);
+  window_put(who);
+  window_put(": ");
+  if (!verbose)
+    {
+    window_addstr(what);
+    }
+  printlog(who, what);
+  }

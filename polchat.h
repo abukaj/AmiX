@@ -13,7 +13,11 @@ void remnick(char *);
 void printnicks();
 void freenicklist(nicknode **);
 const char *getnickbyprefix(char *, int, nicknode *);
+int openlog(char *);
+void closelog();
+int printlog(char *, char *);
 
+extern int cud;
 extern int debug;
 extern int verbose;
 extern int bell;

@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
   struct sockaddr_in *serv_addr = NULL;
   struct addrinfo hints, *res, *tres;
   struct pollfd pol;
-  unsigned char *prt = NULL;
+  char *prt = NULL;
   part *ppart = NULL;  
   
   for (i = 1; i < argc; ++i)
@@ -43,7 +43,8 @@ int main(int argc, char *argv[])
     if (0 == strcmp(argv[i], "?"))
       {
       printf("SERVER/K PORT/K/N ROOM/K NICK/K PASSWORD/K DEBUG/S VERBOSE/S BELL/S"
-             " PERIOD/K/N NICKLISTWIDTH/K/N NOATTR/S ASKPASSW/S\n");
+             " PERIOD/K/N NICKLISTWIDTH/K/N NOATTR/S ASKPASSW/S CHECKUPDATES/S"
+             " LOG/K\n");
       run = 0;
       }
     else if (0 == strcmp(argv[i], "-help") || 0 == strcmp(argv[i], "--help") || 0 == strcmp(argv[i], "-h"))
@@ -52,6 +53,7 @@ int main(int argc, char *argv[])
       puts("Usage:");
       puts(argv[0]);
       puts("[-askpassw]");
+      puts("[-checkupdates]");
       puts("[-nick nick]");
       puts("[-nicklistwidth width of nicklist]");
       puts("[-noattr]");
@@ -60,6 +62,7 @@ int main(int argc, char *argv[])
       puts("[-port port]");
       puts("[-room room]");
       puts("[-server server]");
+      puts("[-log logfilename]");
       }
     else if (0 == strcmp(argv[i], "-askpassw") || 0 == ncsstrcmp(argv[i], "ASKPASSW"))
       {
@@ -73,6 +76,10 @@ int main(int argc, char *argv[])
     else if (0 == strcmp(argv[i], "-noattr") || 0 == ncsstrcmp(argv[i], "NOATTR"))
       {
       useattr = 0;
+      }
+    else if (0 == strcmp(argv[i], "-checkupdates") || 0 == ncsstrcmp(argv[i], "CHECKUPDATES"))
+      {
+      cud = -1;
       }
     else if (0 == strcmp(argv[i], "-debug") || 0 == ncsstrcmp(argv[i], "DEBUG"))
       {
@@ -134,6 +141,14 @@ int main(int argc, char *argv[])
         room = clonestring(argv[i]);
         }                              
       }
+    else if (0 == strcmp(argv[i], "-log") || 0 == ncsstrcmp(argv[i], "LOG"))
+      {
+      i++;
+      if (i < argc)
+        {
+        openlog(argv[i]);
+        }
+      }
      else if (0 == strcmp(argv[i], "-nick") || 0 == ncsstrcmp(argv[i], "NICK"))
       {
       i++;
@@ -179,7 +194,6 @@ int main(int argc, char *argv[])
     pass = clonestring("");
     }
   
-  
   if (run)
     {
     initscr();
@@ -215,8 +229,15 @@ int main(int argc, char *argv[])
 
     wnoutrefresh(chatwindow);
     doupdate();    
-    
-    checkupdate();
+
+    if (cud)
+      {
+      checkupdate();
+      }
+    else
+      {
+      window_put(" Sprawdzanie uaktualnien pominiete.");
+      }
     wnoutrefresh(chatwindow);
     doupdate();
 
@@ -455,6 +476,7 @@ int main(int argc, char *argv[])
     {
     free(room);
     }
+  closelog(); 
   puts("AmiX: Koniec pracy na dzis, polecam sie na przyszlosc");
   return 0;
   }

@@ -23,10 +23,17 @@
 
 #define BUFFSIZE 10240
 
-typedef struct{
+typedef struct
+  {
   time_t time;
   char *string;
   } line;
+
+typedef enum
+  {
+  PRIV_FROM = 0,
+  PRIV_TO = 1
+  } privinfo;
 
 extern line window[];
 extern WINDOW *chatwindow;
@@ -77,3 +84,5 @@ char *console_input();
 void console_update();
 
 int transformrgb(int, int, int);
+
+void priv(privinfo, char *, char *);
