@@ -3,13 +3,15 @@ struct nn{
   short status;
   short unknown;
   char *nick;
+  char *client;
   struct nn *next;
   };
 
 typedef struct nn nicknode;
 
-void addnick(char *, short, short);
-void remnick(char *);
+void addnick(char *, char *, char *, short, short);
+void updatenick(char *, char *, short, short);
+void remnick(char *, char *);
 void printnicks();
 void freenicklist(nicknode **);
 const char *getnickbyprefix(char *, int, nicknode *);

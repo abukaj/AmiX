@@ -457,9 +457,13 @@ void processpart(part *ppart, int sfd)
           }
           break;
         case 0x0267:/*nick entered*/
-          if (headerlen == 0x0002 /*&& nstrings == 0x0001*/)
+          if (headerlen == 0x0002 && nstrings == 0x0003)
           {
-            addnick(ppart->strings[0], ppart->header[1], 0x0000);
+            addnick(ppart->strings[0],
+                    ppart->strings[1],
+                    ppart->strings[2],
+                    ppart->header[1],
+                    0x0000);
             printnicks(/*nicks*/);
             if ((ppart->header[1] & 0x00ff8c) != 0x0000 && debug)
             {
@@ -484,9 +488,9 @@ void processpart(part *ppart, int sfd)
           }
           break;
         case 0x0268:/*nick left*/
-          if (headerlen == 0x0001 /*&& nstrings == 0x0001*/)
+          if (headerlen == 0x0001 && nstrings == 0x0002)
           {
-            remnick(ppart->strings[0]);
+            remnick(ppart->strings[0], ppart->strings[1]);
             printnicks(/*nicks*/);
           }
           else
@@ -503,9 +507,9 @@ void processpart(part *ppart, int sfd)
           }
           break;
         case 0x0269:/*NICK update*/
-          if (headerlen == 0x0002 /*&& nstrings == 0x0001*/)
+          if (headerlen == 0x0002 && nstrings == 0x0002)
           {
-            addnick(ppart->strings[0], ppart->header[1], 0x0000);
+            updatenick(ppart->strings[0], ppart->strings[1], ppart->header[1], 0x0000);
             printnicks(/*nicks*/);
             if ((ppart->header[1] & 0x00ff8c) != 0x0000 && debug)
             {
@@ -561,20 +565,25 @@ void processpart(part *ppart, int sfd)
           break;
         case 0x026b:/*nicklist*/
           if (headerlen >= 5 && ppart->header[1] == 0x0001 &&
-            ppart->header[2] == 0x0001 && ppart->header[3] == 0x0000 &&
+            ppart->header[2] == 0x0001 && ppart->header[3] == 0x0001 &&
             ppart->header[4] == 0x0000)
           {
-            for (i = 0; i < nstrings; i++)
+            char * room = ppart->strings[0];
+            for (i = 1; i < nstrings; i += 2)
             {
-              addnick(ppart->strings[i], ppart->header[2 * i + 5], ppart->header[2 * i + 6]);
-              if (((ppart->header[2 * i + 5] & 0x00ff8c) != 0x0000 || ppart->header[2 * i + 6] != 0x0000) && debug)
+              addnick(ppart->strings[i],
+                      room,
+                      ppart->strings[i + 1],
+                      ppart->header[i + 4],
+                      ppart->header[i + 5]);
+              if (((ppart->header[i + 4] & 0x00ff8c) != 0x0000 || ppart->header[i + 5] != 0x0000) && debug)
               {
                 window_put("Unknown status of: ");
                 window_put(ppart->strings[i]);
                 window_put(" : ");
-                window_puthex(ppart->header[2 * i + 5], 4);
+                window_puthex(ppart->header[i + 4], 4);
                 window_put(" : ");
-                window_puthex(ppart->header[2 * i + 6], 4);
+                window_puthex(ppart->header[i + 5], 4);
                 window_nl();
               }
             }
