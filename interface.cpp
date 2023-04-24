@@ -3,7 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "interfeace.h"
+#include "interface.h"
 #include "polchat.h"
 #include "temp.h"
 
@@ -15,8 +15,9 @@ WINDOW *consolewindow = NULL;
 static int inlen = 0;
 static int ptr = 0;
 static int len = 0;
+static int consptr = 0;
 static int colour = 0;
-static char buffer[BUFFSIZE];
+static unsigned char buffer[BUFFSIZE];
 
 int nicklist_x;
 int nicklist_h;
@@ -222,7 +223,7 @@ void window_addstr(char *string){
       {
       window[i] = window[i + 1];
       }
-    if (NULL != (window[MSGSTOREMAX - 1].string = remcontrols(utf82isostring(string))))
+    if (NULL != (window[MSGSTOREMAX - 1].string = clonestring(string))) //remcontrols()!
       {
       window[MSGSTOREMAX - 1].time = time(NULL);
       strftime(buffer, 14, "%H:%M:%S ", localtime(&(window[MSGSTOREMAX - 1].time)));
@@ -300,7 +301,7 @@ void window_put(char *word){
       }
     else if (verbose || (*word != '<'))
       {
-      len = strlen(word);
+      len = utf8strlen((unsigned char *) word);
       if (inlen + len <= window_w - 2)
         {
         waddstr(chatwindow, word);
@@ -311,7 +312,7 @@ void window_put(char *word){
         window_nl();
         inlen = window_w - 2;
         ptr = 0;
-        if (NULL != (tmp = calloc(inlen + 1, sizeof(char))))
+        if (NULL != (tmp = (char *) calloc(inlen + 1, sizeof(char))))
           {
           while (len > inlen)
             {
@@ -354,7 +355,7 @@ void window_put(char *word){
       }
     else
       {
-      len = strlen(word);
+      len = utf8strlen((unsigned char *)word);
       if (inlen + len <= window_w - 2)
         {
         waddstr(chatwindow, word);
@@ -365,7 +366,7 @@ void window_put(char *word){
         waddch(chatwindow, '\n');
         inlen = window_w - 2;
         ptr = 0;
-        if (NULL != (tmp = calloc(inlen + 1, sizeof(char))))
+        if (NULL != (tmp = (char *) calloc(inlen + 1, sizeof(char))))
           {
           while (len > inlen)
             {
@@ -451,7 +452,7 @@ char *readtoken(char *string){
           ptr++;
           }
         len = ptr - start;
-        if (NULL != (result = calloc(len + 1, sizeof(char))))
+        if (NULL != (result = (char *) calloc(len + 1, sizeof(char))))
           {
           memcpy(result, string + start, len);
           result[len] = '\0';
@@ -459,7 +460,7 @@ char *readtoken(char *string){
           }
         break;
       case 1:
-        if (NULL != (result = calloc(1, sizeof(char))))
+        if (NULL != (result = (char *) calloc(1, sizeof(char))))
           {
           result[0] = '\0';
           return result;
@@ -475,7 +476,7 @@ char *readtoken(char *string){
           ptr++;
           }
         len = ptr - start;
-        if (NULL != (result = calloc(len + 1, sizeof(char))))
+        if (NULL != (result = (char *) calloc(len + 1, sizeof(char))))
           {
           memcpy(result, string + start, len);
           result[len] = '\0';
@@ -500,7 +501,7 @@ char *readtoken(char *string){
           ptr++;
           }
         len = ptr - start;
-        if (NULL != (result = calloc(len + 1, sizeof(char))))
+        if (NULL != (result = (char *) calloc(len + 1, sizeof(char))))
           {
           memcpy(result, string + start, len);
           result[len] = '\0';
@@ -512,7 +513,7 @@ char *readtoken(char *string){
           {
           }
         ptr--;
-        if (NULL != (result = calloc(2, sizeof(char))))
+        if (NULL != (result = (char *) calloc(2, sizeof(char))))
           {
           result[0] = ' ';
           result[1] = '\0';
@@ -675,163 +676,225 @@ void printpol(char *string)
   }
 
 
-char *console_input(){
+char *console_input()
+{
   int c;
   int j;
   int updated = 0;
   int tptr;
   int tlen = 0;
   int delta;
-  const char *nick = NULL;
+  const unsigned char *nick = NULL;
   
-  while (ERR != (c = wgetch(consolewindow))){
-    switch (c){
+  while (ERR != (c = wgetch(consolewindow)))
+  {
+    switch (c)
+    {
       case '\n':
       case '\r':
         buffer[len] = '\0';
         wmove(consolewindow, 1, 1);
         for (j = 1; j < console_w - 1; j++)
-          {
+        {
           waddch(consolewindow, ' ');
-          }
+        }
         ptr = 0;
+        consptr = 0;
         len = 0;
         console_update();
-        return iso2utf8string((char *) buffer);
+        return clonestring((char *) buffer);
         break;
       case KEY_BACKSPACE:
       case 0x007F: /*backspace mapuje na DEL?*/
         if (ptr > 0)
+        {
+          int tmp = 1;
+          while (not isutf8charbeginning(buffer[ptr - tmp]) && ptr - tmp > 0)
           {
+            tmp++;
+          }
+
           for (j = ptr; j <= len; j++)
-            {
-            buffer[j - 1] = buffer[j];
-            }
-          ptr--;
-          len--;
+          {
+            buffer[j - tmp] = buffer[j];
+          }
+          ptr -= tmp;
+          len -= tmp;
+          consptr--;
           buffer[len] = '\0';
           updated = -1;
           /*console_update();*/
-          }
+        }
         break;
       case KEY_DL:
       case KEY_DC:
         if (ptr >= 0 && ptr < len)
+        {
+          int tmp = 1;
+          while (not isutf8charbeginning(buffer[ptr + tmp]) && ptr + tmp < len && ptr + tmp < BUFFSIZE - 1)
           {
-          for (j = ptr; j < len; j++)
-            {
-            buffer[j] = buffer[j + 1];
-            }
-          len--;
+            tmp++;
+          }
+
+          for (j = ptr; j <= len - tmp; j++)
+          {
+            buffer[j] = buffer[j + tmp];
+          }
+
+          len -= tmp;
           buffer[len] = '\0';
           updated = -1;
           /*console_update();*/
-          }
+        }
         break;
       case KEY_LEFT:
         if (ptr > 0)
+        {
+          do
           {
-          ptr--;
-          wmove(consolewindow, 1, 1 + ptr);
-          if (ptr /*+1*/ > window_w - 3/*-2*/)
-            {
-            updated = -1;
-            }
+            ptr--;
           }
+          while (not isutf8charbeginning(buffer[ptr]) && ptr > 0);
+
+          consptr--;
+          wmove(consolewindow, 1, 1 + consptr);
+          if (consptr /*+1*/ > window_w - 3/*-2*/)
+          {
+            updated = -1;
+          }
+        }
         break;
-      case KEY_RESIZE:  
+      case KEY_RESIZE:
         window_resize();
         break;
       case KEY_RIGHT:
         if (ptr < BUFFSIZE - 1 && ptr < len)
+        {
+          do
           {
-          ptr++;
-          wmove(consolewindow, 1, 1 + ptr);
-          if (ptr > window_w - 2)
-            {
-            updated = -1;
-            }
+            ptr++;
           }
+          while (not isutf8charbeginning(buffer[ptr]) && ptr < BUFFSIZE - 1 && ptr < len);
+
+          consptr++;
+          wmove(consolewindow, 1, 1 + consptr);
+          if (consptr > window_w - 2)
+          {
+            updated = -1;
+          }
+        }
         break;
       case '\t':
         tptr = ptr - 1;
         tlen = 1;
         while (tptr >= 0 && buffer[tptr] != ' ')
-          {
+        {
           tptr--;
           tlen++;
-          }
+        }
         tptr++;/*korekta dlugosci*/
         tlen--;
-        if (NULL != (nick = getnickbyprefix(buffer + tptr, tlen, nicks)))
-          {
-          delta = strlen(nick) - tlen;
+        if (NULL != (nick = (unsigned char *) getnickbyprefix((char *) buffer + tptr, tlen, nicks)))
+        {
+          delta = strlen((char *) nick) - tlen;
           if (len + delta < BUFFSIZE)
-            {
+          {
             for (j = len + delta; j >= ptr + delta; j--)
-              {
+            {
               buffer[j] = buffer[j - delta];
-              }
+            }
             for (j = tlen; j < tlen + delta; j++)
-              {
+            {
               buffer[ptr++] = nick[j];
               len++;
+              if (isutf8charbeginning(nick[j]))
+              {
+                consptr++;
               }
-            updated = -1;
             }
-          nick = NULL;
+            updated = -1;
           }
+          nick = NULL;
+        }
         break;
       default:
         if (ptr < BUFFSIZE - 1 && len < BUFFSIZE - 1)
-          {
+        {
           if (debug)
-            {
+          {
             mvwprintw(consolewindow, 0, 1, "0x%X %c", c, c);
-            }
+          }
           for (j = len; j > ptr; j--)
-            {
+          {
             buffer[j] = buffer[j - 1];
-            }
+          }
           buffer[ptr++] = c;
           len++;
           buffer[len] = '\0';
-          updated = -1;
+          if (isutf8charbeginning(c))
+          {
+            consptr++;
           }
+          //TODO: wait wor utf8char end
+          updated = -1;
+        }
         break;
-      }
     }
-  if (updated)
-    {
-    console_update();
-    }
-  return NULL;
   }
+
+  if (updated)
+  {
+    console_update();
+  }
+  return NULL;
+}
 
 
 void console_update()
-  {
+{
   int i = 0;
+  int j = 0;
   int d = 0;
+  int utf8d = 0;
 
-  if (ptr > console_w - 2)
+  if (consptr > console_w - 2)
+  {
+    d = consptr + 2 - console_w;
+  }
+  int tmp = d;
+  while (tmp != 0)
+  {
+    if (isutf8charbeginning(buffer[utf8d]))
     {
-    d = ptr + 2 - console_w;
+      tmp--;
     }
+    utf8d++;
+  }
+
+  while (not isutf8charbeginning(buffer[utf8d]))
+  {
+    utf8d++;
+  }
+
   wmove(consolewindow, 1, 1);
-  while (i + d < len && i < console_w - 2)
+  while (i + utf8d < len && j < console_w - 2)
+  {
+    unsigned char c = buffer[utf8d + i++];
+    waddch(consolewindow, c);
+    if (isutf8charbeginning(c))
     {
-    waddch(consolewindow, (unsigned char) buffer[d + i++]);
+      j++;
     }
-  while (i++ < console_w - 2)
-    {
+  }
+  while (j++ < console_w - 2)
+  {
     waddch(consolewindow, ' ');
-    }
-  wmove(consolewindow, 1, ptr + 1);
+  }
+  wmove(consolewindow, 1, consptr + 1);
   wnoutrefresh(consolewindow);
   
   window_updated = -1;
-  }
+}
 
 
 void priv(privinfo info, char *who, char *what)
@@ -886,7 +949,7 @@ char *input_password()
           {
           if (NULL != string)
             {
-            if (NULL != (tmp = realloc(string, length + 1024)))
+            if (NULL != (tmp = (char *) realloc(string, length + 1024)))
               {
               string = tmp;
               strncpy(string + length, buffer, 1024);
@@ -900,7 +963,7 @@ char *input_password()
             }
           else
             {
-            if (NULL != (string = calloc(1024, sizeof(char))))
+            if (NULL != (string = (char *) calloc(1024, sizeof(char))))
               {
               strncpy(string, buffer, 1024);
               length = 1024;
@@ -918,7 +981,7 @@ char *input_password()
     {
     if (NULL != string)
       {
-      if (NULL != (tmp = realloc(string, length + inbuf + 1)))
+      if (NULL != (tmp = (char *) realloc(string, length + inbuf + 1)))
         {
         string = tmp;
         strncpy(string + length, buffer, inbuf);
@@ -933,7 +996,7 @@ char *input_password()
       }
     else
       {
-      if (NULL != (string = calloc(inbuf + 1, sizeof(char))))
+      if (NULL != (string = (char *) calloc(inbuf + 1, sizeof(char))))
         {
         strncpy(string, buffer, inbuf);
         length = inbuf;

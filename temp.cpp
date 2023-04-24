@@ -659,7 +659,7 @@ unsigned char unicode2iso(unsigned int c)
   nie przetwarza poprawnie sekwencji ponaddwubajtowych! - TODO
 \*****************************************************************************/
 char *iso2utf8string(char *string)
-  {
+{
   unsigned char *result = NULL;
   int src = 0;
   int dst = 0;
@@ -667,61 +667,122 @@ char *iso2utf8string(char *string)
   unsigned int c;
   
   if (NULL != string)
-    {
+  {
     while ('\0' != (c = iso2unicode((unsigned char) string[src++])))
-      {
+    {
       if (c < 0x0080)
-        {
-        len++;
-        }
-      else if (c < 0x0800)
-        {
-        len += 2;
-        }
-      else if (c < 0x010000)
-        {
-        len += 3;
-        }
-      else if (c < 0x0200000)
-        {
-        len += 4;
-        }
-      else if (c < 0x04000000)
-        {
-        len += 5;
-        }
-      else if (c < 0x080000000)
-        {
-        len += 6;
-        }
-      }
-    if (NULL != (result = calloc(len + 1, sizeof(char))))
       {
+        len++;
+      }
+      else if (c < 0x0800)
+      {
+        len += 2;
+      }
+      else if (c < 0x010000)
+      {
+        len += 3;
+      }
+      else if (c < 0x0200000)
+      {
+        len += 4;
+      }
+      else if (c < 0x04000000)
+      {
+        len += 5;
+      }
+      else if (c < 0x080000000)
+      {
+        len += 6;
+      }
+    }
+    if (NULL != (result = (unsigned char *) calloc(len + 1, sizeof(char))))
+    {
       src = 0;
       while (dst <= len)
-        {
+      {
         c = iso2unicode((unsigned char) string[src++]);
         if (c < 0x0080)
-          {
+        {
           result[dst++] = c & 0x00FF;
-          }
+        }
         else if (c < 0x0800)
-          {
+        {
           result[dst++] = 0x00C0 | (0x001F & (c >> 6));
           result[dst++] = 0x0080 | (0x003F & c);
-          }
         }
       }
     }
-  return (char *) result;
   }
+  return (char *) result;
+}
 
+bool isutf8charbeginning(unsigned int c)
+{
+  return (c < 0x0080 || c > 0x00BF);
+}
+
+/*****************************************************************************\
+  nie przetwarza poprawnie sekwencji ponaddwubajtowych! - TODO
+\*****************************************************************************/
+int utf8charlen(const unsigned char *str)
+{
+  int c = *str;
+  if (c < 0x0080) //0???????
+  {
+    return 1;
+  }
+  if (c < 0x00C0) //10??????
+  {
+    return 0;
+  }
+  if (isutf8charbeginning(str[1]))
+  {
+    return -1;
+  }
+  if (c < 0x00E0) //110?????
+  {
+    return 2;
+  }
+  if (isutf8charbeginning(str[2]))
+  {
+    return -2;
+  }
+  if (c < 0x00F0) //1110????
+  {
+    return 3;
+  }
+  if (isutf8charbeginning(str[3]))
+  {
+    return -3;
+  }
+  if (c < 0x00F8) //11110???
+  {
+    return 4;
+  }
+  if (isutf8charbeginning(str[4]))
+  {
+    return -4;
+  }
+  if (c < 0x00FC) //111110??
+  {
+    return 5;
+  }
+  if (isutf8charbeginning(str[5]))
+  {
+    return -5;
+  }
+  if (c < 0x00FE) //1111110?
+  {
+    return 6;
+  }
+  //TODO - co jak c = FE, FF?
+}
 
 /*****************************************************************************\
   nie przetwarza poprawnie sekwencji ponaddwubajtowych! - TODO
 \*****************************************************************************/
 char *utf82isostring(char *string)
-  {
+{
   unsigned char *result = NULL;
   int src = 0;
   int dst = 0;
@@ -731,42 +792,42 @@ char *utf82isostring(char *string)
   unsigned int c;
   
   if (NULL != string)
-    {
+  {
     while ('\0' != (c = (unsigned char) string[src++]))
+    {
+      if (isutf8charbeginning(c))
       {
-      if (c < 0x0080 || c > 0x00BF)
-        {
         len++;
-        }
       }
-    if (NULL != (result = calloc(len + 1, sizeof(char))))
-      {
+    }
+    if (NULL != (result = (unsigned char *) calloc(len + 1, sizeof(char))))
+    {
       src = 0;
       while (dst <= len)
-        {
+      {
         c = (unsigned char) string[src++];
         if (c < 0x0080)
-          {
-          res = c /*& 0x00FF*/;
-          }
-        else if (c < 0x00E0)
-          {
+        {
+          res = c /*& 0x007F*/;
+        }
+        else if (c < 0x00E0) //110?????
+        {
           tmp = c & 0x001F;
           tmp <<= 6;
           tmp |= (unsigned char) string[src++] & 0x003F;
           res = unicode2iso(tmp);
-          }
-        else if (c < 0x00F0)
-          {
+        }
+        else if (c < 0x00F0) //1110????
+        {
           tmp = c & 0x000F;
           tmp <<= 6;
           tmp |= (unsigned char) string[src++] & 0x003F;
           tmp <<= 6;
           tmp |= (unsigned char) string[src++] & 0x003F;
           res = unicode2iso(tmp);
-          }
-        else if (c < 0x00F8)
-          {
+        }
+        else if (c < 0x00F8) //11110???
+        {
           tmp = c & 0x0007;
           tmp <<= 6;
           tmp |= (unsigned char) string[src++] & 0x003F;
@@ -775,9 +836,9 @@ char *utf82isostring(char *string)
           tmp <<= 6;
           tmp |= (unsigned char) string[src++] & 0x003F;
           res = unicode2iso(tmp);
-          }
-        else if (c < 0x00FC)
-          {
+        }
+        else if (c < 0x00FC) //111110??
+        {
           tmp = c & 0x0003;
           tmp <<= 6;
           tmp |= (unsigned char) string[src++] & 0x003F;
@@ -788,9 +849,9 @@ char *utf82isostring(char *string)
           tmp <<= 6;
           tmp |= (unsigned char) string[src++] & 0x003F;
           res = unicode2iso(tmp);
-          }
-        else if (c < 0x00FE)
-          {
+        }
+        else if (c < 0x00FE) //1111110?
+        {
           tmp = c & 0x0001;
           tmp <<= 6;
           tmp |= (unsigned char) string[src++] & 0x003F;
@@ -803,15 +864,46 @@ char *utf82isostring(char *string)
           tmp <<= 6;
           tmp |= (unsigned char) string[src++] & 0x003F;
           res = unicode2iso(tmp);
-          }
-        /*TODO - co jak c = FF?*/
-        result[dst++] = res;
         }
+        //TODO - co jak c = FE, FF?
+        result[dst++] = res;
       }
     }
-  return (char *) result;
   }
+  return (char *) result;
+}
 
+int utf8strlen(const unsigned char *string)
+{
+  int len = 0;
+
+  //unsigned int c;
+  
+  if (NULL != string)
+  {
+    //while ('\0' != (c = (unsigned char) *string))
+    //{
+    //  if (isutf8charbeginning(c))
+    //  {
+    //    len++;
+    //  }
+    //  string++;
+    while ('\0' != *string)
+    {
+      int tmp = utf8charlen(string);
+
+      if (tmp < 1)
+      {
+        return -1;
+      }
+
+      string += tmp;
+      len++;
+    }
+    return len;
+  }
+  return -1;
+}
 
 /*****************************************************************************\
 \*****************************************************************************/
@@ -820,7 +912,7 @@ char *clonestring(char *string)
   {
   char *result = NULL;
 
-  if (string != NULL && NULL != (result = malloc(1 + strlen(string))))
+  if (string != NULL && NULL != (result = (char *) malloc(1 + strlen(string))))
     {
     strcpy(result, string);
     }
@@ -855,7 +947,7 @@ char *freadline(FILE *fh)
           {
           if (NULL != string)
             {
-            if (NULL != (tmp = realloc(string, length + 1024)))
+            if (NULL != (tmp = (char *) realloc(string, length + 1024)))
               {
               string = tmp;
               strncpy(string + length, buffer, 1024);
@@ -869,7 +961,7 @@ char *freadline(FILE *fh)
             }
           else
             {
-            if (NULL != (string = calloc(1024, sizeof(char))))
+            if (NULL != (string = (char *) calloc(1024, sizeof(char))))
               {
               strncpy(string, buffer, 1024);
               length = 1024;
@@ -885,7 +977,7 @@ char *freadline(FILE *fh)
     {
     if (NULL != string)
       {
-      if (NULL != (tmp = realloc(string, length + inbuf + 1)))
+      if (NULL != (tmp = (char *) realloc(string, length + inbuf + 1)))
         {
         string = tmp;
         strncpy(string + length, buffer, inbuf);
@@ -900,7 +992,7 @@ char *freadline(FILE *fh)
       }
     else
       {
-      if (NULL != (string = calloc(inbuf + 1, sizeof(char))))
+      if (NULL != (string = (char *) calloc(inbuf + 1, sizeof(char))))
         {
         strncpy(string, buffer, inbuf);
         length = inbuf;
