@@ -1,4 +1,4 @@
-/*ascii - temp.c - v. 0.3 - Jakub Mateusz Kowalski*/
+/*ascii - temp.c - v. 0.4 - Jakub Mateusz Kowalski*/
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -208,7 +208,7 @@ unsigned char unicode2iso(unsigned int c)
 \*****************************************************************************/
 char *iso2utf8string(char *string)
   {
-  char *result = NULL;
+  unsigned char *result = NULL;
   int src = 0;
   int dst = 0;
   int len = 0/* 10*/;
@@ -251,17 +251,17 @@ char *iso2utf8string(char *string)
         c = iso2unicode((unsigned char) string[src++]);
         if (c < 0x0080)
           {
-          result[dst++] = (char) c & 0x00FF;
+          result[dst++] = c & 0x00FF;
           }
         else if (c < 0x0800)
           {
-          result[dst++] = (char) 0x00C0 | (0x001F & (c >> 6));
-          result[dst++] = (char) 0x0080 | (0x003F & c);
+          result[dst++] = 0x00C0 | (0x001F & (c >> 6));
+          result[dst++] = 0x0080 | (0x003F & c);
           }
         }
       }
     }
-  return result;
+  return (char *) result;
   }
 
 
@@ -270,7 +270,7 @@ char *iso2utf8string(char *string)
 \*****************************************************************************/
 char *utf82isostring(char *string)
   {
-  char *result = NULL;
+  unsigned char *result = NULL;
   int src = 0;
   int dst = 0;
   int len = 0;
@@ -293,16 +293,17 @@ char *utf82isostring(char *string)
         c = (unsigned char) string[src++];
         if (c < 0x0080)
           {
-          result[dst++] = (char) c & 0x00FF;
+          result[dst++] = c & 0x00FF;
           }
         else if (c < 0x00E0)
           {
-          result[dst++] = (char) unicode2iso(((c & 0x001F) << 6) | ((unsigned char) string[src++] & 0x003F));
+          result[dst++] = unicode2iso(((c & 0x001F) << 6) |
+                          ((unsigned char) string[src++] & 0x003F));
           }
         }
       }
     }
-  return result;
+  return (char *) result;
   }
 
 
@@ -320,3 +321,86 @@ char *clonestring(char *string)
   return result;
   }
 
+
+/*****************************************************************************\
+\*****************************************************************************/
+
+char *freadline(FILE *fh)
+  {
+  int state = 0;
+  int inbuf = 0;
+  int length = 0;
+  static char buffer[1024];
+  char c;
+  char *string = NULL;
+  char *tmp;
+  
+  while ((state != 2) && fread(buffer + inbuf, sizeof(char), 1, fh))
+    {
+    c = buffer[inbuf];
+    switch (c)
+      {
+      case '\n':
+        state = 2;
+        break;
+      default:
+        state = 1;
+        if (inbuf >= 1024)
+          {
+          if (NULL != string)
+            {
+            if (NULL != (tmp = realloc(string, length + 1024)))
+              {
+              string = tmp;
+              strncpy(string + length, buffer, 1024);
+              length += 1024;
+              }
+            else
+              {
+              free(string);
+              string = NULL;
+              }
+            }
+          else
+            {
+            if (NULL != (string = calloc(1024, sizeof(char))))
+              {
+              strncpy(string, buffer, 1024);
+              length = 1024;
+              }
+            }
+          inbuf = 0;
+          }
+        buffer[inbuf++] = c;
+        break;
+      }
+    }
+  if (state != 0)
+    {
+    if (NULL != string)
+      {
+      if (NULL != (tmp = realloc(string, length + inbuf + 1)))
+        {
+        string = tmp;
+        strncpy(string + length, buffer, inbuf);
+        length += inbuf;
+        string[length] = '\0';
+        }
+      else
+        {
+        free(string);
+        string = NULL;
+        }
+      }
+    else
+      {
+      if (NULL != (string = calloc(inbuf + 1, sizeof(char))))
+        {
+        strncpy(string, buffer, inbuf);
+        length = inbuf;
+        string[inbuf] = '\0';
+        }
+      }
+    }
+  return string;
+  }

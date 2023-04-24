@@ -14,6 +14,7 @@ void printnicks();
 void freenicklist(nicknode **);
 const char *getnickbyprefix(char *, int, nicknode *);
 int openlog(char *);
+int openoldlog(char *);
 void closelog();
 int printlog(char *, char *);
 
@@ -23,7 +24,10 @@ extern int verbose;
 extern int bell;
 extern int run;
 extern int connected;
+extern int antiidle;
+extern int html;
 extern double period;
+extern int askpassw;
 extern nicknode *nicks;
 extern int colourt[];
 extern int colourop;

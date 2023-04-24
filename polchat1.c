@@ -12,6 +12,7 @@
 #include "temp.h"
 
 part *tosend = NULL;
+time_t last = 0;
 
 char *wrapstring(char *string){
   char *result = NULL;
@@ -287,7 +288,6 @@ void putmsg(part *msg){
 
 void sendnext(int sfd)
   {
-  static time_t last = 0;
   part *tmp;
 
   if (last == 0)
@@ -303,6 +303,21 @@ void sendnext(int sfd)
       freepart(&tosend);
       tosend = tmp;
       last = time(NULL);
+      }
+    }
+  else
+    {
+    if (antiidle)
+      {
+      if (connected && (antiidle < difftime(time(NULL), last)))
+        {
+        if (NULL != (tmp = makemsg("")))
+          {
+          sendpol(tmp, sfd);
+          freepart(&tmp);
+          last = time(NULL);
+          }
+        }
       }
     }
   }

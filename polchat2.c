@@ -158,7 +158,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
-              printlog(" ", ppart->strings[0]);
+              printlog("-msg-", ppart->strings[0]);
               }
             }
           else
@@ -176,29 +176,11 @@ void processpart(part *ppart, int sfd)
           break;
         case 0x0263:/*Priv. msg*/
           if (headerlen == 0x0001 && nstrings == 0x0002)
-            {/*
-            window_attron(A_BLINK);
-            window_put("<-- ");
-            window_attroff(A_BLINK);
-            window_put(ppart->strings[1]);
-            window_put(": ");
-            if (!verbose)
-              {
-              window_addstr(ppart->strings[0]);
-              }*/
+            {
             priv(PRIV_FROM, ppart->strings[1], ppart->strings[0]);
             }
           else if (headerlen == 0x0001 && nstrings == 0x0003)
-            {/*
-            window_attron(A_BLINK);
-            window_put("--> ");
-            window_attroff(A_BLINK);
-            window_put(ppart->strings[2]);
-            window_put(": "); 
-            if (!verbose)
-              {
-              window_addstr(ppart->strings[0]);
-              }*/
+            {
             priv(PRIV_TO, ppart->strings[2], ppart->strings[0]);
             }
           else
@@ -455,7 +437,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
-              printlog(" ", ppart->strings[0]);
+              printlog("-hi-", ppart->strings[0]);
               window_colouroff();
               }
             }
@@ -480,7 +462,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
-              printlog(" ", ppart->strings[0]);
+              printlog("-bye-", ppart->strings[0]);
               window_colouroff();
               }
             }
@@ -503,7 +485,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
-              printlog(" ", ppart->strings[0]);
+              printlog("---", ppart->strings[0]);
               }
             connected = 0;
             close(sfd);

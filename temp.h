@@ -1,4 +1,4 @@
-/*ABUKAJtools - temp.h - v. 0.3 - Jakub Mateusz Kowalski*/
+/*ABUKAJtools - temp.h - v. 0.4 - Jakub Mateusz Kowalski*/
 /*#define false 0
 #define true (~false)*/
 
@@ -12,3 +12,4 @@ unsigned int iso2unicode(unsigned char);
 char *iso2utf8string(char *);
 char *utf82isostring(char *);
 char *clonestring(char *);
+char *freadline(FILE *);

@@ -28,6 +28,8 @@ int main(int argc, char *argv[])
   char *room = NULL;
   char *nick = NULL;
   char *pass = NULL;
+  char *logfn = NULL;
+  char ol = -1;
   int port = 14003;
   char *inputstring;
 
@@ -44,7 +46,7 @@ int main(int argc, char *argv[])
       {
       printf("SERVER/K PORT/K/N ROOM/K NICK/K PASSWORD/K DEBUG/S VERBOSE/S BELL/S"
              " PERIOD/K/N NICKLISTWIDTH/K/N NOATTR/S ASKPASSW/S CHECKUPDATES/S"
-             " LOG/K\n");
+             " LOG/K OLDLOG/K ANTIIDLE/K/N NOHTML/S\n");
       run = 0;
       }
     else if (0 == strcmp(argv[i], "-help") || 0 == strcmp(argv[i], "--help") || 0 == strcmp(argv[i], "-h"))
@@ -63,15 +65,21 @@ int main(int argc, char *argv[])
       puts("[-room room]");
       puts("[-server server]");
       puts("[-log logfilename]");
+      puts("[-oldlog logfilename]");
+      puts("[-antiidle interval]");
+      puts("[-nohtml]");
       }
     else if (0 == strcmp(argv[i], "-askpassw") || 0 == ncsstrcmp(argv[i], "ASKPASSW"))
       {
+      /*usuniete ze wzgledow bezpieczenstwa*/
+      /*
       if (pass != NULL)
         {
         free(pass);
         }
       puts("Password:");
-      pass = readline(input());
+      pass = readline(input());*/
+      askpassw = -1;
       }
     else if (0 == strcmp(argv[i], "-noattr") || 0 == ncsstrcmp(argv[i], "NOATTR"))
       {
@@ -92,6 +100,10 @@ int main(int argc, char *argv[])
     else if (0 == strcmp(argv[i], "-bell") || 0 == ncsstrcmp(argv[i], "BELL"))
       {
       bell = -1;
+      }
+    else if (0 == strcmp(argv[i], "-nohtml") || 0 == ncsstrcmp(argv[i], "NOHTML"))
+      {
+      html = 0;
       }
     else if (0 == strcmp(argv[i], "-server") || 0 == ncsstrcmp(argv[i], "SERVER"))
       {
@@ -129,6 +141,14 @@ int main(int argc, char *argv[])
         period = strtod(argv[i], NULL);
         }
       }
+    else if (0 == strcmp(argv[i], "-antiidle") || 0 == ncsstrcmp(argv[i], "ANTIIDLE"))
+      {
+      i++;
+      if (i < argc)
+        {
+        antiidle = atoi(argv[i]);
+        }
+      }
     else if (0 == strcmp(argv[i], "-room") || 0 == ncsstrcmp(argv[i], "ROOM"))
       {
       i++;
@@ -146,10 +166,30 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
         {
-        openlog(argv[i]);
+        ol = -1;
+        if (logfn != NULL)
+          {
+          free(logfn);
+          }
+        logfn = clonestring(argv[i]);
+        /*openlog(argv[i]);*/
         }
       }
-     else if (0 == strcmp(argv[i], "-nick") || 0 == ncsstrcmp(argv[i], "NICK"))
+    else if (0 == strcmp(argv[i], "-oldlog") || 0 == ncsstrcmp(argv[i], "OLDLOG"))
+      {
+      i++;
+      if (i < argc)
+        {
+        ol = 0;
+        if (logfn != NULL)
+          {
+          free(logfn);
+          }
+        logfn = clonestring(argv[i]);
+        /*openoldlog(argv[i]);*/
+        }
+      }
+    else if (0 == strcmp(argv[i], "-nick") || 0 == ncsstrcmp(argv[i], "NICK"))
       {
       i++;
       if (i < argc)
@@ -161,7 +201,7 @@ int main(int argc, char *argv[])
         nick = clonestring(argv[i]);
         }                              
       }
-     else if (0 == strcmp(argv[i], "-password") || 0 == ncsstrcmp(argv[i], "PASSWORD"))
+    else if (0 == strcmp(argv[i], "-password") || 0 == ncsstrcmp(argv[i], "PASSWORD"))
       {
       i++;
       if (i < argc)
@@ -189,11 +229,18 @@ int main(int argc, char *argv[])
     {
     room = clonestring("Sekciarz");
     }
-  if (pass == NULL)
+  if (logfn != NULL)
     {
-    pass = clonestring("");
+    if (ol)
+      {
+      openlog(logfn);
+      }
+    else
+      {
+      openoldlog(logfn);
+      }
     }
-  
+ 
   if (run)
     {
     initscr();
@@ -237,10 +284,24 @@ int main(int argc, char *argv[])
     else
       {
       window_put(" Sprawdzanie uaktualnien pominiete.");
+      window_nl();
       }
     wnoutrefresh(chatwindow);
     doupdate();
 
+    if (askpassw)
+      {
+      if (pass != NULL)
+        {
+        free(pass);
+        }
+      pass = input_password();
+      }
+    if (pass == NULL)
+      {
+      pass = clonestring("");
+      }
+    
     init_pair(COLOR_RED, COLOR_RED, COLOR_BLACK);
     init_pair(COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
     init_pair(COLOR_YELLOW, COLOR_YELLOW, COLOR_BLACK);
@@ -475,6 +536,10 @@ int main(int argc, char *argv[])
   if (room != NULL)
     {
     free(room);
+    }
+  if (logfn != NULL)
+    {
+    free(logfn);
     }
   closelog(); 
   puts("AmiX: Koniec pracy na dzis, polecam sie na przyszlosc");
