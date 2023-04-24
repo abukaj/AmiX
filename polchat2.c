@@ -367,9 +367,11 @@ void processpart(part *ppart, int sfd)
         case 0x0263:/*Priv. msg*/
           if (headerlen == 0x0001 && nstrings == 0x0002)
             {
-            window_put("<blink>");
-            window_put("WIADOMOSC PRYWATNA: ");
-            window_put("</blink>");
+            window_attron(A_BLINK);
+            window_put("<-- ");
+            window_attroff(A_BLINK);
+            window_put(ppart->strings[1]);
+            window_put(": ");
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);
@@ -377,9 +379,11 @@ void processpart(part *ppart, int sfd)
             }
           else if (headerlen == 0x0001 && nstrings == 0x0003)
             {
-            window_put("<blink>");
-            window_put("WIADOMOSC PRYWATNA: ");
-            window_put("</blink>");
+            window_attron(A_BLINK);
+            window_put("--> ");
+            window_attroff(A_BLINK);
+            window_put(ppart->strings[2]);
+            window_put(": "); 
             if (!verbose)
               {
               window_addstr(ppart->strings[0]);

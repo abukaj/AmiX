@@ -295,6 +295,7 @@ int main(int argc, char *argv[])
             window_put(host);
             window_put(" ...");
             window_nl();
+            window_updated = -1;
             }                               
           }
         else /* if (connected)*/
@@ -319,7 +320,11 @@ int main(int argc, char *argv[])
 
           /*czy mamy cos do wyslania?*/
           sendnext(sfd);
-          doupdate();
+          if (window_updated)
+            {
+            doupdate();
+            /*window_updated = 0;*//*okno odswiezone*/
+            }
           }
           
         /*czy jest cos na wejsciu?*/
@@ -386,13 +391,14 @@ int main(int argc, char *argv[])
             window_addstr("<B>/borg</B> - wysyla tekst: &quot;"
                           "I'm cybernetic organism - living tissue over metal endoskeleton.&quot;");
             window_addstr("<B>/exit</B> - komenda analogiczna do polchatowego /quit, ale "
-                          "dodatkowo koñczy pracê programu");
+                          "dodatkowo konczy prace programu");
             window_addstr("<B>/help</B> - wyswietla tekst pomocy");
             window_addstr("<B>/lama</B> - wysyla tekst: &quot;" 
                           "thankfully alert gauchos were able to save the llama "
                           "before it was swept into the blades of the turbine&quot;");
             window_addstr("<B>/ver</B> - podaje wersje programu"); 
             wnoutrefresh(chatwindow);
+            window_updated = -1;
             }
           else
             {
@@ -401,7 +407,7 @@ int main(int argc, char *argv[])
             }
           }
           
-        wnoutrefresh(consolewindow);
+        /*wnoutrefresh(consolewindow);*/
         }
         
       freepart(&tosend);

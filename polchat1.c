@@ -60,6 +60,7 @@ int partlen(unsigned char *part){
 unsigned char *readpart(int sfd){
   unsigned char buffer[4];
   unsigned char *result = NULL;
+  int len, tmp, ptr = 0;
 
   if (connected)
     {
@@ -70,12 +71,21 @@ unsigned char *readpart(int sfd){
         result[1] = buffer[1];
         result[2] = buffer[2];
         result[3] = buffer[3];
-        if (0 >= read(sfd, result + 4, partlen(buffer) - 4))
+        len = partlen(buffer) - 4;
+        while (len)
           {
-          connected = 0;
-          close(sfd);
-          free(result);
-          result = NULL;
+          if (0 < (tmp = read(sfd, result + 4 + ptr, len)))
+            {
+            len -= tmp;
+            ptr += tmp;
+            }
+          else
+            {
+            connected = 0;
+            close(sfd);
+            free(result);
+            result = NULL;
+            }
           }
         }
       }
@@ -89,14 +99,17 @@ unsigned char *readpart(int sfd){
   }
 
 
-part *parsepart(unsigned char *prt){
+part *parsepart(unsigned char *prt)
+  {
   int size;
   int ptr;
   int i;
   part *result = NULL;
 
-  if (NULL != prt){
-    if (NULL != (result = calloc(1, sizeof(part)))){
+  if (NULL != prt)
+    {
+    if (NULL != (result = calloc(1, sizeof(part))))
+      {
       result->next = NULL;
       size = partlen(prt);
       ptr = 4;
@@ -105,40 +118,56 @@ part *parsepart(unsigned char *prt){
       result->headerlen |= prt[ptr++];
       result->nstrings = prt[ptr++] << 8;
       result->nstrings |= prt[ptr++];
-      if (NULL != (result->header = calloc(result->headerlen, sizeof(short)))){
-        for (i = 0; i < result->headerlen; i++){
+      if (NULL != (result->header = calloc(result->headerlen, sizeof(short))))
+        {
+        for (i = 0; i < result->headerlen; i++)
+          {
           result->header[i] = prt[ptr++] << 8;
           result->header[i] |= prt[ptr++];
           }
-        if (NULL != (result->strings = calloc(result->nstrings, sizeof(char *)))){
-          for (i = 0; i < result->nstrings; i++){
-            if (NULL == (result->strings[i] = unwrapstring(prt + ptr))){
+        if (NULL != (result->strings = calloc(result->nstrings, sizeof(char *))))
+          {
+          for (i = 0; i < result->nstrings; i++)
+            {
+            result->strings[i] = NULL;
+            }
+          
+          for (i = 0; i < result->nstrings; i++)
+            {
+            if (NULL == (result->strings[i] = unwrapstring(prt + ptr)))
+              {
               freepart(&result);
               return NULL;
               }
             ptr += wrapsize(prt + ptr);
             }
           }
-        else{
+        else
+          {
           free(result->header);
           free(result);
           return NULL;
           }
         }
-      else{
+      else
+        {
         free(result);
         return NULL;
         }
       }
-    if (ptr != size){
-      if (debug){
+    if (ptr != size)
+      {
+      if (debug)
+        {
         window_put("Part parse error!");
         partdump(prt);
         }
       }
     }
-  else{
-    if (debug){
+  else
+    {
+    if (debug)
+      {
       window_put("Error: NULL ptr given to parsepart()");
       window_nl();
       }
@@ -147,17 +176,23 @@ part *parsepart(unsigned char *prt){
   }
 
 
-void freepart(part **p){
+void freepart(part **p)
+  {
   int i;
   
-  if (*p != NULL){
+  if (*p != NULL)
+    {
     freepart(&((*p)->next));
-    if ((*p)->header != NULL){
+    if ((*p)->header != NULL)
+      {
       free((*p)->header);
       }
-    if ((*p)->strings != NULL){
-      for (i = 0; i < (*p)->nstrings; i++){
-        if ((*p)->strings[i] != NULL){
+    if ((*p)->strings != NULL)
+      {
+      for (i = 0; i < (*p)->nstrings; i++)
+        {
+        if ((*p)->strings[i] != NULL)
+          {
           free((*p)->strings[i]);
           }
         }

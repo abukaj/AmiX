@@ -31,6 +31,7 @@ int window_h;
 int window_w;
 
 int useattr = -1;
+int window_updated = -1;
 
 int transformrgb(int red, int green, int blue)
   {
@@ -161,14 +162,14 @@ void window_resize()
   mvwaddstr(nickwindow, 0, NICKLIST_WIDTH / 2 - 4, " NICKS: ");
   printnicks();
   wnoutrefresh(nickwindow);
-
+  
   title_w = scr_cols - NICKLIST_WIDTH - TITLE_X;
   mvwin(titlewindow, TITLE_Y, TITLE_X);
   wresize(titlewindow, TITLE_H, title_w);
   wborder(titlewindow, '|', '|', '-', '-', '/', '\\', '\\', '/');
   printtitle();
   wnoutrefresh(titlewindow);
-
+  
   console_y = scr_rows - CONSOLE_H;
   console_w = scr_cols - CONSOLE_X - NICKLIST_WIDTH;
   mvwin(consolewindow, console_y, CONSOLE_X);
@@ -176,7 +177,8 @@ void window_resize()
   wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
 
   console_update();
-  wnoutrefresh(consolewindow);
+  
+  window_updated = -1;
   }
 
 
@@ -383,13 +385,16 @@ void window_put(char *word){
   }
 
 
-void window_putforce(char *word){
+void window_putforce(char *word)
+  {
   waddstr(chatwindow, word);
   }
 
 
 void window_print(){
   wnoutrefresh(chatwindow);
+
+  window_updated = -1;
   }
 
 
@@ -402,8 +407,6 @@ char *readtoken(char *string){
   int start = 0;
   char c;
   char *result = NULL;
-  /*char *tmp;*/
-
 
   if (done)
     {
@@ -424,14 +427,7 @@ char *readtoken(char *string){
         mode = 2;
         break;
       case '&':
-        /*if (link)
-          {
-          mode = 4;
-          }
-        else
-          {*/
-          mode = 3;
-         /* }*/
+        mode = 3;
         break;
       case ' ':
       case '\n':
@@ -450,7 +446,7 @@ char *readtoken(char *string){
     switch (mode)
       {
       case 0:
-        while (!isspace(string[ptr]) && '\0' != string[ptr] && '<' != string[ptr] && (link || '&' != string[ptr]))
+        while (!isspace(string[ptr]) && '\0' != string[ptr] && '<' != string[ptr] && (link || ('&' != string[ptr])))
           {
           ptr++;
           }
@@ -511,8 +507,6 @@ char *readtoken(char *string){
           return result;
           }                 
         break;
-     /* case 4:
-        break;*/
       case 5:
         while (isspace(string[ptr++]))
           {
@@ -715,14 +709,7 @@ char *console_input(){
             }
           ptr--;
           len--;
-          buffer[len] = '\0';/*
-          wmove(consolewindow, 1, 1);
-          for (j = 1; j < console_w - 1; j++)
-            {
-            waddch(consolewindow, ' ');
-            }
-          mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
-          wmove(consolewindow, 1, 1 + ptr);*/
+          buffer[len] = '\0';
           updated = -1;
           /*console_update();*/
           }
@@ -736,14 +723,7 @@ char *console_input(){
             buffer[j] = buffer[j + 1];
             }
           len--;
-          buffer[len] = '\0';/*
-          wmove(consolewindow, 1, 1);
-          for (j = 1; j < console_w - 1; j++)
-            {
-            waddch(consolewindow, ' ');
-            }
-          mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
-          wmove(consolewindow, 1, 1 + ptr);*/
+          buffer[len] = '\0';
           updated = -1;
           /*console_update();*/
           }
@@ -816,15 +796,6 @@ char *console_input(){
           buffer[ptr++] = c;
           len++;
           buffer[len] = '\0';
-          /*
-          wmove(consolewindow, 1, 1);
-          for (j = 1; j < console_w - 1; j++)
-            {
-            waddch(consolewindow, ' ');
-            }
-          mvwaddnstr(consolewindow, 1, 1, buffer, console_w - 2);
-          wmove(consolewindow, 1, ptr + 1); */      
-          /*console_update();*/
           updated = -1;
           }
         break;
@@ -857,4 +828,8 @@ void console_update()
     waddch(consolewindow, ' ');
     }
   wmove(consolewindow, 1, ptr + 1);
+  wnoutrefresh(consolewindow);
+  
+  window_updated = -1;
   }
+
