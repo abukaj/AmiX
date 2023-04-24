@@ -1,4 +1,6 @@
 /*AmiX - polchat1.h - v. 0.1 - (c) by ABUKAJ (J.M.Kowalski)*/
+#include <time.h>
+
 struct structpart{
   short headerlen;
   short nstrings;
@@ -23,3 +25,4 @@ void putmsg(part *);
 void sendnext(int);
 
 extern part *tosend;
+extern time_t last;
