@@ -107,7 +107,7 @@ int checkupdate(){
               }
 
             if (NULL != (string = readline(sfd))){
-              if (strcmp($VERCODE, string) < 0)
+              if (strcmp(VERCODE, string) < 0)
                 {
                 window_addstr("<b><blink>UWAGA!</blink> Jest nowa wersja programu AmiX!</b>");
                 free(string);
