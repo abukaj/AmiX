@@ -5,6 +5,7 @@
 
 #include <string>
 #include <stack>
+#include <list>
 
 #include <ncursesw/ncurses.h>
 
@@ -22,7 +23,7 @@
 #define TITLE_Y 0
 #define TITLE_H 2
 
-#define BUFFSIZE 10240
+//#define BUFFSIZE 10240
 
 class amixInterface
 {
@@ -52,13 +53,18 @@ class amixInterface
 
     int inlen;
     int ptr;
-    int len;
     int consptr;
-    unsigned char buffer[BUFFSIZE];
+    std::string buffer;
+    std::string utf8char;
     int utf8charToGo;
     int utf8left;
     void getsize();
+    void buffer_stored_flush();
     std::stack<int> colourstack;
+    std::list<std::string> history;
+    std::list<std::string>::iterator history_ptr;
+    bool buffer_stored;
+    static const int history_size = 100;
 
   public:
     int nicklist_w;

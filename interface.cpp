@@ -3,6 +3,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <algorithm>
+
 #include <ncursesw/ncurses.h>
 
 #include "interface.h"
@@ -92,10 +94,13 @@ void amixInterface::window_attroff(int attr)
 
 amixInterface::amixInterface()
 {
+  this->history_ptr = this->history.begin();
+  this->buffer_stored = false;
+
   this->inlen = 0;
   this->ptr = 0;
-  this->len = 0;
-  this->buffer[0] = '\0';
+  this->buffer = "";
+  this->utf8char = "";
   this->consptr = 0;
   this->useattr = true;
   this->window_updated = true;
@@ -333,7 +338,7 @@ void amixInterface::put(const char *word)
     }
     else
     {
-      int len = utf8strlen((unsigned char *)word);
+      int len = utf8strlen((unsigned char *) word);
       if (this->inlen + len <= this->window_w - 2)
       {
         waddstr(this->chatwindow, word);
@@ -514,7 +519,7 @@ void amixInterface::printtitle()
     std::map<std::string, chatroom> & rooms = (*it).room?chatrooms.room:chatrooms.priv;
 
     chatroom & cr = rooms[(*it).name];
-    int len = utf8strlen((unsigned char *) cr.name.c_str());
+    int len = utf8strlen(cr.name);
 
     if (written + len + 2 > this->title_w)
     {
@@ -707,31 +712,70 @@ void amixInterface::printpol(const char *string)
 
 char * amixInterface::console_input()
 {
-  int c;
-  int j;
   int updated = 0;
   int tptr;
   int tlen = 0;
-  int delta;
-  const unsigned char *nick = NULL;
-  
+ 
+  int c;
   while (ERR != (c = wgetch(this->consolewindow)))
   {
     switch (c)
     {
       case '\n':
       case '\r':
-        this->buffer[this->len] = '\0';
-        wmove(this->consolewindow, 0, 0);
-        for (j = 0; j < this->console_w; j++)
         {
-          waddch(this->consolewindow, ' ');
+          char * tmp = clonestring(this->buffer.c_str());
+
+          this->buffer_stored_flush();
+
+          this->history.push_front(this->buffer);
+
+          if (this->history.size() > this-> history_size)
+          {
+            this->history.pop_back();
+          }
+          this->history_ptr = this->history.begin();
+
+          this->buffer = "";
+          this->ptr = 0;
+          this->consptr = 0;
+          this->console_update();
+
+          return tmp;
         }
-        this->ptr = 0;
-        this->consptr = 0;
-        this->len = 0;
-        this->console_update();
-        return clonestring((char *) this->buffer);
+      case KEY_UP:
+        if (! this->buffer_stored)
+        {
+          this->history.push_front(this->buffer);
+          this->history_ptr = this->history.begin();
+          this->buffer_stored = true;
+        }
+        if (this->history_ptr != this->history.end())
+        {
+          this->history_ptr++;
+
+          if (this->history_ptr == this->history.end())
+          {
+            this->history_ptr--;
+            break;
+          }
+          this->buffer = *this->history_ptr;
+        }
+        this->ptr = this->buffer.length();
+        this->consptr = utf8strlen(this->buffer);
+        updated = -1;
+        break;
+      case KEY_DOWN:
+        if (this->buffer_stored && this->history_ptr != this->history.begin())
+        {
+          this->history_ptr--;
+
+          this->buffer = *this->history_ptr;
+
+          this->ptr = this->buffer.length();
+          this->consptr = utf8strlen(this->buffer);
+          updated = -1;
+        }
         break;
       case KEY_HOME:
         this->ptr = 0;
@@ -739,7 +783,7 @@ char * amixInterface::console_input()
         updated = -1;
         break;
       case KEY_END:
-        this->ptr = this->len;
+        this->ptr = this->buffer.length();
         this->consptr = utf8strlen(this->buffer);
         updated = -1;
         break;
@@ -747,45 +791,35 @@ char * amixInterface::console_input()
       case 0x007F: /*backspace mapuje na DEL?*/
         if (this->ptr > 0)
         {
+          this->buffer_stored_flush();
+
           int tmp = 1;
-          while (not isutf8charbeginning(this->buffer[ptr - tmp]) && this->ptr - tmp > 0)
+          while (not isutf8charbeginning((unsigned char) this->buffer[ptr - tmp]) && this->ptr - tmp > 0)
           {
             tmp++;
           }
-
-          for (j = this->ptr; j <= this->len; j++)
-          {
-            this->buffer[j - tmp] = this->buffer[j];
-          }
           this->ptr -= tmp;
-          this->len -= tmp;
+          this->buffer.erase(this->ptr, tmp);
+
           this->consptr--;
-          this->buffer[this->len] = '\0';
           updated = -1;
-          /*console_update();*/
         }
         break;
       case KEY_DL:
       case KEY_DC:
-        if (this->ptr >= 0 && this->ptr < this->len)
+        if (this->ptr >= 0 && this->ptr < this->buffer.length())
         {
+          this->buffer_stored_flush();
+
           int tmp = 1;
-          while (not isutf8charbeginning(this->buffer[this->ptr + tmp])
-                 && this->ptr + tmp < this->len
-                 && this->ptr + tmp < BUFFSIZE - 1)
+          while (not isutf8charbeginning((unsigned char) this->buffer[this->ptr + tmp])
+                 && this->ptr + tmp < this->buffer.length())
           {
             tmp++;
           }
 
-          for (j = this->ptr; j <= this->len - tmp; j++)
-          {
-            this->buffer[j] = this->buffer[j + tmp];
-          }
-
-          this->len -= tmp;
-          this->buffer[this->len] = '\0';
+          this->buffer.erase(this->ptr, tmp);
           updated = -1;
-          /*console_update();*/
         }
         break;
       case KEY_LEFT:
@@ -795,41 +829,49 @@ char * amixInterface::console_input()
           {
             this->ptr--;
           }
-          while (not isutf8charbeginning(this->buffer[this->ptr]) && this->ptr > 0);
+          while (not isutf8charbeginning((unsigned char) this->buffer[this->ptr]) && this->ptr > 0);
 
-          if (this->consptr > this->window_w)
+          this->consptr--;
+          if (this->consptr + 1 > this->window_w)
           {
             updated = -1;
           }
-          this->consptr--;
-          wmove(this->consolewindow, 0, this->consptr);
+          else
+          {
+            wmove(this->consolewindow, 0, this->consptr);
+          }
         }
         break;
       case KEY_RESIZE:
         this->resize();
         break;
       case KEY_RIGHT:
-        if (this->ptr < BUFFSIZE - 1 && this->ptr < this->len)
+        if (this->ptr < this->buffer.length())
         {
           do
           {
             this->ptr++;
           }
-          while (not isutf8charbeginning(this->buffer[this->ptr])
-                 && this->ptr < BUFFSIZE - 1
-                 && this->ptr < this->len);
+          while (not isutf8charbeginning((unsigned char) this->buffer[this->ptr])
+                 && this->ptr < this->buffer.length());
 
           this->consptr++;
-          wmove(this->consolewindow, 0, this->consptr);
           if (this->consptr > this->window_w)
           {
             updated = -1;
           }
+          else
+          {
+            wmove(this->consolewindow, 0, this->consptr);
+          }
         }
         break;
       case '\t':
-        tptr = ptr - 1;
+        this->buffer_stored_flush();
+
+        tptr = this->ptr - 1;
         tlen = 1;
+
         while (tptr >= 0 && this->buffer[tptr] != ' ')
         {
           tptr--;
@@ -837,29 +879,16 @@ char * amixInterface::console_input()
         }
         tptr++;/*korekta dlugosci*/
         tlen--;
-        if (NULL != (nick = (unsigned char *) chatrooms.currentroom().getnickbyprefix((char *) buffer + tptr, tlen).c_str()))
         {
-          delta = strlen((char *) nick) - tlen;
-          if (this->len + delta < BUFFSIZE)
-          {
-            for (j = this->len + delta; j >= this->ptr + delta; j--)
-            {
-              this->buffer[j] = this->buffer[j - delta];
-            }
-            for (j = tlen; j < tlen + delta; j++)
-            {
-              this->buffer[ptr++] = nick[j];
-              this->len++;
-              if (isutf8charbeginning(nick[j]))
-              {
-                this->consptr++;
-              }
-            }
-            wmove(this->consolewindow, 0, this->consptr);
-            updated = -1;
-          }
-          nick = NULL;
+          std::string nick = chatrooms.currentroom().getnickbyprefix((char *) this->buffer.c_str() + tptr, tlen);
+        
+          nick.erase(0, tlen);
+          this->buffer.insert(ptr, nick);
+          this->ptr += nick.length();
+          this->consptr += utf8strlen(nick);
         }
+
+        updated = -1;
         break;
       case KEY_F(1):
       case KEY_SLEFT:
@@ -878,23 +907,20 @@ char * amixInterface::console_input()
         this->printnicklist();
         break;
       default:
-        if (this->ptr < BUFFSIZE - 1 && this->len < BUFFSIZE - 1)
-        {
-          for (j = this->len; j > this->ptr; j--)
-          {
-            this->buffer[j] = this->buffer[j - 1];
-          }
-          this->buffer[this->ptr++] = c;
-          this->len++;
-          this->buffer[this->len] = '\0';
+        this->utf8char += c;
 
-          this->utf8left += utf8charlen(c) - 1;
-          
-          if (this->utf8left == 0)
-          {
-            this->consptr++;
-            updated = -1;
-          }
+        //TODO: rethink it
+        this->utf8left += utf8charlen(c) - 1;
+        
+        if (this->utf8left == 0)
+        {
+          this->buffer_stored_flush();
+
+          this->buffer.insert(this->ptr, this->utf8char);
+          this->ptr += this->utf8char.length();
+          this->utf8char = "";
+          this->consptr++;
+          updated = -1;
         }
         break;
     }
@@ -908,6 +934,16 @@ char * amixInterface::console_input()
 }
 
 
+void amixInterface::buffer_stored_flush()
+{
+  if (this->buffer_stored)
+  {
+    this->history.pop_front();
+    this->buffer_stored = false;
+  }
+}
+
+
 void amixInterface::console_update()
 {
   int utf8d = 0;
@@ -916,7 +952,7 @@ void amixInterface::console_update()
   
   for (int i = d; i != 0; i--)
   {
-    utf8d += utf8charlen(this->buffer[utf8d]);
+    utf8d += utf8charlen((unsigned char) this->buffer[utf8d]);
   }
 
   wmove(this->consolewindow, 0, 0);
@@ -924,7 +960,7 @@ void amixInterface::console_update()
   int j = 0;
   int i = 0;
   int utf8left = 0;
-  while (i + utf8d < this->len && j < this->console_w - 1)
+  while (i + utf8d < this->buffer.length() && j < this->console_w - 1)
   {
     unsigned char c = this->buffer[utf8d + i];
     i++;
@@ -938,12 +974,11 @@ void amixInterface::console_update()
       j++;
     }
   }
-  int tmp = j;
   while (j++ < this->console_w)
   {
     waddch(this->consolewindow, ' ');
   }
-  wmove(this->consolewindow, 0, tmp); //, this->consptr); // ,tmp);
+  wmove(this->consolewindow, 0, std::min(this->consptr, this->console_w));
   wnoutrefresh(this->consolewindow);
   
   this->window_updated = true;
@@ -988,7 +1023,7 @@ void amixInterface::printnicklist()
     }  
 
     mvwaddnstr(this->nickwindow, i, nicklen, (*it).nick.c_str(), this->nicklist_w - 1 - nicklen);
-    nicklen += utf8strlen((const unsigned char *) (*it).nick.c_str());
+    nicklen += utf8strlen((*it).nick);
 
     if (this->useattr)
     {
@@ -1003,7 +1038,7 @@ void amixInterface::printnicklist()
       }
 
       mvwaddnstr(this->nickwindow, i, nicklen, (":" + (*it).client).c_str(), this->nicklist_w - 1 - nicklen);
-      nicklen += 1 + utf8strlen((const unsigned char *) (*it).client.c_str());
+      nicklen += 1 + utf8strlen((*it).client);
 
       if (this->useattr)
       {

@@ -1,10 +1,10 @@
 #ifndef AMIX_VERSION_H
 #define AMIX_VERSION_H
 
-#define VERCODE "0022"
-#define VER  "AmiX v. 0.2.6a (rev. 13)"
-#define AMIXSERVER "tapping.nazwa.pl"
-#define AMIXPATH   "/abukaj/amix/version.txt"
+#define VERCODE "0023"
+#define VER  "AmiX v. 0.2.6a (rev. 14)"
+#define AMIXSERVER "amix.org.pl"
+#define AMIXPATH   "/version.txt"
 
 int checkupdate();
 char *readline(int);

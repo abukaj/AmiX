@@ -240,9 +240,7 @@ int main(int argc, char *argv[])
     interface->nl();
     interface->put(" szkody wywolane uzyciem programu w tej wersji");
     interface->nl();
-    interface->put(" Oficjalna strona projektu:");
-    interface->nl();
-    interface->put(" http://tapping.nazwa.pl/abukaj/amix/");
+    interface->put(" Oficjalna strona projektu: http://amix.org.pl");
     interface->nl();
     interface->nl();
 
