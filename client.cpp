@@ -229,11 +229,11 @@ int main(int argc, char *argv[])
   }
   if (room == NULL)
   {
-    room = clonestring("Sekciarz");
+    room = clonestring("AmiX");
   }
   if (reffrom == NULL)
   {
-    reffrom = clonestring("http://www.polchat.pl/chat/room.phtml/?room=Sekciarz");
+    reffrom = clonestring("http://www.polchat.pl/chat/room.phtml/?room=AmiX");
   }
   if (logfn != NULL)
   {
