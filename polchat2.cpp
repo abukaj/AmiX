@@ -30,8 +30,8 @@ part *readpart(int sfd)
   }
   else
   {
-    window_put("ERROR: unable to read tank");
-    window_nl();
+    interface->put("ERROR: unable to read tank");
+    interface->nl();
   }
   return NULL;
 }
@@ -73,7 +73,7 @@ part::part(tank &prt)
   {
     if (debug)
     {
-      window_put("Tank parse error!");
+      interface->put("Tank parse error!");
       /*partdump(prt);*/
     }
   }
@@ -139,24 +139,24 @@ part::part(const char * string, std::string & room)
 
 void part::dump()
 {
-  window_put("HEADER: ");
-  //window_nl();
+  interface->put("HEADER: ");
+  //interface->nl();
   for (int i = 0; i < this->headerlen; i++)
   {
-    window_puthex(this->header[i], 4);
-    window_putchar(' ');
+    interface->puthex(this->header[i], 4);
+    interface->putchar(' ');
   }
 
-  window_nl();
-  window_put("STRINGS ");
-  window_puthex(this->nstrings, 4);
-  window_nl();
+  interface->nl();
+  interface->put("STRINGS ");
+  interface->puthex(this->nstrings, 4);
+  interface->nl();
   for (int i = 0; i < this->nstrings; i++)
   {
-    window_put(this->strings[i].c_str());
-    window_nl();
+    interface->put(this->strings[i].c_str());
+    interface->nl();
   }
-  //window_nl();
+  //interface->nl();
 }
 
 part::~part()
@@ -201,8 +201,8 @@ void processpart(part *ppart, int sfd)
         case 0x0000: /*heh, chyba nie wejdzie??*/
           if (debug)
           {
-            window_put("Unknown part header");
-            window_nl();
+            interface->put("Unknown part header");
+            interface->nl();
             if (!verbose)
             {
               ppart->dump();
@@ -218,8 +218,8 @@ void processpart(part *ppart, int sfd)
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -233,8 +233,8 @@ void processpart(part *ppart, int sfd)
             if (bell)
             {
               beep();
-              /*window_put("\a");
-              window_nl();*/
+              /*interface->put("\a");
+              interface->nl();*/
             }
             if (!verbose)
             {
@@ -246,8 +246,8 @@ void processpart(part *ppart, int sfd)
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -258,7 +258,7 @@ void processpart(part *ppart, int sfd)
         case 0x0263:/*Priv. msg*/
           if (headerlen == 0x0001 && nstrings == 0x0002)
           {
-            //window_put(ppart->strings[1].c_str()); window_nl();
+            //interface->put(ppart->strings[1].c_str()); interface->nl();
 
             chatrooms.privmsg(ppart->strings[1], ppart->strings[0]);
             //priv(PRIV_FROM, ppart->strings[1].c_str(), ppart->strings[0].c_str());
@@ -272,8 +272,8 @@ void processpart(part *ppart, int sfd)
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -286,17 +286,17 @@ void processpart(part *ppart, int sfd)
           {
             if (debug)
             {
-              window_put("CLIENT CONFIG: ");
-              window_put(ppart->strings[0].c_str());
-              window_nl();
+              interface->put("CLIENT CONFIG: ");
+              interface->put(ppart->strings[0].c_str());
+              interface->nl();
             }
           }
           else
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -314,23 +314,23 @@ void processpart(part *ppart, int sfd)
                                          ppart->header[1]);
             if ((*(chatrooms.current)).name == room)
             {
-              printnicklist();
+              interface->printnicklist();
             }
             if ((ppart->header[1] & 0x00ff8c) != 0x0000 && debug)
             {
-              window_put("Unknown status of: ");
-              window_put(ppart->strings[0].c_str());
-              window_put(" : ");
-              window_puthex(ppart->header[1], 4);
-              window_nl();
+              interface->put("Unknown status of: ");
+              interface->put(ppart->strings[0].c_str());
+              interface->put(" : ");
+              interface->puthex(ppart->header[1], 4);
+              interface->nl();
             }
           }
           else
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -346,15 +346,15 @@ void processpart(part *ppart, int sfd)
             chatrooms.room[room].removenick(ppart->strings[0]);
             if ((*(chatrooms.current)).name == room)
             {
-              printnicklist();
+              interface->printnicklist();
             }
           }
           else
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -370,23 +370,23 @@ void processpart(part *ppart, int sfd)
             chatrooms.room[room].updatenick(ppart->strings[0], ppart->header[1]);
             if ((*(chatrooms.current)).name == room)
             {
-              printnicklist();
+              interface->printnicklist();
             }
             if ((ppart->header[1] & 0x00ff8c) != 0x0000 && debug)
             {
-              window_put("Unknown status of: ");
-              window_put(ppart->strings[0].c_str());
-              window_put(" : ");
-              window_puthex(ppart->header[1], 4);
-              window_nl();
+              interface->put("Unknown status of: ");
+              interface->put(ppart->strings[0].c_str());
+              interface->put(" : ");
+              interface->puthex(ppart->header[1], 4);
+              interface->nl();
             }
           }
           else
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -399,15 +399,15 @@ void processpart(part *ppart, int sfd)
           {
             if ((verbose || debug) && ppart->header[1] != 0x0004)
             {
-              window_put(" 0004 != ");
-              window_puthex(ppart->header[1], 4);
-              window_nl();
-              window_put(" NICK:");
-              window_nl();
+              interface->put(" 0004 != ");
+              interface->puthex(ppart->header[1], 4);
+              interface->nl();
+              interface->put(" NICK:");
+              interface->nl();
               if (!verbose)
               {
-                window_put(ppart->strings[0].c_str());
-                window_nl();
+                interface->put(ppart->strings[0].c_str());
+                interface->nl();
               }
             }
           }
@@ -415,8 +415,8 @@ void processpart(part *ppart, int sfd)
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -437,26 +437,26 @@ void processpart(part *ppart, int sfd)
                            ppart->header[i + 4]);
               if (((ppart->header[i + 4] & 0x00ff8c) != 0x0000 || ppart->header[i + 5] != 0x0000) && debug)
               {
-                window_put("Unknown status of: ");
-                window_put(ppart->strings[i].c_str());
-                window_put(" : ");
-                window_puthex(ppart->header[i + 4], 4);
-                window_put(" : ");
-                window_puthex(ppart->header[i + 5], 4);
-                window_nl();
+                interface->put("Unknown status of: ");
+                interface->put(ppart->strings[i].c_str());
+                interface->put(" : ");
+                interface->puthex(ppart->header[i + 4], 4);
+                interface->put(" : ");
+                interface->puthex(ppart->header[i + 5], 4);
+                interface->nl();
               }
             }
             if (room.name == (*(chatrooms.current)).name)
             {
-              printnicklist();
+              interface->printnicklist();
             }
           }
           else
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -470,17 +470,17 @@ void processpart(part *ppart, int sfd)
             nickn = ppart->header[1];
             if (debug)
             {
-              window_put("W pokoju: 0x");
-              window_puthex(nickn, 4);
-              window_nl();
+              interface->put("W pokoju: 0x");
+              interface->puthex(nickn, 4);
+              interface->nl();
             }
           }
           else
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -492,14 +492,14 @@ void processpart(part *ppart, int sfd)
           if (headerlen == 0x0002 && nstrings == 0x0002)
           {
             chatrooms.room[ppart->strings[0]].setdesc(ppart->strings[1]);
-            printtitle();
+            interface->printtitle();
           }
           else
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -538,8 +538,8 @@ void processpart(part *ppart, int sfd)
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -555,15 +555,15 @@ void processpart(part *ppart, int sfd)
             {
               chatrooms.roommsg(ppart->strings[1], ppart->strings[0]);
               printlog("-hi-", ppart->strings[0].c_str());
-              window_colouroff();
+              interface->colouroff();
             }
           }
           else
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -575,21 +575,21 @@ void processpart(part *ppart, int sfd)
           if (headerlen == 0x0001 && nstrings == 0x0002)
           {
             chatrooms.part(ppart->strings[1], false);
-            update_all();
+            interface->update_all();
 
             if (!verbose)
             {
               chatrooms.currentroom().msg(ppart->strings[0], true);
               printlog("-bye-", ppart->strings[0].c_str());
-              window_colouroff();
+              interface->colouroff();
             }
           }
           else
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -600,8 +600,8 @@ void processpart(part *ppart, int sfd)
         case 0x0591:
           if (debug && !verbose)
           {
-            window_put("REKLAMY");
-            window_nl();
+            interface->put("REKLAMY");
+            interface->nl();
             ppart->dump();
           }
           break;
@@ -613,8 +613,8 @@ void processpart(part *ppart, int sfd)
               //TODO: rethink it
               chatrooms.currentroom().addline(ppart->strings[0].c_str());
               line & tmp = chatrooms.currentroom().lines.back();
-              window_put(tmp.timestring.c_str());
-              printpol(tmp.text.c_str());
+              interface->put(tmp.timestring.c_str());
+              interface->printpol(tmp.text.c_str());
 
               printlog("---", ppart->strings[0].c_str());
             }
@@ -622,15 +622,15 @@ void processpart(part *ppart, int sfd)
             close(sfd);
             if (0 == strncmp("nieprawidłowe hasło i/lub identyfikator użytkownika", ppart->strings[0].c_str(), 9))
             {
-              pass = input_password();
+              pass = interface->input_password();
             }
           }
           else
           {
             if (debug)
             {
-              window_put("Unknown part header");
-              window_nl();
+              interface->put("Unknown part header");
+              interface->nl();
               if (!verbose)
               {
                 ppart->dump();
@@ -641,8 +641,8 @@ void processpart(part *ppart, int sfd)
         default:
           if (debug)
           {
-            window_put("Unknown part header");
-            window_nl();
+            interface->put("Unknown part header");
+            interface->nl();
             if (!verbose)
             {
               ppart->dump();
@@ -655,8 +655,8 @@ void processpart(part *ppart, int sfd)
     {
       if (debug)
       {
-        window_put("Unknown part header");
-        window_nl();
+        interface->put("Unknown part header");
+        interface->nl();
         if (!verbose)
         {
           ppart->dump();
@@ -664,11 +664,11 @@ void processpart(part *ppart, int sfd)
       }
       if (headerlen == 0x0000 && nstrings == 0x0000)
       {
-        window_put("<blink>");
-        window_put("CONNECTION LOST :-( /*???*/");
-        window_put("</blink>");
-        window_put("0x000000000000");
-        window_nl();
+        interface->put("<blink>");
+        interface->put("CONNECTION LOST :-( /*???*/");
+        interface->put("</blink>");
+        interface->put("0x000000000000");
+        interface->nl();
         connected = 0;
         close(sfd);
       }
@@ -682,8 +682,8 @@ void processpart(part *ppart, int sfd)
   {
     if (debug)
     {
-      window_put("Error: NULL ptr given to processpart()");
-      window_nl();
+      interface->put("Error: NULL ptr given to processpart()");
+      interface->nl();
     }
   }
 }
@@ -740,8 +740,8 @@ int sendpol(part *ppart, int sfd)
       {
         if (debug)
         {
-          window_put("Error: ptr != size");
-          window_nl();
+          interface->put("Error: ptr != size");
+          interface->nl();
         }
       }
       delete [] data;
@@ -750,8 +750,8 @@ int sendpol(part *ppart, int sfd)
     {
       if (debug)
       {
-        window_put("Error: unable to allocate memory for tank");
-        window_nl();
+        interface->put("Error: unable to allocate memory for tank");
+        interface->nl();
       }
     }
   }
@@ -759,8 +759,8 @@ int sendpol(part *ppart, int sfd)
   {
     if (debug)
     {
-      window_put("Error: NULL ptr given to sendpol");
-      window_nl();
+      interface->put("Error: NULL ptr given to sendpol");
+      interface->nl();
     }
   }
   return 0;

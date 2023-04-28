@@ -23,7 +23,6 @@
 #define input() 0
 #define output() 1
 
-
 int main(int argc, char *argv[])
 {
   int i;
@@ -40,11 +39,9 @@ int main(int argc, char *argv[])
   struct sockaddr_in *serv_addr = NULL;
   struct addrinfo hints, *res, *tres;
   struct pollfd pol;
-  /*tank *tnk = NULL;*/
-  part *ppart = NULL;  
-  unsigned char testbuffer[256];
-  int testi;
-  char *testptr;
+  part *ppart = NULL;
+  bool useattr = true;
+  int nicklistwidth = 30;
 
   srand(time(NULL));
   setlocale(LC_ALL, "");
@@ -83,7 +80,7 @@ int main(int argc, char *argv[])
     }
     else if (0 == strcmp(argv[i], "-noattr") || 0 == ncsstrcmp(argv[i], "NOATTR"))
     {
-      useattr = 0;
+      useattr = false;
     }
     else if (0 == strcmp(argv[i], "-checkupdates") || 0 == ncsstrcmp(argv[i], "CHECKUPDATES"))
     {
@@ -100,6 +97,10 @@ int main(int argc, char *argv[])
     else if (0 == strcmp(argv[i], "-verbose") || 0 == ncsstrcmp(argv[i], "VERBOSE"))
     {
       verbose = -1;
+    }
+    else if (0 == strcmp(argv[i], "-nohtmlformatting") || 0 == ncsstrcmp(argv[i], "NOHTMLFORMATTING"))
+    {
+      nohtml = -1;
     }
     else if (0 == strcmp(argv[i], "-bell") || 0 == ncsstrcmp(argv[i], "BELL"))
     {
@@ -138,7 +139,7 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
       {
-        nicklist_w = atoi(argv[i]);
+        nicklistwidth = atoi(argv[i]);
       }                              
     }
     else if (0 == strcmp(argv[i], "-period") || 0 == ncsstrcmp(argv[i], "PERIOD"))
@@ -219,55 +220,51 @@ int main(int argc, char *argv[])
  
   if (run)
   {
-    initscr();
-    noecho();
-    cbreak();
-    start_color();
-    
-    window_init();
-    nodelay(consolewindow, TRUE);
-    keypad(consolewindow, TRUE);
+    interface = new amixInterface;
 
-    init_pair(7, COLOR_YELLOW, COLOR_BLUE);
-    wattron(chatwindow, COLOR_PAIR(7) | A_BOLD);
-    window_put(" " VER " ");
-    wattroff(chatwindow, COLOR_PAIR(7) | A_BOLD);
-    window_nl();
-    window_put(" Linuxowy klient Polchatu");
-    window_nl();
-    window_put(" By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)");
-    window_nl();
-    window_put(" status: freeware (badz giftware ;-D)");
-    window_nl();
-    window_put(" autor nie ponosi odpowiedzialnosci za ewentualne");
-    window_nl();
-    window_put(" szkody wywolane uzyciem programu w tej wersji");
-    window_nl();
-    window_put(" Oficjalna strona projektu:");
-    window_nl();
-    window_put(" http://tapping.nazwa.pl/abukaj/amix/");
-    window_nl();
-    window_nl();
+    interface->nicklist_w = nicklistwidth;
+    interface->useattr = useattr;
+    interface->resize();
+
+    interface->window_attron(COLOR_PAIR(7) | A_BOLD);
+    interface->put(" " VER " ");
+    interface->window_attroff(COLOR_PAIR(7) | A_BOLD);
+    interface->nl();
+    interface->put(" Linuxowy klient Polchatu");
+    interface->nl();
+    interface->put(" By ABUKAJ (J.M.Kowalski - amiga@buziaczek.pl)");
+    interface->nl();
+    interface->put(" status: freeware (badz giftware ;-D)");
+    interface->nl();
+    interface->put(" autor nie ponosi odpowiedzialnosci za ewentualne");
+    interface->nl();
+    interface->put(" szkody wywolane uzyciem programu w tej wersji");
+    interface->nl();
+    interface->put(" Oficjalna strona projektu:");
+    interface->nl();
+    interface->put(" http://tapping.nazwa.pl/abukaj/amix/");
+    interface->nl();
+    interface->nl();
 
     switch (rand() % 3)
     {
       case 0:
-        window_put(" Cieszmy się, że mamy harcerki - to dzięki nim istnieje AmiX.");
+        interface->put(" Cieszmy się, że mamy harcerki - to dzięki nim istnieje AmiX.");
         break;
       case 1:
-        window_put(" Wyłącz komputer i wyjdź z domu.");
-        window_nl();
-        window_put(" Może pod twoim blokiem nawalają się magowie.");
+        interface->put(" Wyłącz komputer i wyjdź z domu.");
+        interface->nl();
+        interface->put(" Może pod twoim blokiem nawalają się magowie.");
         break;
       case 2:
-        window_put("1f j00 (4n 1234d 7|-|15, j00 n33d 70 937 |41d");
+        interface->put("1f j00 (4n 1234d 7|-|15, j00 n33d 70 937 |41d");
         break;
     }
-    window_nl();
-    window_nl();
+    interface->nl();
+    interface->nl();
 
-    wnoutrefresh(chatwindow);
-    doupdate();    
+    interface->print();
+    interface->update();
 
     if (cud)
     {
@@ -275,15 +272,15 @@ int main(int argc, char *argv[])
     }
     else
     {
-      window_put(" Sprawdzanie uaktualnien pominiete.");
-      window_nl();
+      interface->put(" Sprawdzanie uaktualnien pominiete.");
+      interface->nl();
     }
-    wnoutrefresh(chatwindow);
-    doupdate();
+    interface->print();
+    interface->update();
 
     if (askpassw)
     {
-      pass = input_password();
+      pass = interface->input_password();
     }
     
     init_pair(COLOR_RED, COLOR_RED, COLOR_BLACK);
@@ -293,9 +290,11 @@ int main(int argc, char *argv[])
     init_pair(COLOR_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
     init_pair(COLOR_CYAN, COLOR_CYAN, COLOR_BLACK);
 
-    window_put(" resolving...");
-    window_nl();
-    wrefresh(chatwindow);
+    interface->put(" resolving...");
+    interface->nl();
+
+    interface->print();
+    interface->update();
    
     /*resolvuje adres*/
     memset(&hints, 0, sizeof(hints));
@@ -314,14 +313,17 @@ int main(int argc, char *argv[])
             serv_addr->sin_port = htons(port);
             if ((sfd = socket(tres->ai_family, tres->ai_socktype, tres->ai_protocol)) != -1)
             {
-              window_put(" connecting...");
-              window_nl();
-              wrefresh(chatwindow);
+              interface->put(" connecting...");
+              interface->nl();
+              interface->print();
+              interface->update();
+
               if ((connect(sfd, tres->ai_addr, tres->ai_addrlen)) < 0)
               {
-                window_put(" Connection failed...");
-                window_nl();
-                wrefresh(chatwindow);
+                interface->put(" Connection failed...");
+                interface->nl();
+                interface->print();
+                interface->update();
                 close(sfd);
                 sfd = -1;
                 continue;
@@ -329,18 +331,20 @@ int main(int argc, char *argv[])
             }
             else
             {
-              window_put(" Unable to create socket...");
-              window_nl();
-              wrefresh(chatwindow);
+              interface->put(" Unable to create socket...");
+              interface->nl();
+              interface->print();
+              interface->update();
             }
           }
       
           if (sfd >= 0)/*jesli sie polaczylismy*/
           {
             connected = -1;
-            window_put(" connected");
-            window_nl();
-            wrefresh(chatwindow);
+            interface->put(" connected");
+            interface->nl();
+            interface->print();
+            interface->update();
 
             if (tosend != NULL)
             {
@@ -361,11 +365,10 @@ int main(int argc, char *argv[])
           }
           else
           {
-            window_put("Unable to connect host: ");
-            window_put(host.c_str());
-            window_put(" ...");
-            window_nl();
-            window_updated = -1;
+            interface->put("Unable to connect host: ");
+            interface->put(host.c_str());
+            interface->put(" ...");
+            interface->nl();
           }                               
         }
         else /* if (connected)*/
@@ -382,22 +385,18 @@ int main(int argc, char *argv[])
               processpart(ppart, sfd);
               delete ppart;
               ppart = NULL;
-              window_print();
+              interface->print();
             }
           }
 
           /*czy mamy cos do wyslania?*/
           sendnext(sfd);
 
-          if (window_updated)
-          {
-            doupdate();
-            /*window_updated = 0;*//*okno odswiezone*/
-          }
+          interface->update();
         }
           
         /*czy jest cos na wejsciu?*/
-        if (NULL != (inputstring = console_input()))
+        if (NULL != (inputstring = interface->console_input()))
         {
           if (0 == ncsstrncmp(inputstring, "/quit ", 6) || 0 == ncsstrncmp(inputstring, "/quit", 6))
           {
@@ -414,36 +413,36 @@ int main(int argc, char *argv[])
           else if (0 == ncsstrncmp(inputstring, "/debugon ", 9) || 0 == ncsstrncmp(inputstring, "/debugon", 9))
           {
             debug = -1;
-            window_put("DEBUG MODE ON");
-            window_nl();
-            wnoutrefresh(chatwindow);
+            interface->put("DEBUG MODE ON");
+            interface->nl();
+            interface->print();
           }
           else if (0 == ncsstrncmp(inputstring, "/debugoff ", 10) || 0 == ncsstrncmp(inputstring, "/debugoff", 10))
           {
             debug = 0;
-            window_put("DEBUG MODE OFF");
-            window_nl();
-            wnoutrefresh(chatwindow);
+            interface->put("DEBUG MODE OFF");
+            interface->nl();
+            interface->print();
           }
           else if (0 == ncsstrncmp(inputstring, "/verboseon ", 11) || 0 == ncsstrncmp(inputstring, "/verboseon", 11))
           {
             verbose = -1;
-            window_put("VERBOSE MODE ON");
-            window_nl();
-            wnoutrefresh(chatwindow);
+            interface->put("VERBOSE MODE ON");
+            interface->nl();
+            interface->print();
           }
           else if (0 == ncsstrncmp(inputstring, "/verboseoff ", 12) || 0 == ncsstrncmp(inputstring, "/verboseoff", 12))
           {
             verbose = 0;
-            window_put("VERBOSE MODE OFF");
-            wnoutrefresh(chatwindow);
-            window_nl();
+            interface->put("VERBOSE MODE OFF");
+            interface->nl();
+            interface->print();
           }
           else if (0 == ncsstrncmp(inputstring, "/ver ", 5) || 0 == ncsstrncmp(inputstring, "/ver", 5))
           {
             //TODO: rethink it 
             chatrooms.currentroom().addline("<B>" VER "</B>");
-            wnoutrefresh(chatwindow);
+            interface->print();
           }
           else if (0 == ncsstrncmp(inputstring, "/help ", 6) || 0 == ncsstrncmp(inputstring, "/help", 6))
           {
@@ -457,13 +456,12 @@ int main(int argc, char *argv[])
                           "thankfully alert gauchos were able to save the llama "
                           "before it was swept into the blades of the turbine&quot;");
             chatrooms.currentroom().addline("<B>/ver</B> - podaje wersje programu"); 
-            wnoutrefresh(chatwindow);
-            window_updated = -1;
+            interface->print();
           }
           else if ((0 == ncsstrncmp(inputstring, "/part ", 6) || 0 == ncsstrncmp(inputstring, "/part", 6)) && !(*(chatrooms.current)).room)
           {
             chatrooms.part((*(chatrooms.current)).name, true);
-            update_all();
+            interface->update_all();
           }         
           else
           {
@@ -471,16 +469,16 @@ int main(int argc, char *argv[])
 
             if (0 == ncsstrncmp(inputstring, "/lama ", 6) || 0 == ncsstrncmp(inputstring, "/lama", 6))
             {
-              msgstring = "thankfully alert gauchos were able to save the llama "
+              msgstring = (char *) "thankfully alert gauchos were able to save the llama"
                           "before it was swept into the blades of the turbine";
             }
             else if (0 == ncsstrncmp(inputstring, "/borg ", 6) || 0 == ncsstrncmp(inputstring, "/borg", 6))
             {
-              msgstring = "I'm cybernetic organism - living tissue over metal endoskeleton.";
+              msgstring = (char *) "I'm cybernetic organism - living tissue over metal endoskeleton.";
             }
             else if (0 == ncsstrncmp(inputstring, "/jedi ", 6) || 0 == ncsstrncmp(inputstring, "/jedi", 6))
             {
-              msgstring = "May the Force be with you, my young padawan...";
+              msgstring = (char *) "May the Force be with you, my young padawan...";
             }         
 
             
@@ -496,8 +494,6 @@ int main(int argc, char *argv[])
           }
           free(inputstring);
         }
-          
-        /*wnoutrefresh(consolewindow);*/
       }
         
       if (tosend != NULL)
@@ -514,12 +510,13 @@ int main(int argc, char *argv[])
     }
     else
     {
-      window_put("Resolver problem...");
-      window_nl();
+      interface->put("Resolver problem...");
+      interface->nl();
+      interface->print();
+      interface->update();
     } 
     
-    window_done();
-    endwin();
+    delete interface;
   }
  
   if (logfn != NULL)

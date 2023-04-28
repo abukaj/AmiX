@@ -658,6 +658,7 @@ unsigned char unicode2iso(unsigned int c)
 /*****************************************************************************\
   nie przetwarza poprawnie sekwencji ponaddwubajtowych! - TODO
 \*****************************************************************************/
+
 char *iso2utf8string(char *string)
 {
   unsigned char *result = NULL;
@@ -716,14 +717,17 @@ char *iso2utf8string(char *string)
   return (char *) result;
 }
 
+/*****************************************************************************\
+\*****************************************************************************/
+
 bool isutf8charbeginning(unsigned int c)
 {
   return (c < 0x0080 || c > 0x00BF);
 }
 
 /*****************************************************************************\
-  nie przetwarza poprawnie sekwencji ponaddwubajtowych! - TODO
 \*****************************************************************************/
+
 int utf8charlen(const unsigned char *str)
 {
   int c = *str;
@@ -751,6 +755,7 @@ int utf8charlen(const unsigned char *str)
   {
     return 3;
   }
+  return -3;
   if (isutf8charbeginning(str[3]))
   {
     return -3;
@@ -775,8 +780,11 @@ int utf8charlen(const unsigned char *str)
   {
     return 6;
   }
-  //TODO - co jak c = FE, FF?
+  return -6;
 }
+
+/*****************************************************************************\
+\*****************************************************************************/
 
 int utf8charlen(unsigned int c)
 {
@@ -796,6 +804,7 @@ int utf8charlen(unsigned int c)
   {
     return 3;
   }
+  return -1;
   if (c < 0x00F8) //11110???
   {
     return 4;
@@ -808,7 +817,7 @@ int utf8charlen(unsigned int c)
   {
     return 6;
   }
-  //TODO - co jak c = FE, FF?
+  return -6;
 }
 
 /*****************************************************************************\

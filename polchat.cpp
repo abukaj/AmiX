@@ -13,6 +13,7 @@
 int cud = 0;
 int debug = 0;
 int verbose = 0;
+int nohtml = 0;
 int coredump = 0;
 int bell = 0;
 int run = -1;
@@ -77,11 +78,11 @@ void chatroom::addnick(std::string & nick,
   {
     if (debug)
     {
-      window_put("NICK: ");
-      window_put(nick.c_str());
-      window_put(" already found in room: ");
-      window_put(this->name.c_str());
-      window_nl();
+      interface->put("NICK: ");
+      interface->put(nick.c_str());
+      interface->put(" already found in room: ");
+      interface->put(this->name.c_str());
+      interface->nl();
     }
   }
 }
@@ -114,11 +115,11 @@ void chatroom::updatenick(std::string & nick,
   //updatenick message is sent BEFORE nick entered and AFTER nick left
   //if (!found && debug)
   //{
-  //  window_put("(updatenick) NICK: ");
-  //  window_put(nick.c_str());
-  //  window_put(" not found in room: ");
-  //  window_put(this->name.c_str());
-  //  window_nl();
+  //  interface->put("(updatenick) NICK: ");
+  //  interface->put(nick.c_str());
+  //  interface->put(" not found in room: ");
+  //  interface->put(this->name.c_str());
+  //  interface->nl();
   //}
 }
 
@@ -149,11 +150,11 @@ void chatroom::removenick(std::string & nick)
 
   if (!found && debug)
   {
-    window_put("(removenick) NICK: ");
-    window_put(nick.c_str());
-    window_put(" not found in room: ");
-    window_put(this->name.c_str());
-    window_nl();
+    interface->put("(removenick) NICK: ");
+    interface->put(nick.c_str());
+    interface->put(" not found in room: ");
+    interface->put(this->name.c_str());
+    interface->nl();
   }
 }
 
@@ -237,7 +238,7 @@ void chat::prev()
   {
     this->current--;
   }
-  update_all();
+  interface->update_all();
 }
 
 void chat::next()
@@ -247,7 +248,7 @@ void chat::next()
   {
     this->current--;
   }
-  update_all();
+  interface->update_all();
 }
 
 void chatroom::msg(std::string msg, bool display)
@@ -256,8 +257,8 @@ void chatroom::msg(std::string msg, bool display)
   if (display)
   {
     line & tmp = this->lines.back();
-    window_put(tmp.timestring.c_str());
-    printpol(tmp.text.c_str());
+    interface->put(tmp.timestring.c_str());
+    interface->printpol(tmp.text.c_str());
   }
 }
 
@@ -273,7 +274,7 @@ void chat::privmsg(std::string name, std::string msg)
     this->roomlist.push_back(roomname(lowname, false));
 
     //TODO: refactoring
-    printtitle();
+    interface->printtitle();
   }
   this->priv[lowname].msg(msg, !(*(this->current)).room && (*(this->current)).name == lowname);
 }

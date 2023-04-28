@@ -111,56 +111,56 @@ void tank::dump()
   int size;
   int i, j;
 
-  window_put("Size: 0x");
-  window_puthex((unsigned long) length, 8);
-  window_nl();
+  interface->put("Size: 0x");
+  interface->puthex((unsigned long) length, 8);
+  interface->nl();
   size = length;
   for (i = 0; i < size / 32; i++)
   {
-    window_put("0x");
-    window_puthex(i * 32, 4);
+    interface->put("0x");
+    interface->puthex(i * 32, 4);
     for (j = 0; j < 32; j++)
     {
-      window_putchar(' ');
-      window_puthex((unsigned char) data[i * 32 + j], 2);
+      interface->putchar(' ');
+      interface->puthex((unsigned char) data[i * 32 + j], 2);
     }
-    window_put("  ");
+    interface->put("  ");
     for (j = 0; j < 32; j++)
     {
       if (isgraph((unsigned char) data[i * 32 + j]))
       {
-        window_putchar((unsigned char) data[i * 32 + j]);
+        interface->putchar((unsigned char) data[i * 32 + j]);
       }
       else
       {
-        window_putchar('.');
+        interface->putchar('.');
       }
     }
-    window_nl();
+    interface->nl();
   }
 
-  window_put("0x");
-  window_puthex(i * 32, 4);
+  interface->put("0x");
+  interface->puthex(i * 32, 4);
   for (j = 0; j < size % 32; j++)
   {
-    window_putchar(' ');
-    window_puthex((unsigned char) data[i * 32 + j], 2);
+    interface->putchar(' ');
+    interface->puthex((unsigned char) data[i * 32 + j], 2);
   }
   for (; j < 32; j++)
   {
-    window_put("   ");
+    interface->put("   ");
   }
-  window_put("  ");
+  interface->put("  ");
   for (j = 0; j < size % 32; j++)
   {
     if (isgraph((unsigned char) data[i * 32 + j]))
     {
-      window_putchar((unsigned char) data[i * 32 + j]);
+      interface->putchar((unsigned char) data[i * 32 + j]);
     }
     else
     {
-      window_putchar('.');
+      interface->putchar('.');
     }
   }
-  window_nl();
+  interface->nl();
 }

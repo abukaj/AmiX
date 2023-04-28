@@ -3,192 +3,207 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <ncursesw/ncurses.h>
+
 #include "interface.h"
 #include "polchat.h"
 #include "temp.h"
+#include "image.h"
 
-WINDOW *chatwindow = NULL;
-WINDOW *nickwindow = NULL;
-WINDOW *titlewindow = NULL;
-WINDOW *consolewindow = NULL;
-static int inlen = 0;
-static int ptr = 0;
-static int len = 0;
-static int consptr = 0;
-static int colour = 0;
-static unsigned char buffer[BUFFSIZE];
-
-int nicklist_x;
-int nicklist_h;
-int nicklist_w = 30;
-int console_y;
-int console_w;
-int title_w;
-
-int scr_rows;
-int scr_cols;
-int window_h;
-int window_w;
-
-int useattr = -1;
-int window_updated = -1;
+amixInterface * interface = NULL;
 
 int transformrgb(int red, int green, int blue)
-  {
+{
   int col = 0;
   
   if (red > 0x007F)
-    {
+  {
     col |= 0x01;
-    }
+  }
   
   if (green > 0x007F)
-    {
+  {
     col |= 0x02;
-    }
+  }
   
   if (blue > 0x007F)
-    {
+  {
     col |= 0x04;
-    }
+  }
   return col;
-  }
+}
 
 
-void window_colouron(int c)
+void amixInterface::colouron(int c)
+{
+  if (!this->colourstack.empty())
   {
-/*  window_put("SETTING COLOUR");*/
-  if (colour)
+    this->window_attroff(COLOR_PAIR(this->colourstack.top()));
+  }
+  this->colourstack.push(c);
+  this->window_attron(COLOR_PAIR(c));
+}
+
+
+void amixInterface::colouroff()
+{
+  if (!this->colourstack.empty())
+  {
+    this->window_attroff(COLOR_PAIR(this->colourstack.top()));
+    this->colourstack.pop();
+  }
+  if (!this->colourstack.empty())
+  {
+    this->window_attron(COLOR_PAIR(this->colourstack.top()));
+  }
+}
+
+void amixInterface::colourflush()
+{
+  while (!this->colourstack.empty())
+  {
+    this->window_attroff(COLOR_PAIR(this->colourstack.top()));
+    this->colourstack.pop();
+
+    if (!this->colourstack.empty())
     {
-    window_attroff(COLOR_PAIR(colour));
-    }
-  colour = c;
-  window_attron(COLOR_PAIR(c));
-  }
-
-
-void window_colouroff()
-  {
-  if (colour)
-    {
-    window_attroff(COLOR_PAIR(colour));
-    colour = 0;
+      this->window_attron(COLOR_PAIR(this->colourstack.top()));
     }
   }
+}
 
-
-void window_attron(int attr)
+void amixInterface::window_attron(int attr)
 {
-  if (useattr)
+  if (this->useattr)
   {
-    wattron(chatwindow, attr);
+    wattron(this->chatwindow, attr);
   }
 }
 
 
-void window_attroff(int attr)
+void amixInterface::window_attroff(int attr)
 {
-  if (useattr)
+  if (this->useattr)
   {
-    wattroff(chatwindow, attr);
+    wattroff(this->chatwindow, attr);
   }
 }
 
 
-void window_init()
+amixInterface::amixInterface()
 {
-  getmaxyx(stdscr, scr_rows, scr_cols);
-  window_h = scr_rows - WINDOW_Y - CONSOLE_H;
-  window_w = scr_cols - NICKLIST_WIDTH - WINDOW_X;
+  this->inlen = 0;
+  this->ptr = 0;
+  this->len = 0;
+  this->buffer[0] = '\0';
+  this->consptr = 0;
+  this->useattr = true;
+  this->window_updated = true;
+  this->utf8charToGo = 0;
 
-  chatwindow = newwin(window_h, window_w, WINDOW_Y, WINDOW_X);
-  wborder(chatwindow, ' ', ' ', '#', '#', '*', '*', '*', '*');
-  mvwaddstr(chatwindow, 0, window_w / 2 - 3, " CHAT ");
-  scrollok(chatwindow, TRUE);
-  wsetscrreg(chatwindow, 1, window_h - 2);
-  wmove(chatwindow, 1, 0);
-  wrefresh(chatwindow);
-  
-  
-  
-  nicklist_x = scr_cols - NICKLIST_WIDTH;
-  nicklist_h = scr_rows - NICKLIST_Y;
-  nickwindow = newwin(nicklist_h, NICKLIST_WIDTH, NICKLIST_Y, nicklist_x);
-  wborder(nickwindow, '|', '|', '-', '-', '+', '+', '+', '+');
-  mvwaddstr(nickwindow, 0, NICKLIST_WIDTH / 2 - 4, " NICKS: ");
-  wrefresh(nickwindow);
+  this->nicklist_y = NICKLIST_Y;
+  this->nicklist_w = 30;
 
-  
-  title_w = scr_cols - NICKLIST_WIDTH - TITLE_X;
-  titlewindow = newwin(TITLE_H, title_w, TITLE_Y, TITLE_X);
-  //wborder(titlewindow, '|', '|', '-', '-', '/', '\\', '\\', '/');
-  wrefresh(titlewindow);
+  this->window_x = WINDOW_X;
+  this->window_y = WINDOW_Y;
 
-  console_y = scr_rows - CONSOLE_H;
-  console_w = scr_cols - CONSOLE_X - NICKLIST_WIDTH;
-  consolewindow = newwin(CONSOLE_H, console_w, console_y, CONSOLE_X);
-  //wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
-  wmove(consolewindow, 1, 1);
-  wrefresh(consolewindow);
+  this->console_x = CONSOLE_X;
+  this->console_h = CONSOLE_H;
+
+  this->title_x = TITLE_X;
+  this->title_y = TITLE_Y;
+  this->title_h = TITLE_H;
+
+  initscr();
+  noecho();
+  cbreak();
+  start_color();
+
+  this->getsize();
+
+  this->chatwindow = newwin(this->window_h, this->window_w, this->window_y, this->window_x);
+  wborder(this->chatwindow, ' ', ' ', '#', '#', '*', '*', '*', '*');
+  mvwaddstr(this->chatwindow, 0, this->window_w / 2 - 3, " CHAT ");
+  scrollok(this->chatwindow, TRUE);
+  wsetscrreg(this->chatwindow, 1, this->window_h - 2);
+  wmove(this->chatwindow, 1, 0);
+  wrefresh(this->chatwindow);
+  
+  this->nickwindow = newwin(this->nicklist_h, this->nicklist_w, this->nicklist_y, this->nicklist_x);
+  wborder(this->nickwindow, '|', '|', '-', '-', '+', '+', '+', '+');
+  mvwaddstr(this->nickwindow, 0, this->nicklist_w / 2 - 4, " NICKS: ");
+  wrefresh(this->nickwindow);
+
+  this->titlewindow = newwin(this->title_h, this->title_w, this->title_y, this->title_x);
+  wrefresh(this->titlewindow);
+
+  this->consolewindow = newwin(this->console_h, this->console_w, this->console_y, this->console_x);
+  wmove(this->consolewindow, 1, 1);
+  wrefresh(this->consolewindow);
+
+  nodelay(this->consolewindow, TRUE);
+  keypad(this->consolewindow, TRUE);
+
+  init_pair(7, COLOR_YELLOW, COLOR_BLUE);
 }
 
 
-void window_resize()
-  {
-/*  int i;*/
-  getmaxyx(stdscr, scr_rows, scr_cols);
-  
-  window_h = scr_rows - WINDOW_Y - CONSOLE_H;
-  window_w = scr_cols - NICKLIST_WIDTH - WINDOW_X;
-  mvwin(chatwindow, WINDOW_Y, WINDOW_X);
-  wresize(chatwindow, window_h, window_w);
-  wborder(chatwindow, ' ', ' ', '#', '#', '*', '*', '*', '*');
-  mvwaddstr(chatwindow, 0, window_w / 2 - 3, " CHAT ");
-  wsetscrreg(chatwindow, 1, window_h - 2);
-  window_redraw();
-  wnoutrefresh(chatwindow);
-  
-  nicklist_x = scr_cols - NICKLIST_WIDTH;
-  nicklist_h = scr_rows - NICKLIST_Y;
-  mvwin(nickwindow, NICKLIST_Y, nicklist_x);
-  wresize(nickwindow, nicklist_h, NICKLIST_WIDTH);
-  wborder(nickwindow, '|', '|', '-', '-', '+', '+', '+', '+');
-  mvwaddstr(nickwindow, 0, NICKLIST_WIDTH / 2 - 4, " NICKS: ");
-  printnicklist();
-  wnoutrefresh(nickwindow);
-  
-  title_w = scr_cols - NICKLIST_WIDTH - TITLE_X;
-  mvwin(titlewindow, TITLE_Y, TITLE_X);
-  wresize(titlewindow, TITLE_H, title_w);
-  //wborder(titlewindow, '|', '|', '-', '-', '/', '\\', '\\', '/');
-  printtitle();
-  wnoutrefresh(titlewindow);
-  
-  console_y = scr_rows - CONSOLE_H;
-  console_w = scr_cols - CONSOLE_X - NICKLIST_WIDTH;
-  mvwin(consolewindow, console_y, CONSOLE_X);
-  wresize(consolewindow, CONSOLE_H, console_w);
-  //wborder(consolewindow, '|', '|', '-', '-', '+', '+', '+', '+');
+void amixInterface::getsize()
+{
+  getmaxyx(stdscr, this->scr_rows, this->scr_cols);
 
-  console_update();
+  this->window_h = this->scr_rows - this->window_y - this->console_h;
+  this->window_w = this->scr_cols - this->nicklist_w - this->window_x;
+
+  this->nicklist_x = this->scr_cols - this->nicklist_w;
+  this->nicklist_h = this->scr_rows - this->nicklist_y;
+
+  this->title_w = this->scr_cols - this->nicklist_w - this->title_x;
+
+  this->console_y = this->scr_rows - this->console_h;
+  this->console_w = this->scr_cols - this->console_x - this->nicklist_w;
+}
+
+void amixInterface::resize()
+{
+  this->getsize();
+
+  mvwin(this->chatwindow, this->window_y, this->window_x);
+  wresize(this->chatwindow, this->window_h, this->window_w);
+  wborder(this->chatwindow, ' ', ' ', '#', '#', '*', '*', '*', '*');
+  mvwaddstr(this->chatwindow, 0, this->window_w / 2 - 3, " CHAT ");
+  wsetscrreg(this->chatwindow, 1, this->window_h - 2);
+  this->window_redraw();
   
-  window_updated = -1;
-  }
+  mvwin(this->nickwindow, this->nicklist_y, this->nicklist_x);
+  wresize(this->nickwindow, this->nicklist_h, this->nicklist_w);
+  wborder(this->nickwindow, '|', '|', '-', '-', '+', '+', '+', '+');
+  mvwaddstr(this->nickwindow, 0, this->nicklist_w / 2 - 4, " NICKS: ");
+  this->printnicklist();
+  
+  mvwin(this->titlewindow, this->title_y, this->title_x);
+  wresize(this->titlewindow, this->title_h, this->title_w);
+  this->printtitle();
+  
+  mvwin(this->consolewindow, this->console_y, this->console_x);
+  wresize(this->consolewindow, this->console_h, this->console_w);
+  this->console_update();
+}
 
 
-void window_redraw()
+void amixInterface::window_redraw()
 {
   std::list<line> & lines = chatrooms.currentroom().lines;
 
-  wmove(chatwindow, 1, 0);
+  wmove(this->chatwindow, 1, 0);
 
   for (int i = lines.size(); i < MSGSTOREMAX; i++)
   {
-    for (int j = 0; j < window_w; ++j)
+    for (int j = 0; j < this->window_w; ++j)
     {
-      waddch(chatwindow, ' ');
+      waddch(this->chatwindow, ' ');
     }
-    waddch(chatwindow, '\n');
+    waddch(this->chatwindow, '\n');
   }
   
   for (std::list<line>::iterator it = lines.begin(); 
@@ -196,171 +211,163 @@ void window_redraw()
        it++)
 
   {
-    window_put((*it).timestring.c_str());
-    printpol((*it).text.c_str());
+    this->put((*it).timestring.c_str());
+    this->printpol((*it).text.c_str());
   }
+
+  wnoutrefresh(this->chatwindow);
+  this->window_updated = true;
 }
 
-void update_all()
+void amixInterface::update_all()
 {
-  printtitle();
-  printnicklist();
-  window_redraw();
-  wnoutrefresh(chatwindow);
+  this->printtitle();
+  this->printnicklist();
+  this->window_redraw();
+  this->console_update();
 }
 
-void window_done()
+amixInterface::~amixInterface()
 {
-  delwin(chatwindow);
-  delwin(nickwindow);
-  delwin(consolewindow);
-  delwin(titlewindow);
+  delwin(this->chatwindow);
+  delwin(this->nickwindow);
+  delwin(this->consolewindow);
+  delwin(this->titlewindow);
+  endwin();
 }
 
 
-void window_nl(){
-  while (inlen < window_w - 2)
-    {
-    waddch(chatwindow, ' ');
-    inlen++;
-    }
-  waddch(chatwindow, '\n');
-  inlen = 0;
-  }
-
-
-void window_putchar(unsigned char c)
+void amixInterface::nl()
+{
+  while (this->inlen < this->window_w - 2)
   {
-  if (inlen >= window_w - 2)
-    {
-    window_nl();
-    }
-  waddch(chatwindow, c);
-  inlen++;
+    waddch(this->chatwindow, ' ');
+    this->inlen++;
   }
+  waddch(this->chatwindow, '\n');
+  this->inlen = 0;
+  this->window_updated = true;
+}
 
-void window_puthex(unsigned int n, unsigned int len)
+
+void amixInterface::putchar(unsigned char c)
+{
+  if (this->inlen >= this->window_w - 2)
   {
-  if (inlen + len >= window_w - 2)
-    {
-    window_nl();
-    }
+    this->nl();
+  }
+  waddch(this->chatwindow, c);
+  this->utf8charToGo += utf8charlen(c) - 1;
+  if (this->utf8charToGo == 0)
+  {
+    this->inlen++;
+    this->window_updated = true;
+  }
+}
+
+void amixInterface::puthex(unsigned int n, unsigned int len)
+{
+  if (this->inlen + len >= this->window_w - 2)
+  {
+    this->nl();
+  }
   while (len-- > 0)
-    {
-    waddch(chatwindow, inttohex((n >> (len * 4)) & 0x0F));
-    inlen++;
-    }
-  }
-
-
-void window_put(const char *word){
-  char *tmp;
-  int len;
-  int ptr;
-  
-  if (word != NULL && *word != '\0'){
-    if (*word == '\n')
-      {
-      window_nl();
-      }
-    else if (verbose || (*word != '<'))
-      {
-      len = utf8strlen((unsigned char *) word);
-      if (inlen + len <= window_w - 2)
-        {
-        waddstr(chatwindow, word);
-        inlen += len;
-        }
-      else 
-        {
-        window_nl();
-        inlen = window_w - 2;
-        ptr = 0;
-        if (NULL != (tmp = (char *) calloc(inlen + 1, sizeof(char))))
-          {
-          while (len > inlen)
-            {
-            strncpy(tmp, (word + ptr), inlen);
-            waddstr(chatwindow, tmp);
-            waddch(chatwindow, '\n');
-            ptr += inlen;
-            len -= inlen;
-            }
-          free(tmp);
-          }
-
-        waddstr(chatwindow, (word + ptr));
-        inlen = len;
-        }
-      }
-    else if (0 == ncsstrcmp(word, "<b>"))
-      {
-      window_attron(A_BOLD);
-      }
-    else if (0 == ncsstrcmp(word, "</b>"))
-      {
-      window_attroff(A_BOLD);
-      }
-    else if (0 == ncsstrcmp(word, "<u>"))
-      {
-      window_attron(A_UNDERLINE);
-      }
-    else if (0 == ncsstrcmp(word, "</u>"))
-      {
-      window_attroff(A_UNDERLINE);
-      }
-    else if (0 == ncsstrcmp(word, "<blink>"))
-      {
-      window_attron(A_BLINK);
-      }
-    else if (0 == ncsstrcmp(word, "</blink>"))
-      {
-      window_attroff(A_BLINK);
-      }
-    else
-      {
-      len = utf8strlen((unsigned char *)word);
-      if (inlen + len <= window_w - 2)
-        {
-        waddstr(chatwindow, word);
-        inlen += len;
-        }
-      else 
-        {
-        waddch(chatwindow, '\n');
-        inlen = window_w - 2;
-        ptr = 0;
-        if (NULL != (tmp = (char *) calloc(inlen + 1, sizeof(char))))
-          {
-          while (len > inlen)
-            {
-            strncpy(tmp, (word + ptr), inlen);
-            waddstr(chatwindow, tmp);
-            waddch(chatwindow, '\n');
-            ptr += inlen;
-            len -= inlen;
-            }
-          free(tmp);
-          }
-        waddstr(chatwindow, (word + ptr));
-        inlen = len;
-        }
-      }
-    }
-  }
-
-
-void window_putforce(char *word)
   {
-  waddstr(chatwindow, word);
+    waddch(this->chatwindow, inttohex((n >> (len * 4)) & 0x0F));
+    this->inlen++;
   }
+  this->window_updated = true;
+}
 
 
-void window_print(){
-  wnoutrefresh(chatwindow);
-
-  window_updated = -1;
+void amixInterface::put(const char *word)
+{
+  if (word != NULL && *word != '\0')
+  {
+    if (*word == '\n')
+    {
+      this->nl();
+    }
+    else if (verbose || (*word != '<'))
+    {
+      int len = utf8strlen((unsigned char *) word);
+      if (this->inlen + len <= this->window_w - 2)
+      {
+        waddstr(chatwindow, word);
+        inlen += len;
+      }
+      else 
+      {
+        this->nl();
+        while (*word != '\0')
+        {
+          //TODO: rethink it
+          this->putchar((unsigned char) *word);
+          word++;
+        }
+      }
+    }
+    else if (0 == ncsstrcmp(word, "<b>"))
+    {
+      this->window_attron(A_BOLD);
+    }
+    else if (0 == ncsstrcmp(word, "</b>"))
+    {
+      this->window_attroff(A_BOLD);
+    }
+    else if (0 == ncsstrcmp(word, "<u>"))
+    {
+      this->window_attron(A_UNDERLINE);
+    }
+    else if (0 == ncsstrcmp(word, "</u>"))
+    {
+      this->window_attroff(A_UNDERLINE);
+    }
+    else if (0 == ncsstrcmp(word, "<blink>"))
+    {
+      this->window_attron(A_BLINK);
+    }
+    else if (0 == ncsstrcmp(word, "</blink>"))
+    {
+      this->window_attroff(A_BLINK);
+    }
+    else
+    {
+      int len = utf8strlen((unsigned char *)word);
+      if (this->inlen + len <= this->window_w - 2)
+      {
+        waddstr(this->chatwindow, word);
+        this->inlen += len;
+      }
+      else 
+      {
+        this->nl();
+        while (*word != '\0')
+        {
+          //TODO: rethink it
+          this->putchar((unsigned char) *word);
+          word++;
+        }
+      }
+    }
   }
+  this->window_updated = true;
+}
+
+
+void amixInterface::putforce(const char *word)
+{
+  waddstr(this->chatwindow, word);
+  this->window_updated = true;
+}
+
+
+void amixInterface::print()
+{
+  wnoutrefresh(this->chatwindow);
+
+  this->window_updated = true;
+}
 
 
 char *readtoken(const char *string){
@@ -491,12 +498,12 @@ char *readtoken(const char *string){
   }
 
 
-void printtitle()
+void amixInterface::printtitle()
 {
-  for (int i = 0; i < title_w; i++)
+  for (int i = 0; i < this->title_w; i++)
   {
-    mvwaddch(titlewindow, 0, i, ' ');
-    mvwaddch(titlewindow, 1, i, ' ');
+    mvwaddch(this->titlewindow, 0, i, ' ');
+    mvwaddch(this->titlewindow, 1, i, ' ');
   }
 
   int written = 0;
@@ -509,65 +516,63 @@ void printtitle()
     chatroom & cr = rooms[(*it).name];
     int len = utf8strlen((unsigned char *) cr.name.c_str());
 
-    if (written + len + 2 > title_w)
+    if (written + len + 2 > this->title_w)
     {
-      mvwaddnstr(titlewindow, 0, written, "...", title_w - written);      
+      mvwaddnstr(this->titlewindow, 0, written, "...", this->title_w - written);      
       break;
     }
 
-    if (!(*it).room && useattr)
+    if (!(*it).room && this->useattr)
     {
-      wattron(titlewindow, A_UNDERLINE);
+      wattron(this->titlewindow, A_UNDERLINE);
     }
 
     if (it == chatrooms.current)
     {
-      if (useattr)
+      if (this->useattr)
       {
-        wattron(titlewindow, A_BOLD);
+        wattron(this->titlewindow, A_BOLD);
       }
 
-      mvwaddch(titlewindow, 0, written++, '>');
+      mvwaddch(this->titlewindow, 0, written++, '>');
     }
     else
     {
-      mvwaddch(titlewindow, 0, written++, ':');
+      mvwaddch(this->titlewindow, 0, written++, ':');
     }
 
-
-
-    mvwaddstr(titlewindow, 0, written, cr.name.c_str());
+    mvwaddstr(this->titlewindow, 0, written, cr.name.c_str());
 
     written += len;
 
     if (it == chatrooms.current)
     {
-      mvwaddch(titlewindow, 0, written++, '<');
+      mvwaddch(this->titlewindow, 0, written++, '<');
 
-      if (useattr)
+      if (this->useattr)
       {
-        wattroff(titlewindow, A_BOLD);
+        wattroff(this->titlewindow, A_BOLD);
       }
     }
     else
     {
-      mvwaddch(titlewindow, 0, written++, ':');
+      mvwaddch(this->titlewindow, 0, written++, ':');
     }
 
-    if (!(*it).room && useattr)
+    if (!(*it).room && this->useattr)
     {
-      wattroff(titlewindow, A_UNDERLINE);
+      wattroff(this->titlewindow, A_UNDERLINE);
     }
   }
 
-  //mvwaddnstr(titlewindow, 0, 0, chatrooms.currentroom().name.c_str(), title_w);
-  mvwaddnstr(titlewindow, 1, 0, chatrooms.currentroom().description.c_str(), title_w);
-  wrefresh(titlewindow);
+  mvwaddnstr(this->titlewindow, 1, 0, chatrooms.currentroom().description.c_str(), this->title_w);
+  wnoutrefresh(this->titlewindow);
+  this->window_updated = true;
 }
 
 
-void printpol(const char *string)
-  {
+void amixInterface::printpol(const char *string)
+{
   int mode = 0;
   int tokens = -1;
   char *token = NULL;
@@ -576,96 +581,101 @@ void printpol(const char *string)
   int col;
   
   if (string != NULL)
-    {
+  {
     token = readtoken(string);
     while (tokens)
-      {
+    {
       switch (mode)
-        {
+      {
         case 0:
           if (token == NULL)
-            {
+          {
             tokens = 0;
-            }
+          }
           else if (*token == '\0')
-            {
+          {
             mode = 1;
-            }
+          }
           else if (0 == ncsstrncmp(token, "<font", 5))
-            {
+          {
             if (NULL != (ptr = strstr(token, "color=")))
-              {
+            {
               ptr += 6; /*+= strlen("color=");*/
-              if (0 == ncsstrncmp(ptr, "red", 3))
-                {
-                window_colouron(COLOR_RED);
-                }
+              if (0 == ncsstrncmp(ptr, "red", 3) || 0 == ncsstrncmp(ptr, "\"red\"", 5))
+              {
+                this->colouron(COLOR_RED);
+              }
+              else if (0 == ncsstrncmp(ptr, "orange", 6))
+              {
+                this->colouron(COLOR_YELLOW);
+              }
               else
-                {
+              {
                 sscanf(ptr, "#%x", &tmp);
                 col = transformrgb((tmp >> 16) & 0x00FF, (tmp >> 8) & 0x00FF, tmp & 0x00FF);
                 if (col != COLOR_WHITE && col != COLOR_BLACK)
-                  {
-                  window_colouron(col);
-                  }
+                {
+                  this->colouron(col);
                 }
               }
-            mode = 2/*2*/;
             }
+            mode = 2/*2*/;
+          }
           else if (0 == ncsstrcmp(token, "</font>"))
-            {
-            window_colouroff();
+          {
+            this->colouroff();
             mode = 2/*2*/;
-            }
+          }
           else if (0 == ncsstrcmp(token, "<i>"))
-            {
+          {
             mode = 2;
-            }
+          }
           else if (0 == ncsstrcmp(token, "</i>"))
-            {
+          {
             mode = 2;
-            }
+          }
           else if (0 == ncsstrncmp(token, "<a", 2))
-            {
+          {
             mode = 2;
-            }
+          }
           else if (0 == ncsstrcmp(token, "</a>"))
-            {
+          {
             mode = 2;
-            }
+          }
           else if (0 == ncsstrncmp(token, "<img", 4))
-            {
+          {
+            this->put(imagetopic(token).c_str());
             mode = 2;
-            }
+          }
           else if (0 == ncsstrcmp(token, "</img>"))
-            {
+          {
             mode = 2;
-            }
+          }
           else if (0 == ncsstrcmp(token, "&quot;"))
-            {
-            window_put("\"");
+          {
+            this->put("\"");
             mode = 1;
-            }
+          }
           else if (0 == ncsstrcmp(token, "&amp;"))
-            {
-            window_put("&");
+          {
+            this->put("&");
             mode = 1;
-            }
+          }
           else if (0 == ncsstrcmp(token, "&gt;"))
-            {
-            window_put(">");
+          {
+            this->put(">");
             mode = 1;
-            }
+          }
           else if (0 == ncsstrcmp(token, "&lt;"))
-            {
-            window_put("<");
+          {
+            this->put("<");
             mode = 1;
-            }
+          }
           else 
-            {
-            window_put(token);
+          {
+            this->put(token);
             mode = 1;
-            }
+          }
           break;
         case 1:
           free(token);
@@ -673,28 +683,29 @@ void printpol(const char *string)
           mode = 0;
           break;
         case 2:
-          if (verbose)
-            {
-            window_put(token);
-            }
+          if (verbose || nohtml)
+          {
+            this->put(token);
+          }
           mode = 1;
           break;
-        }
       }
-    window_put("\n");
     }
+    this->nl();
+  }
   else
-    {
+  {
     if (debug)
-      {
-      window_put("Error: NULL ptr given to printpol()");
-      window_put("\n");
-      }
+    {
+      this->put("Error: NULL ptr given to printpol()");
+      this->put("\n");
     }
   }
+  this->colourflush();
+}
 
 
-char *console_input()
+char * amixInterface::console_input()
 {
   int c;
   int j;
@@ -703,111 +714,114 @@ char *console_input()
   int tlen = 0;
   int delta;
   const unsigned char *nick = NULL;
-  static int utf8left;
   
-  while (ERR != (c = wgetch(consolewindow)))
+  while (ERR != (c = wgetch(this->consolewindow)))
   {
     switch (c)
     {
       case '\n':
       case '\r':
-        buffer[len] = '\0';
-        wmove(consolewindow, 0, 0);
-        for (j = 0; j < console_w; j++)
+        this->buffer[this->len] = '\0';
+        wmove(this->consolewindow, 0, 0);
+        for (j = 0; j < this->console_w; j++)
         {
-          waddch(consolewindow, ' ');
+          waddch(this->consolewindow, ' ');
         }
-        ptr = 0;
-        consptr = 0;
-        len = 0;
-        console_update();
-        return clonestring((char *) buffer);
+        this->ptr = 0;
+        this->consptr = 0;
+        this->len = 0;
+        this->console_update();
+        return clonestring((char *) this->buffer);
         break;
       case KEY_HOME:
-        ptr = 0;
-        consptr = 0;
+        this->ptr = 0;
+        this->consptr = 0;
         updated = -1;
         break;
       case KEY_END:
-        ptr = len;
-        consptr = utf8strlen(buffer);
+        this->ptr = this->len;
+        this->consptr = utf8strlen(this->buffer);
         updated = -1;
         break;
       case KEY_BACKSPACE:
       case 0x007F: /*backspace mapuje na DEL?*/
-        if (ptr > 0)
+        if (this->ptr > 0)
         {
           int tmp = 1;
-          while (not isutf8charbeginning(buffer[ptr - tmp]) && ptr - tmp > 0)
+          while (not isutf8charbeginning(this->buffer[ptr - tmp]) && this->ptr - tmp > 0)
           {
             tmp++;
           }
 
-          for (j = ptr; j <= len; j++)
+          for (j = this->ptr; j <= this->len; j++)
           {
-            buffer[j - tmp] = buffer[j];
+            this->buffer[j - tmp] = this->buffer[j];
           }
-          ptr -= tmp;
-          len -= tmp;
-          consptr--;
-          buffer[len] = '\0';
+          this->ptr -= tmp;
+          this->len -= tmp;
+          this->consptr--;
+          this->buffer[this->len] = '\0';
           updated = -1;
           /*console_update();*/
         }
         break;
       case KEY_DL:
       case KEY_DC:
-        if (ptr >= 0 && ptr < len)
+        if (this->ptr >= 0 && this->ptr < this->len)
         {
           int tmp = 1;
-          while (not isutf8charbeginning(buffer[ptr + tmp]) && ptr + tmp < len && ptr + tmp < BUFFSIZE - 1)
+          while (not isutf8charbeginning(this->buffer[this->ptr + tmp])
+                 && this->ptr + tmp < this->len
+                 && this->ptr + tmp < BUFFSIZE - 1)
           {
             tmp++;
           }
 
-          for (j = ptr; j <= len - tmp; j++)
+          for (j = this->ptr; j <= this->len - tmp; j++)
           {
-            buffer[j] = buffer[j + tmp];
+            this->buffer[j] = this->buffer[j + tmp];
           }
 
-          len -= tmp;
-          buffer[len] = '\0';
+          this->len -= tmp;
+          this->buffer[this->len] = '\0';
           updated = -1;
           /*console_update();*/
         }
         break;
       case KEY_LEFT:
-        if (ptr > 0)
+        if (this->ptr > 0)
         {
           do
           {
-            ptr--;
+            this->ptr--;
           }
-          while (not isutf8charbeginning(buffer[ptr]) && ptr > 0);
+          while (not isutf8charbeginning(this->buffer[this->ptr]) && this->ptr > 0);
 
-          if (consptr > window_w)
+          if (this->consptr > this->window_w)
           {
             updated = -1;
           }
-          consptr--;
-          wmove(consolewindow, 0, consptr);
+          this->consptr--;
+          wmove(this->consolewindow, 0, this->consptr);
         }
         break;
       case KEY_RESIZE:
-        window_resize();
+        this->resize();
         break;
       case KEY_RIGHT:
-        if (ptr < BUFFSIZE - 1 && ptr < len)
+        if (this->ptr < BUFFSIZE - 1 && this->ptr < this->len)
         {
           do
           {
-            ptr++;
+            this->ptr++;
           }
-          while (not isutf8charbeginning(buffer[ptr]) && ptr < BUFFSIZE - 1 && ptr < len);
+          while (not isutf8charbeginning(this->buffer[this->ptr])
+                 && this->ptr < BUFFSIZE - 1
+                 && this->ptr < this->len);
 
-          consptr++;
-          wmove(consolewindow, 0, consptr);
-          if (consptr > window_w)
+          this->consptr++;
+          wmove(this->consolewindow, 0, this->consptr);
+          if (this->consptr > this->window_w)
           {
             updated = -1;
           }
@@ -816,7 +830,7 @@ char *console_input()
       case '\t':
         tptr = ptr - 1;
         tlen = 1;
-        while (tptr >= 0 && buffer[tptr] != ' ')
+        while (tptr >= 0 && this->buffer[tptr] != ' ')
         {
           tptr--;
           tlen++;
@@ -826,22 +840,22 @@ char *console_input()
         if (NULL != (nick = (unsigned char *) chatrooms.currentroom().getnickbyprefix((char *) buffer + tptr, tlen).c_str()))
         {
           delta = strlen((char *) nick) - tlen;
-          if (len + delta < BUFFSIZE)
+          if (this->len + delta < BUFFSIZE)
           {
-            for (j = len + delta; j >= ptr + delta; j--)
+            for (j = this->len + delta; j >= this->ptr + delta; j--)
             {
-              buffer[j] = buffer[j - delta];
+              this->buffer[j] = this->buffer[j - delta];
             }
             for (j = tlen; j < tlen + delta; j++)
             {
-              buffer[ptr++] = nick[j];
-              len++;
+              this->buffer[ptr++] = nick[j];
+              this->len++;
               if (isutf8charbeginning(nick[j]))
               {
-                consptr++;
+                this->consptr++;
               }
             }
-            wmove(consolewindow, 0, consptr);
+            wmove(this->consolewindow, 0, this->consptr);
             updated = -1;
           }
           nick = NULL;
@@ -851,35 +865,34 @@ char *console_input()
       case KEY_SLEFT:
       case KEY_SHOME:
         chatrooms.prev();
-        printtitle();
-        window_redraw();
-        printnicklist();
+        this->printtitle();
+        this->window_redraw();
+        this->printnicklist();
         break;
       case KEY_F(2):
       case KEY_SRIGHT:
       case KEY_SEND:
         chatrooms.next();
-        printtitle();
-        window_redraw();
-        printnicklist();
+        this->printtitle();
+        this->window_redraw();
+        this->printnicklist();
         break;
       default:
-        if (ptr < BUFFSIZE - 1 && len < BUFFSIZE - 1)
+        if (this->ptr < BUFFSIZE - 1 && this->len < BUFFSIZE - 1)
         {
-          for (j = len; j > ptr; j--)
+          for (j = this->len; j > this->ptr; j--)
           {
-            buffer[j] = buffer[j - 1];
+            this->buffer[j] = this->buffer[j - 1];
           }
-          buffer[ptr++] = c;
-          len++;
-          buffer[len] = '\0';
+          this->buffer[this->ptr++] = c;
+          this->len++;
+          this->buffer[this->len] = '\0';
 
-          utf8left += utf8charlen(c);
+          this->utf8left += utf8charlen(c) - 1;
           
-          utf8left--;
-          if (utf8left == 0)
+          if (this->utf8left == 0)
           {
-            consptr++;
+            this->consptr++;
             updated = -1;
           }
         }
@@ -889,54 +902,55 @@ char *console_input()
 
   if (updated)
   {
-    console_update();
+    this->console_update();
   }
   return NULL;
 }
 
 
-void console_update()
+void amixInterface::console_update()
 {
   int utf8d = 0;
 
-  int d = consptr >= console_w?1 + consptr - console_w:0;
+  int d = this->consptr >= this->console_w?1 + this->consptr - this->console_w:0;
   
   for (int i = d; i != 0; i--)
   {
-    utf8d += utf8charlen(buffer[utf8d]);
+    utf8d += utf8charlen(this->buffer[utf8d]);
   }
 
-  wmove(consolewindow, 0, 0);
+  wmove(this->consolewindow, 0, 0);
 
   int j = 0;
   int i = 0;
-  int utf8left;
-  while (i + utf8d < len && j < console_w - 1)
+  int utf8left = 0;
+  while (i + utf8d < this->len && j < this->console_w - 1)
   {
-    unsigned char c = buffer[utf8d + i];
+    unsigned char c = this->buffer[utf8d + i];
     i++;
 
-    waddch(consolewindow, c);
+    waddch(this->consolewindow, c);
 
-    utf8left += utf8charlen(c);
+    utf8left += utf8charlen(c) - 1;
 
     if (utf8left == 0)
     {
       j++;
     }
   }
-  while (j++ < console_w)
+  int tmp = j;
+  while (j++ < this->console_w)
   {
-    waddch(consolewindow, ' ');
+    waddch(this->consolewindow, ' ');
   }
-  wmove(consolewindow, 0, consptr);
-  wnoutrefresh(consolewindow);
+  wmove(this->consolewindow, 0, tmp); //, this->consptr); // ,tmp);
+  wnoutrefresh(this->consolewindow);
   
-  window_updated = -1;
+  this->window_updated = true;
 }
 
 
-void printnicklist()
+void amixInterface::printnicklist()
 {
   int i = 1;
 
@@ -949,125 +963,111 @@ void printnicklist()
     int nicklen = 4;
     int colour = colourt[((*it).status & 0x0070) >> 4];
 
-    if (colour != COLOR_WHITE && colour != COLOR_BLACK && useattr)
+    if (colour != COLOR_WHITE && colour != COLOR_BLACK && this->useattr)
     {
-      wattron(nickwindow, COLOR_PAIR(colour));
+      wattron(this->nickwindow, COLOR_PAIR(colour));
     }
     
     if ((*it).status & 0x0002)
     {
-      mvwprintw(nickwindow, i, 1, "OP ");
+      mvwprintw(this->nickwindow, i, 1, "OP ");
     }
     else
     {
-      mvwprintw(nickwindow, i, 1, "   ");
+      mvwprintw(this->nickwindow, i, 1, "   ");
     }
 
-    if (((*it).status & 0x0001) && useattr)
+    if (((*it).status & 0x0001) && this->useattr)
     {
-      wattron(nickwindow, A_UNDERLINE);
+      wattron(this->nickwindow, A_UNDERLINE);
     }
     
-    if (useattr)
+    if (this->useattr)
     {
-      wattron(nickwindow, A_BOLD);
+      wattron(this->nickwindow, A_BOLD);
     }  
 
-    mvwaddnstr(nickwindow, i, nicklen, (*it).nick.c_str(), NICKLIST_WIDTH - 1 - nicklen);
+    mvwaddnstr(this->nickwindow, i, nicklen, (*it).nick.c_str(), this->nicklist_w - 1 - nicklen);
     nicklen += utf8strlen((const unsigned char *) (*it).nick.c_str());
 
-    if (useattr)
+    if (this->useattr)
     {
-      wattroff(nickwindow, A_BOLD);
+      wattroff(this->nickwindow, A_BOLD);
     }
 
-    if (nicklen < NICKLIST_WIDTH - 4 && (*it).client != "unknown")
+    if (nicklen < this->nicklist_w - 4 && (*it).client != "unknown")
     {
-      if (useattr)
+      if (this->useattr)
       {
-        wattron(nickwindow, A_DIM);
+        wattron(this->nickwindow, A_DIM);
       }
 
-      mvwaddnstr(nickwindow, i, nicklen, (":" + (*it).client).c_str(), NICKLIST_WIDTH - 1 - nicklen);
+      mvwaddnstr(this->nickwindow, i, nicklen, (":" + (*it).client).c_str(), this->nicklist_w - 1 - nicklen);
       nicklen += 1 + utf8strlen((const unsigned char *) (*it).client.c_str());
 
-      if (useattr)
+      if (this->useattr)
       {
-        wattroff(nickwindow, A_DIM);
+        wattroff(this->nickwindow, A_DIM);
       }
     }
 
-    if (nicklen > NICKLIST_WIDTH)
+    if (nicklen > this->nicklist_w)
     {
-      mvwaddstr(nickwindow, i, NICKLIST_WIDTH - 4, "...");
+      mvwaddstr(this->nickwindow, i, this->nicklist_w - 4, "...");
     }
 
-    if (((*it).status & 0x0001) && useattr)
+    if (((*it).status & 0x0001) && this->useattr)
     {
-      wattroff(nickwindow, A_UNDERLINE);
+      wattroff(this->nickwindow, A_UNDERLINE);
     }
 
-    for (int j = nicklen; j < NICKLIST_WIDTH - 1; j++)
+    for (int j = nicklen; j < this->nicklist_w - 1; j++)
     {
-      mvwaddch(nickwindow, i, j, ' ');
+      mvwaddch(this->nickwindow, i, j, ' ');
     }
     i++;
     
-    if (colour != COLOR_WHITE && colour != COLOR_BLACK && useattr)
+    if (colour != COLOR_WHITE && colour != COLOR_BLACK && this->useattr)
     {
-      wattroff(nickwindow, COLOR_PAIR(colour) | A_BOLD);
+      wattroff(this->nickwindow, COLOR_PAIR(colour) | A_BOLD);
     }  
   }
 
-  while (i < nicklist_h - 1)
+  while (i < this->nicklist_h - 1)
   {
-    wmove(nickwindow, i, 1);
-    for (int j = 2; j < NICKLIST_WIDTH; j++)
+    wmove(this->nickwindow, i, 1);
+    for (int j = 2; j < this->nicklist_w; j++)
     {
-      waddch(nickwindow, ' ');
+      waddch(this->nickwindow, ' ');
     }
     i++;
   }
-  wnoutrefresh(nickwindow);
-  window_updated = -1;
+  wnoutrefresh(this->nickwindow);
+  this->window_updated = true;
 }
 
-//void priv(privinfo info, const char * who, const char *what)
-//  {
-//  window_attron(A_BLINK);
-//  switch (info)
-//    {
-//    case PRIV_FROM:
-//      window_put("<-- ");
-//      break;
-//    case PRIV_TO:
-//      window_put("--> ");
-//      break;
-//    }
-//  window_attroff(A_BLINK);
-//  window_put(who);
-//  window_put(": ");
-//  if (!verbose)
-//    {
-//    window_addstr(what);
-//    }
-//  printlog(who, what);
-//  }
+void amixInterface::update()
+{
+  if (this->window_updated)
+  {
+    doupdate();
+  }
+  this->window_updated = false; //?
+}
 
-
-std::string input_password()
+std::string amixInterface::input_password()
 {
   int state = 0;
   char c;
   std::string string = "";
 
-  window_put(" Password:");
-  window_nl();
-  wnoutrefresh(chatwindow);
+  this->put(" Password:");
+  this->nl();
+  wnoutrefresh(this->chatwindow);
   doupdate();
-  nodelay(consolewindow, FALSE);
+  nodelay(this->consolewindow, FALSE);
 
-  while ((state != 2) && ERR != (c = wgetch(consolewindow)))
+  while ((state != 2) && ERR != (c = wgetch(this->consolewindow)))
   {
     switch (c)
     {
@@ -1080,6 +1080,7 @@ std::string input_password()
     }                           
   }
   
-  nodelay(consolewindow, TRUE);
+  nodelay(this->consolewindow, TRUE);
   return string;
 }
+

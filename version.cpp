@@ -35,8 +35,8 @@ int checkupdate(){
         for (tres = res; tres; tres = tres->ai_next){
           if ((sfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) != -1){
             if ((connect(sfd, res->ai_addr, res->ai_addrlen)) < 0){
-              window_put("Connection to " AMIXSERVER " failed...");
-              window_nl();
+              interface->put("Connection to " AMIXSERVER " failed...");
+              interface->nl();
              
               close(sfd);
               sfd = -1;
@@ -45,8 +45,8 @@ int checkupdate(){
           
             }
           else{
-            window_put("Unable to create socket :-(...");
-            window_nl();
+            interface->put("Unable to create socket :-(...");
+            interface->nl();
             }
         
           break;
@@ -110,23 +110,23 @@ int checkupdate(){
               if (strcmp(VERCODE, string) < 0)
                 {
                 //TODO: rethink it
-                printpol("<b><blink>UWAGA!</blink> Jest nowa wersja programu AmiX!</b>");
+                interface->printpol("<b><blink>UWAGA!</blink> Jest nowa wersja programu AmiX!</b>");
                 free(string);
                 }
               while (NULL != (string = readline(sfd)))
                 {
-                printpol(string);
+                interface->printpol(string);
                 free(string);
                 }
               
-              wnoutrefresh(chatwindow);
-              doupdate();                                    
+              interface->print();
+              interface->update();                            
               }
             }
           else
             {
-            window_put("Unable to send http request.");
-            window_nl();
+            interface->put("Unable to send http request.");
+            interface->nl();
             }
           close(sfd);
           }
@@ -134,8 +134,8 @@ int checkupdate(){
           {
           if (debug)
             {
-            window_put("Unable to connect infomax.net.pl .");
-            window_nl();
+            interface->put("Unable to connect infomax.net.pl .");
+            interface->nl();
             }
           }
         freeaddrinfo(res);
@@ -144,8 +144,8 @@ int checkupdate(){
         {
         if (debug)
           {
-          window_put("Resolver problem (unable to resolve infomax.net.pl).");
-          window_nl();
+          interface->put("Resolver problem (unable to resolve infomax.net.pl).");
+          interface->nl();
           }
         }
     

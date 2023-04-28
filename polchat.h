@@ -125,6 +125,7 @@ int printlog(const char *, const char *);
 extern int cud;
 extern int debug;
 extern int verbose;
+extern int nohtml;
 extern int coredump;
 extern int bell;
 extern int run;
