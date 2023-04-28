@@ -946,8 +946,12 @@ void printnicklist()
     {
       wattron(nickwindow, A_UNDERLINE);
     }
+    
+    std::string nickitem = (*it).nick;
+    nickitem += ":";
+    nickitem += (*it).client;
 
-    mvwaddnstr(nickwindow, i, 4, (*it).nick.c_str(), NICKLIST_WIDTH - 5);
+    mvwaddnstr(nickwindow, i, 4, nickitem.c_str(), NICKLIST_WIDTH - 5);
     if ((*it).nick.length() > NICKLIST_WIDTH - 4)
     {
       mvwaddstr(nickwindow, i, NICKLIST_WIDTH - 4, "...");
@@ -958,7 +962,7 @@ void printnicklist()
       wattroff(nickwindow, A_UNDERLINE);
     }
 
-    for (int j = (*it).nick.length() + 4; j < NICKLIST_WIDTH - 1; j++)
+    for (int j = utf8strlen((const unsigned char *) nickitem.c_str()) + 4; j < NICKLIST_WIDTH - 1; j++)
     {
       mvwaddch(nickwindow, i, j, ' ');
     }

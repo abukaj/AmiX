@@ -44,6 +44,7 @@ int main(int argc, char *argv[])
   int testi;
   char *testptr;
 
+  srand(time(NULL));
   setlocale(LC_ALL, "");
   
   for (i = 1; i < argc; ++i)
@@ -268,8 +269,6 @@ int main(int argc, char *argv[])
     window_nl();
     window_put(" status: freeware (badz giftware ;-D)");
     window_nl();
-    window_put(" ze wzgledu na wczesna wersje rozwojowa,");
-    window_nl();
     window_put(" autor nie ponosi odpowiedzialnosci za ewentualne");
     window_nl();
     window_put(" szkody wywolane uzyciem programu w tej wersji");
@@ -277,6 +276,21 @@ int main(int argc, char *argv[])
     window_put(" Oficjalna strona projektu:");
     window_nl();
     window_put(" http://tapping.nazwa.pl/abukaj/amix/");
+    window_nl();
+    window_nl();
+
+    switch (rand() % 2)
+    {
+      case 0:
+        window_put(" Cieszmy się, że mamy harcerki - to dzięki nim istnieje AmiX.");
+        break;
+      case 1:
+        window_put(" Wyłącz komputer i wyjdź z domu.");
+        window_nl();
+        window_put(" Może pod twoim blokiem nawalają się magowie.");
+        break;
+    }
+    window_nl();
     window_nl();
 
     wnoutrefresh(chatwindow);
