@@ -837,12 +837,16 @@ char *console_input()
         }
         break;
       case KEY_F(1):
+      case KEY_SLEFT:
+      case KEY_SHOME:
         chatrooms.prev();
         printtitle();
         window_redraw();
         printnicklist();
         break;
       case KEY_F(2):
+      case KEY_SRIGHT:
+      case KEY_SEND:
         chatrooms.next();
         printtitle();
         window_redraw();
