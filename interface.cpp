@@ -78,21 +78,21 @@ void window_colouroff()
 
 
 void window_attron(int attr)
-  {
+{
   if (useattr)
-    {
+  {
     wattron(chatwindow, attr);
-    }
   }
+}
 
 
 void window_attroff(int attr)
-  {
+{
   if (useattr)
-    {
+  {
     wattroff(chatwindow, attr);
-    }
   }
+}
 
 
 void window_init()
@@ -515,14 +515,18 @@ void printtitle()
       break;
     }
 
-    if (!(*it).room)
+    if (!(*it).room && useattr)
     {
       wattron(titlewindow, A_UNDERLINE);
     }
 
     if (it == chatrooms.current)
     {
-      wattron(titlewindow, A_BOLD);
+      if (useattr)
+      {
+        wattron(titlewindow, A_BOLD);
+      }
+
       mvwaddch(titlewindow, 0, written++, '>');
     }
     else
@@ -539,14 +543,18 @@ void printtitle()
     if (it == chatrooms.current)
     {
       mvwaddch(titlewindow, 0, written++, '<');
-      wattroff(titlewindow, A_BOLD);
+
+      if (useattr)
+      {
+        wattroff(titlewindow, A_BOLD);
+      }
     }
     else
     {
       mvwaddch(titlewindow, 0, written++, ':');
     }
 
-    if (!(*it).room)
+    if (!(*it).room && useattr)
     {
       wattroff(titlewindow, A_UNDERLINE);
     }
@@ -926,11 +934,12 @@ void printnicklist()
        it != nicklist.end() && i < nicklist_h - 1;
        it++)
   {
+    int nicklen = 4;
     int colour = colourt[((*it).status & 0x0070) >> 4];
 
     if (colour != COLOR_WHITE && colour != COLOR_BLACK && useattr)
     {
-      wattron(nickwindow, COLOR_PAIR(colour) | A_BOLD);
+      wattron(nickwindow, COLOR_PAIR(colour));
     }
     
     if ((*it).status & 0x0002)
@@ -947,12 +956,36 @@ void printnicklist()
       wattron(nickwindow, A_UNDERLINE);
     }
     
-    std::string nickitem = (*it).nick;
-    nickitem += ":";
-    nickitem += (*it).client;
+    if (useattr)
+    {
+      wattron(nickwindow, A_BOLD);
+    }  
 
-    mvwaddnstr(nickwindow, i, 4, nickitem.c_str(), NICKLIST_WIDTH - 5);
-    if ((*it).nick.length() > NICKLIST_WIDTH - 4)
+    mvwaddnstr(nickwindow, i, nicklen, (*it).nick.c_str(), NICKLIST_WIDTH - 1 - nicklen);
+    nicklen += utf8strlen((const unsigned char *) (*it).nick.c_str());
+
+    if (useattr)
+    {
+      wattroff(nickwindow, A_BOLD);
+    }
+
+    if (nicklen < NICKLIST_WIDTH - 4 && (*it).client != "unknown")
+    {
+      if (useattr)
+      {
+        wattron(nickwindow, A_DIM);
+      }
+
+      mvwaddnstr(nickwindow, i, nicklen, (":" + (*it).client).c_str(), NICKLIST_WIDTH - 1 - nicklen);
+      nicklen += 1 + utf8strlen((const unsigned char *) (*it).client.c_str());
+
+      if (useattr)
+      {
+        wattroff(nickwindow, A_DIM);
+      }
+    }
+
+    if (nicklen > NICKLIST_WIDTH)
     {
       mvwaddstr(nickwindow, i, NICKLIST_WIDTH - 4, "...");
     }
@@ -962,7 +995,7 @@ void printnicklist()
       wattroff(nickwindow, A_UNDERLINE);
     }
 
-    for (int j = utf8strlen((const unsigned char *) nickitem.c_str()) + 4; j < NICKLIST_WIDTH - 1; j++)
+    for (int j = nicklen; j < NICKLIST_WIDTH - 1; j++)
     {
       mvwaddch(nickwindow, i, j, ' ');
     }
