@@ -1,5 +1,7 @@
 #include <time.h>
 
+#include <string>
+
 #include <ncursesw/ncurses.h>
 
 #include "polchat.h"
@@ -86,6 +88,6 @@ int transformrgb(int, int, int);
 
 //void priv(privinfo, const char *, const char *);
 
-char *input_password();
+std::string input_password();
 
 #endif

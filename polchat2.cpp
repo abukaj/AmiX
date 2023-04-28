@@ -87,6 +87,8 @@ part::part(std::string nick,
            std::string roompass,
            std::string referer="http://www.polchat.pl/chat/room.phtml/?room=Sekciarz")
 {
+  this->next = NULL;
+
   this->headerlen = 1;
   this->header = new short int [1];
   this->header[0] = 0x0578;
@@ -577,7 +579,7 @@ void processpart(part *ppart, int sfd)
 
             if (!verbose)
             {
-              chatrooms.roommsg(ppart->strings[1], ppart->strings[0]);
+              chatrooms.currentroom().msg(ppart->strings[0], true);
               printlog("-bye-", ppart->strings[0].c_str());
               window_colouroff();
             }
@@ -620,10 +622,6 @@ void processpart(part *ppart, int sfd)
             close(sfd);
             if (0 == strncmp("nieprawidłowe hasło i/lub identyfikator użytkownika", ppart->strings[0].c_str(), 9))
             {
-              if (pass != NULL)
-              {
-                free(pass);
-              }
               pass = input_password();
             }
           }

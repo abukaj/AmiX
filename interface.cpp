@@ -1049,89 +1049,31 @@ void printnicklist()
 //  }
 
 
-char *input_password()
-  {
+std::string input_password()
+{
   int state = 0;
-  int inbuf = 0;
-  int length = 0;
-  static char buffer[1024];
   char c;
-  char *string = NULL;
-  char *tmp;
+  std::string string = "";
 
   window_put(" Password:");
   window_nl();
   wnoutrefresh(chatwindow);
   doupdate();
   nodelay(consolewindow, FALSE);
+
   while ((state != 2) && ERR != (c = wgetch(consolewindow)))
-    {
-    buffer[inbuf] = c;
+  {
     switch (c)
-      {
+    {
       case '\n':
         state = 2;
         break;
       default:
-        state = 1;
-        if (inbuf >= 1024)
-          {
-          if (NULL != string)
-            {
-            if (NULL != (tmp = (char *) realloc(string, length + 1024)))
-              {
-              string = tmp;
-              strncpy(string + length, buffer, 1024);
-              length += 1024;
-              }
-            else
-              {
-              free(string);
-              string = NULL;
-              }
-            }
-          else
-            {
-            if (NULL != (string = (char *) calloc(1024, sizeof(char))))
-              {
-              strncpy(string, buffer, 1024);
-              length = 1024;
-              }
-            }
-          inbuf = 0;
-          }                
-        buffer[inbuf++] = c;
+        string += c;
         break;
-      }                           
-    }
+    }                           
+  }
   
   nodelay(consolewindow, TRUE);
-  if (state != 0)
-    {
-    if (NULL != string)
-      {
-      if (NULL != (tmp = (char *) realloc(string, length + inbuf + 1)))
-        {
-        string = tmp;
-        strncpy(string + length, buffer, inbuf);
-        length += inbuf;
-        string[length] = '\0';
-        }
-      else
-        {
-        free(string);
-        string = NULL;
-        }
-      }
-    else
-      {
-      if (NULL != (string = (char *) calloc(inbuf + 1, sizeof(char))))
-        {
-        strncpy(string, buffer, inbuf);
-        length = inbuf;
-        string[inbuf] = '\0';
-        }
-      }
-    }
   return string;
-  }
+}

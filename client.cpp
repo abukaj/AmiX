@@ -6,6 +6,8 @@
 #include <time.h>
 #include <locale.h>
 
+#include <string>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/poll.h>
@@ -25,11 +27,11 @@
 int main(int argc, char *argv[])
 {
   int i;
-  char *host = NULL;
-  char *room = NULL;
-  char *nick = NULL;
+  std::string host = "s1.polchat.pl";
+  std::string room = "AmiX";
+  std::string nick = "AmiX_user";
   char *logfn = NULL;
-  char *reffrom = NULL;
+  std::string reffrom = "http://www.polchat.pl/chat/room.phtml/?room=AmiX";
   char ol = -1;
   int port = 14003;
   char *inputstring;
@@ -112,11 +114,7 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
       {
-        if (reffrom != NULL)
-        {
-          free(reffrom);
-        }
-        reffrom = clonestring(argv[i]);
+        reffrom = argv[i];
       }                              
     }
     else if (0 == strcmp(argv[i], "-server") || 0 == ncsstrcmp(argv[i], "SERVER"))
@@ -124,11 +122,7 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
       {
-        if (host != NULL)
-        {
-          free(host);
-        }
-        host = clonestring(argv[i]);
+        host = argv[i];
       }                              
     }
     else if (0 == strcmp(argv[i], "-port") || 0 == ncsstrcmp(argv[i], "PORT"))
@@ -168,11 +162,7 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
       {
-        if (room != NULL)
-        {
-          free(room);
-        }
-        room = clonestring(argv[i]);
+        room = argv[i];
       }                              
     }
     else if (0 == strcmp(argv[i], "-log") || 0 == ncsstrcmp(argv[i], "LOG"))
@@ -206,11 +196,7 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
       {
-        if (nick != NULL)
-        {
-          free(nick);
-        }
-        nick = clonestring(argv[i]);
+        nick = argv[i];
       }                              
     }
     else
@@ -219,22 +205,6 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (host == NULL)
-  {
-    host = clonestring("s1.polchat.pl");
-  }
-  if (nick == NULL)
-  {
-    nick = clonestring("AmiX_user");
-  }
-  if (room == NULL)
-  {
-    room = clonestring("AmiX");
-  }
-  if (reffrom == NULL)
-  {
-    reffrom = clonestring("http://www.polchat.pl/chat/room.phtml/?room=AmiX");
-  }
   if (logfn != NULL)
   {
     if (ol)
@@ -313,15 +283,7 @@ int main(int argc, char *argv[])
 
     if (askpassw)
     {
-      if (pass != NULL)
-      {
-        free(pass);
-      }
       pass = input_password();
-    }
-    if (pass == NULL)
-    {
-      pass = clonestring("");
     }
     
     init_pair(COLOR_RED, COLOR_RED, COLOR_BLACK);
@@ -339,7 +301,7 @@ int main(int argc, char *argv[])
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = PF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    if (0 == getaddrinfo(host, NULL, &hints, &res))
+    if (0 == getaddrinfo(host.c_str(), NULL, &hints, &res))
     {
       while (run || connected)
       {
@@ -400,7 +362,7 @@ int main(int argc, char *argv[])
           else
           {
             window_put("Unable to connect host: ");
-            window_put(host);
+            window_put(host.c_str());
             window_put(" ...");
             window_nl();
             window_updated = -1;
@@ -417,7 +379,6 @@ int main(int argc, char *argv[])
           {
             if (NULL != (ppart = readpart(sfd)))
             {
-
               processpart(ppart, sfd);
               delete ppart;
               ppart = NULL;
@@ -427,6 +388,7 @@ int main(int argc, char *argv[])
 
           /*czy mamy cos do wyslania?*/
           sendnext(sfd);
+
           if (window_updated)
           {
             doupdate();
@@ -560,26 +522,6 @@ int main(int argc, char *argv[])
     endwin();
   }
  
-  if (nick != NULL)
-  {
-    free(nick);
-  }
-  if (pass != NULL)
-  {
-    free(pass);
-  }
-  if (host != NULL)
-  {
-    free(host);
-  }
-  if (room != NULL)
-  {
-    free(room);
-  }
-  if (reffrom != NULL)
-  {
-    free(reffrom);
-  }
   if (logfn != NULL)
   {
     free(logfn);

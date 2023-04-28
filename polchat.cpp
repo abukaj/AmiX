@@ -18,10 +18,10 @@ int bell = 0;
 int run = -1;
 int connected = 0;
 int askpassw = 0;
+std::string pass = "";
 int antiidle = 0;
 int html = -1;
 double period = 1.0;
-char *pass = NULL;
 FILE *logfh = NULL;
 short nickn;
 chat chatrooms;
@@ -195,9 +195,7 @@ void chat::join(std::string name)
   {
     if (debug)
     {
-      window_put("YOU ARE ALREADY IN ROOM: ");
-      window_put(name.c_str());
-      window_nl();
+      this->currentroom().msg("YOU ARE ALREADY IN ROOM: " + name, true);
     }
     return;
   }
@@ -252,6 +250,18 @@ void chat::next()
   update_all();
 }
 
+void chatroom::msg(std::string msg, bool display)
+{
+  this->addline(msg);
+  if (display)
+  {
+    line & tmp = this->lines.back();
+    window_put(tmp.timestring.c_str());
+    printpol(tmp.text.c_str());
+  }
+}
+
+
 void chat::privmsg(std::string name, std::string msg)
 {
   std::string lowname = lowercase(name);
@@ -265,23 +275,22 @@ void chat::privmsg(std::string name, std::string msg)
     //TODO: refactoring
     printtitle();
   }
-  this->priv[lowname].addline(msg);
-  if (!(*(this->current)).room && (*(this->current)).name == lowname)
-  {
-    line & tmp = this->priv[lowname].lines.back();
-    window_put(tmp.timestring.c_str());
-    printpol(tmp.text.c_str());
-  }
+  this->priv[lowname].msg(msg, !(*(this->current)).room && (*(this->current)).name == lowname);
 }
 
 void chat::roommsg(std::string name, std::string msg)
 {
-  this->room[name].addline(msg);
-  if ((*(this->current)).room && (*(this->current)).name == name)
+  if (this->room.count(name) == 0)
   {
-    line & tmp = this->room[name].lines.back();
-    window_put(tmp.timestring.c_str());
-    printpol(tmp.text.c_str());
+    if (debug)
+    {
+      this->currentroom().msg("YOU ARE NOT IN ROOM: " + name, true);
+    }
+    return;
+  }
+  else
+  {
+    this->room[name].msg(msg, (*(this->current)).room && (*(this->current)).name == name);
   }
 }
 

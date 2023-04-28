@@ -53,6 +53,7 @@ class chatroom
     void updatenick(std::string &, short);
     std::string getnickbyprefix(char *, int);
     void addline(std::string);
+    void msg(std::string, bool);
     void setdesc(std::string desc)
     {
       this->description = desc;
@@ -132,9 +133,9 @@ extern int antiidle;
 extern int html;
 extern double period;
 extern int askpassw;
+extern std::string pass;
 extern int colourt[];
 extern int colourop;
-extern char *pass;
 extern short nickn;
 
 extern chat chatrooms;
