@@ -17,6 +17,7 @@ int utf8charlen(const unsigned char *);
 int utf8charlen(unsigned int);
 char *utf82isostring(char *);
 int utf8strlen(const unsigned char *);
+int utf8strlen(std::string);
 char *clonestring(const char *);
 char *freadline(FILE *);
 char *remcontrols(char *);

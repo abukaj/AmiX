@@ -947,6 +947,26 @@ int utf8strlen(const unsigned char *string)
   return -1;
 }
 
+int utf8strlen(std::string string)
+{
+  int len = 0;
+  const unsigned char * str = (const unsigned char *) string.c_str();
+
+  while ('\0' != *str)
+  {
+    int tmp = utf8charlen(str);
+
+    if (tmp < 1)
+    {
+      return -1;
+    }
+
+    str += tmp;
+    len++;
+  }
+  return len;
+}
+
 /*****************************************************************************\
 \*****************************************************************************/
 
