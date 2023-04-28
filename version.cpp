@@ -110,12 +110,12 @@ int checkupdate(){
               if (strcmp(VERCODE, string) < 0)
                 {
                 //TODO: rethink it
-                chatrooms.currentroom().addline("<b><blink>UWAGA!</blink> Jest nowa wersja programu AmiX!</b>");
+                printpol("<b><blink>UWAGA!</blink> Jest nowa wersja programu AmiX!</b>");
                 free(string);
                 }
               while (NULL != (string = readline(sfd)))
                 {
-                chatrooms.currentroom().addline(string);
+                printpol(string);
                 free(string);
                 }
               
