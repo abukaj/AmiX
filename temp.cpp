@@ -778,6 +778,39 @@ int utf8charlen(const unsigned char *str)
   //TODO - co jak c = FE, FF?
 }
 
+int utf8charlen(unsigned int c)
+{
+  if (c < 0x0080) //0???????
+  {
+    return 1;
+  }
+  if (c < 0x00C0) //10??????
+  {
+    return 0;
+  }
+  if (c < 0x00E0) //110?????
+  {
+    return 2;
+  }
+  if (c < 0x00F0) //1110????
+  {
+    return 3;
+  }
+  if (c < 0x00F8) //11110???
+  {
+    return 4;
+  }
+  if (c < 0x00FC) //111110??
+  {
+    return 5;
+  }
+  if (c < 0x00FE) //1111110?
+  {
+    return 6;
+  }
+  //TODO - co jak c = FE, FF?
+}
+
 /*****************************************************************************\
   nie przetwarza poprawnie sekwencji ponaddwubajtowych! - TODO
 \*****************************************************************************/

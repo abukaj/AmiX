@@ -14,6 +14,7 @@ unsigned int iso2unicode(unsigned char);
 char *iso2utf8string(char *);
 bool isutf8charbeginning(unsigned int);
 int utf8charlen(const unsigned char *);
+int utf8charlen(unsigned int);
 char *utf82isostring(char *);
 int utf8strlen(const unsigned char *);
 char *clonestring(const char *);

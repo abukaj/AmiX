@@ -703,6 +703,7 @@ char *console_input()
   int tlen = 0;
   int delta;
   const unsigned char *nick = NULL;
+  static int utf8left;
   
   while (ERR != (c = wgetch(consolewindow)))
   {
@@ -721,6 +722,16 @@ char *console_input()
         len = 0;
         console_update();
         return clonestring((char *) buffer);
+        break;
+      case KEY_HOME:
+        ptr = 0;
+        consptr = 0;
+        updated = -1;
+        break;
+      case KEY_END:
+        ptr = len;
+        consptr = utf8strlen(buffer);
+        updated = -1;
         break;
       case KEY_BACKSPACE:
       case 0x007F: /*backspace mapuje na DEL?*/
@@ -862,12 +873,15 @@ char *console_input()
           buffer[ptr++] = c;
           len++;
           buffer[len] = '\0';
-          if (isutf8charbeginning(c))
+
+          utf8left += utf8charlen(c);
+          
+          utf8left--;
+          if (utf8left == 0)
           {
             consptr++;
+            updated = -1;
           }
-          //TODO: wait wor utf8char end
-          updated = -1;
         }
         break;
     }
@@ -883,38 +897,30 @@ char *console_input()
 
 void console_update()
 {
-  int i = 0;
-  int d = 0;
   int utf8d = 0;
 
-  if (consptr > console_w)
-  {
-    d = consptr - console_w;
-  }
+  int d = consptr >= console_w?1 + consptr - console_w:0;
   
-  int tmp = d;
-  while (tmp != 0)
+  for (int i = d; i != 0; i--)
   {
-    if (isutf8charbeginning(buffer[utf8d]))
-    {
-      tmp--;
-    }
-    utf8d++;
-  }
-
-  while (!isutf8charbeginning(buffer[utf8d]))
-  {
-    utf8d++;
+    utf8d += utf8charlen(buffer[utf8d]);
   }
 
   wmove(consolewindow, 0, 0);
 
   int j = 0;
-  while (i + utf8d < len && j < console_w)
+  int i = 0;
+  int utf8left;
+  while (i + utf8d < len && j < console_w - 1)
   {
-    unsigned char c = buffer[utf8d + i++];
+    unsigned char c = buffer[utf8d + i];
+    i++;
+
     waddch(consolewindow, c);
-    if (isutf8charbeginning(c))
+
+    utf8left += utf8charlen(c);
+
+    if (utf8left == 0)
     {
       j++;
     }
