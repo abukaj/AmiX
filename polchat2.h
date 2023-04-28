@@ -16,8 +16,10 @@ class part
     part *next;
 
     part(tank &);
-    part(const char *);
-    part(const char *, std::string &);
+    //part(const char *);
+    part(std::string &);
+    //part(const char *, std::string &);
+    part(std::string &, std::string &);
     part(std::string, std::string, std::string, std::string, std::string);
     ~part();
     void dump();

@@ -101,8 +101,10 @@ amixInterface::amixInterface()
   this->ptr = 0;
   this->buffer = "";
   this->utf8char = "";
+  this->utf8charOut = "";
   this->consptr = 0;
   this->useattr = true;
+  this->latin2 = false;
   this->window_updated = true;
   this->utf8charToGo = 0;
 
@@ -254,6 +256,14 @@ void amixInterface::nl()
   this->window_updated = true;
 }
 
+std::string amixInterface::fromUTF8(std::string str)
+{
+  if (this->latin2)
+  {
+    return utf82isostring(str);
+  }
+  return str;
+}
 
 void amixInterface::putchar(unsigned char c)
 {
@@ -261,14 +271,17 @@ void amixInterface::putchar(unsigned char c)
   {
     this->nl();
   }
-  waddch(this->chatwindow, c);
+  this->utf8charOut += c;
   this->utf8charToGo += utf8charlen(c) - 1;
   if (this->utf8charToGo == 0)
   {
     this->inlen++;
+    waddstr(this->chatwindow, this->fromUTF8(this->utf8charOut).c_str());
+    this->utf8charOut = "";
     this->window_updated = true;
   }
 }
+
 
 void amixInterface::puthex(unsigned int n, unsigned int len)
 {
@@ -278,8 +291,7 @@ void amixInterface::puthex(unsigned int n, unsigned int len)
   }
   while (len-- > 0)
   {
-    waddch(this->chatwindow, inttohex((n >> (len * 4)) & 0x0F));
-    this->inlen++;
+    this->putchar(inttohex((n >> (len * 4)) & 0x0F));
   }
   this->window_updated = true;
 }
@@ -298,7 +310,7 @@ void amixInterface::put(const char *word)
       int len = utf8strlen((unsigned char *) word);
       if (this->inlen + len <= this->window_w - 2)
       {
-        waddstr(chatwindow, word);
+        waddstr(this->chatwindow, this->fromUTF8(word).c_str());
         inlen += len;
       }
       else 
@@ -341,7 +353,7 @@ void amixInterface::put(const char *word)
       int len = utf8strlen((unsigned char *) word);
       if (this->inlen + len <= this->window_w - 2)
       {
-        waddstr(this->chatwindow, word);
+        waddstr(this->chatwindow, this->fromUTF8(word).c_str());
         this->inlen += len;
       }
       else 
@@ -362,7 +374,7 @@ void amixInterface::put(const char *word)
 
 void amixInterface::putforce(const char *word)
 {
-  waddstr(this->chatwindow, word);
+  waddstr(this->chatwindow, this->fromUTF8(word).c_str());
   this->window_updated = true;
 }
 
@@ -546,7 +558,7 @@ void amixInterface::printtitle()
       mvwaddch(this->titlewindow, 0, written++, ':');
     }
 
-    mvwaddstr(this->titlewindow, 0, written, cr.name.c_str());
+    mvwaddstr(this->titlewindow, 0, written, this->fromUTF8(cr.name).c_str());
 
     written += len;
 
@@ -570,7 +582,7 @@ void amixInterface::printtitle()
     }
   }
 
-  mvwaddnstr(this->titlewindow, 1, 0, chatrooms.currentroom().description.c_str(), this->title_w);
+  mvwaddnstr(this->titlewindow, 1, 0, this->fromUTF8(chatrooms.currentroom().description).c_str(), this->title_w);
   wnoutrefresh(this->titlewindow);
   this->window_updated = true;
 }
@@ -710,7 +722,29 @@ void amixInterface::printpol(const char *string)
 }
 
 
-char * amixInterface::console_input()
+std::string amixInterface::get_input()
+{
+   std::string tmp = this->buffer;
+
+   this->buffer_stored_flush();
+
+   this->history.push_front(this->buffer);
+
+   if (this->history.size() > this->history_size)
+   {
+     this->history.pop_back();
+   }
+   this->history_ptr = this->history.begin();
+
+   this->buffer = "";
+   this->ptr = 0;
+   this->consptr = 0;
+   this->console_update();
+
+   return tmp;
+}
+
+bool amixInterface::console_input()
 {
   int updated = 0;
   int tptr;
@@ -724,24 +758,7 @@ char * amixInterface::console_input()
       case '\n':
       case '\r':
         {
-          char * tmp = clonestring(this->buffer.c_str());
-
-          this->buffer_stored_flush();
-
-          this->history.push_front(this->buffer);
-
-          if (this->history.size() > this-> history_size)
-          {
-            this->history.pop_back();
-          }
-          this->history_ptr = this->history.begin();
-
-          this->buffer = "";
-          this->ptr = 0;
-          this->consptr = 0;
-          this->console_update();
-
-          return tmp;
+          return true;
         }
       case KEY_UP:
         if (! this->buffer_stored)
@@ -907,10 +924,17 @@ char * amixInterface::console_input()
         this->printnicklist();
         break;
       default:
-        this->utf8char += c;
+        if (this->latin2)
+        {
+          this->utf8char = iso2utf8string(std::string(1, c));
+        }
+        else
+        {
+          this->utf8char += c;
 
-        //TODO: rethink it
-        this->utf8left += utf8charlen(c) - 1;
+          //TODO: rethink it
+          this->utf8left += utf8charlen(c) - 1;
+        }
         
         if (this->utf8left == 0)
         {
@@ -930,7 +954,7 @@ char * amixInterface::console_input()
   {
     this->console_update();
   }
-  return NULL;
+  return false;
 }
 
 
@@ -960,17 +984,20 @@ void amixInterface::console_update()
   int j = 0;
   int i = 0;
   int utf8left = 0;
+  std::string utf8char = "";
+
   while (i + utf8d < this->buffer.length() && j < this->console_w - 1)
   {
     unsigned char c = this->buffer[utf8d + i];
     i++;
 
-    waddch(this->consolewindow, c);
-
+    utf8char += c;
     utf8left += utf8charlen(c) - 1;
 
     if (utf8left == 0)
     {
+      waddstr(this->consolewindow, this->fromUTF8(utf8char).c_str());
+      utf8char = "";
       j++;
     }
   }
@@ -1022,7 +1049,7 @@ void amixInterface::printnicklist()
       wattron(this->nickwindow, A_BOLD);
     }  
 
-    mvwaddnstr(this->nickwindow, i, nicklen, (*it).nick.c_str(), this->nicklist_w - 1 - nicklen);
+    mvwaddnstr(this->nickwindow, i, nicklen, this->fromUTF8((*it).nick).c_str(), this->nicklist_w - 1 - nicklen);
     nicklen += utf8strlen((*it).nick);
 
     if (this->useattr)
@@ -1037,7 +1064,7 @@ void amixInterface::printnicklist()
         wattron(this->nickwindow, A_DIM);
       }
 
-      mvwaddnstr(this->nickwindow, i, nicklen, (":" + (*it).client).c_str(), this->nicklist_w - 1 - nicklen);
+      mvwaddnstr(this->nickwindow, i, nicklen, (":" + this->fromUTF8((*it).client)).c_str(), this->nicklist_w - 1 - nicklen);
       nicklen += 1 + utf8strlen((*it).client);
 
       if (this->useattr)

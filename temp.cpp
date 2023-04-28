@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <algorithm>
+
 #include "temp.h"
 
 /*****************************************************************************\
@@ -37,25 +39,64 @@ void mypause(){
 
 /*****************************************************************************\
 \*****************************************************************************/
-int ncsstrcmp(const char *cs, const char *ct){
-  while (*cs != '\0' && tolower(*cs) == tolower(*ct)){
+int ncsstrcmp(const char *cs, const char *ct)
+{
+  while (*cs != '\0' && tolower(*cs) == tolower(*ct))
+  {
     cs++; ct++;
-    }
-  return tolower(*cs) - tolower(*ct);
   }
+  return tolower(*cs) - tolower(*ct);
+}
 
+int ncsstrcmp(std::string cs, std::string ct)
+{
+  int len = std::min(cs.length(), ct.length());
+  for (int i = 0; i < len; ++i)
+  {
+    int tmp = tolower(cs[i]) - tolower(ct[i]);
+
+    if (tmp != 0)
+    {
+      return tmp;
+    }
+  }
+  return cs.length() - ct.length();
+}
 
 /*****************************************************************************\
 \*****************************************************************************/
-int ncsstrncmp(const char *cs, const char *ct, int n){
+int ncsstrncmp(const char *cs, const char *ct, int n)
+{
   if (n == 0)
+  {
     return 0;
-  while (*cs != '\0' && tolower(*cs) == tolower(*ct) && --n > 0){
-    cs++; ct++;
-    }
-  return tolower(*cs) - tolower(*ct);
   }
+  while (*cs != '\0' && tolower(*cs) == tolower(*ct) && --n > 0)
+  {
+    cs++; ct++;
+  }
+  return tolower(*cs) - tolower(*ct);
+}
 
+int ncsstrncmp(std::string cs, std::string ct, int n)
+{
+  int len = std::min(std::min(cs.length(), ct.length()), (const unsigned int) n);
+
+  for (int i = 0; i < len; ++i)
+  {
+    int tmp = tolower(cs[i]) - tolower(ct[i]);
+
+    if (tmp != 0)
+    {
+      return tmp;
+    }
+  }
+  if (len < n)
+  {
+    return cs.length() - ct.length();
+  }
+  return 0;
+}
 
 /*****************************************************************************\
 \*****************************************************************************/
@@ -717,6 +758,31 @@ char *iso2utf8string(char *string)
   return (char *) result;
 }
 
+std::string iso2utf8string(std::string string)
+{
+  std::string result = "";
+  unsigned int c;
+  
+
+  for (std::string::iterator it = string.begin();
+       it != string.end();
+       it++)
+  {
+    c = iso2unicode((unsigned int) *it);
+    if (c < 0x0080)
+    {
+      result += c & 0x00FF;
+    }
+    else if (c < 0x0800)
+    {
+      result += 0x00C0 | (0x001F & (c >> 6));
+      result += 0x0080 | (0x003F & c);
+    }
+  }
+
+  return result;
+}
+
 /*****************************************************************************\
 \*****************************************************************************/
 
@@ -913,6 +979,101 @@ char *utf82isostring(char *string)
     }
   }
   return (char *) result;
+}
+
+
+std::string utf82isostring(std::string string)
+{
+  std::string result = "";
+  unsigned char res;
+  unsigned int tmp = 0;
+  unsigned int c;
+  
+  std::string::iterator it = string.begin();
+
+  while (it != string.end())
+  {
+    c = (unsigned char) *it;
+    it++;
+    if (c < 0x0080)
+    {
+      res = c /*& 0x007F*/;
+    }
+    else if (c < 0x00E0) //110?????
+    {
+      tmp = c & 0x001F;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      res = unicode2iso(tmp);
+    }
+    else if (c < 0x00F0) //1110????
+    {
+      tmp = c & 0x000F;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      res = unicode2iso(tmp);
+    }
+    else if (c < 0x00F8) //11110???
+    {
+      tmp = c & 0x0007;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      res = unicode2iso(tmp);
+    }
+    else if (c < 0x00FC) //111110??
+    {
+      tmp = c & 0x0003;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      res = unicode2iso(tmp);
+    }
+    else if (c < 0x00FE) //1111110?
+    {
+      tmp = c & 0x0001;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      tmp <<= 6;
+      tmp |= (unsigned char) *it & 0x003F;
+      it++;
+      res = unicode2iso(tmp);
+    }
+    //TODO - co jak c = FE, FF?
+    result += res;
+  }
+  
+  return result;
 }
 
 int utf8strlen(const unsigned char *string)

@@ -29,11 +29,9 @@ int main(int argc, char *argv[])
   std::string host = "s1.polchat.pl";
   std::string room = "AmiX";
   std::string nick = "AmiX_user";
-  char *logfn = NULL;
   std::string reffrom = "http://www.polchat.pl/chat/room.phtml/?room=AmiX";
-  char ol = -1;
+
   int port = 14003;
-  char *inputstring;
 
   int sfd = -1;
   struct sockaddr_in *serv_addr = NULL;
@@ -41,10 +39,11 @@ int main(int argc, char *argv[])
   struct pollfd pol;
   part *ppart = NULL;
   bool useattr = true;
+  bool latin2 = false;
   int nicklistwidth = 30;
 
   srand(time(NULL));
-  setlocale(LC_ALL, "");
+
   
   for (i = 1; i < argc; ++i)
   {
@@ -52,7 +51,7 @@ int main(int argc, char *argv[])
     {
       printf("SERVER/K PORT/K/N ROOM/K NICK/K DEBUG/S VERBOSE/S COREDUMP/S BELL/S"
              " PERIOD/K/N NICKLISTWIDTH/K/N NOATTR/S ASKPASSW/S CHECKUPDATES/S"
-             " LOG/K OLDLOG/K ANTIIDLE/K/N NOHTML/S REFFROM/K\n");
+             " LOG/K OLDLOG/K ANTIIDLE/K/N NOHTML/S REFFROM/K LATIN2/S\n");
       run = 0;
     }
     else if (0 == strcmp(argv[i], "-help") || 0 == strcmp(argv[i], "--help") || 0 == strcmp(argv[i], "-h"))
@@ -73,6 +72,7 @@ int main(int argc, char *argv[])
       puts("[-oldlog logfilename]");
       puts("[-antiidle interval]");
       puts("[-nohtml]");
+      puts("[-latin2]");
     }
     else if (0 == strcmp(argv[i], "-askpassw") || 0 == ncsstrcmp(argv[i], "ASKPASSW"))
     {
@@ -81,6 +81,10 @@ int main(int argc, char *argv[])
     else if (0 == strcmp(argv[i], "-noattr") || 0 == ncsstrcmp(argv[i], "NOATTR"))
     {
       useattr = false;
+    }
+    else if (0 == strcmp(argv[i], "-latin2") || 0 == ncsstrcmp(argv[i], "LATIN2"))
+    {
+      latin2 = true;
     }
     else if (0 == strcmp(argv[i], "-checkupdates") || 0 == ncsstrcmp(argv[i], "CHECKUPDATES"))
     {
@@ -98,17 +102,13 @@ int main(int argc, char *argv[])
     {
       verbose = -1;
     }
-    else if (0 == strcmp(argv[i], "-nohtmlformatting") || 0 == ncsstrcmp(argv[i], "NOHTMLFORMATTING"))
+    else if (0 == strcmp(argv[i], "-nohtmlformatting") || 0 == ncsstrcmp(argv[i], "NOHTMLFORMATTING") || 0 == strcmp(argv[i], "-nohtml") || 0 == ncsstrcmp(argv[i], "NOHTML"))
     {
       nohtml = -1;
     }
     else if (0 == strcmp(argv[i], "-bell") || 0 == ncsstrcmp(argv[i], "BELL"))
     {
       bell = -1;
-    }
-    else if (0 == strcmp(argv[i], "-nohtml") || 0 == ncsstrcmp(argv[i], "NOHTML"))
-    {
-      html = 0;
     }
     else if (0 == strcmp(argv[i], "-reffrom") || 0 == ncsstrcmp(argv[i], "REFFROM"))
     {
@@ -171,12 +171,7 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
       {
-        ol = -1;
-        if (logfn != NULL)
-        {
-          free(logfn);
-        }
-        logfn = clonestring(argv[i]);
+        openlog(argv[i]);
       }
     }
     else if (0 == strcmp(argv[i], "-oldlog") || 0 == ncsstrcmp(argv[i], "OLDLOG"))
@@ -184,12 +179,7 @@ int main(int argc, char *argv[])
       i++;
       if (i < argc)
       {
-        ol = 0;
-        if (logfn != NULL)
-        {
-          free(logfn);
-        }
-        logfn = clonestring(argv[i]);
+        openoldlog(argv[i]);
       }
     }
     else if (0 == strcmp(argv[i], "-nick") || 0 == ncsstrcmp(argv[i], "NICK"))
@@ -206,24 +196,18 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (logfn != NULL)
+  if (!latin2)
   {
-    if (ol)
-    {
-      openlog(logfn);
-    }
-    else
-    {
-      openoldlog(logfn);
-    }
+    setlocale(LC_ALL, "");
   }
- 
+
   if (run)
   {
     interface = new amixInterface;
 
     interface->nicklist_w = nicklistwidth;
     interface->useattr = useattr;
+    interface->latin2 = latin2;
     interface->resize();
 
     interface->window_attron(COLOR_PAIR(7) | A_BOLD);
@@ -394,8 +378,9 @@ int main(int argc, char *argv[])
         }
           
         /*czy jest cos na wejsciu?*/
-        if (NULL != (inputstring = interface->console_input()))
+        if (interface->console_input())
         {
+          std::string inputstring = interface->get_input();
           if (0 == ncsstrncmp(inputstring, "/quit ", 6) || 0 == ncsstrncmp(inputstring, "/quit", 6))
           {
             ppart = new part(inputstring);
@@ -404,7 +389,7 @@ int main(int argc, char *argv[])
           else if (0 == ncsstrncmp(inputstring, "/exit ", 6) || 0 == ncsstrncmp(inputstring, "/exit", 6))
           {
             run = 0;
-            strncpy(inputstring, "/quit", 5);
+            inputstring.replace(0, 5, "/quit");
             ppart = new part(inputstring);
             putmsg(ppart);
           }
@@ -463,34 +448,32 @@ int main(int argc, char *argv[])
           }         
           else
           {
-            char * msgstring = inputstring;
-
             if (0 == ncsstrncmp(inputstring, "/lama ", 6) || 0 == ncsstrncmp(inputstring, "/lama", 6))
             {
-              msgstring = (char *) "thankfully alert gauchos were able to save the llama"
-                          "before it was swept into the blades of the turbine";
+              inputstring = "thankfully alert gauchos were able to save the llama"
+                            "before it was swept into the blades of the turbine";
             }
             else if (0 == ncsstrncmp(inputstring, "/borg ", 6) || 0 == ncsstrncmp(inputstring, "/borg", 6))
             {
-              msgstring = (char *) "I'm cybernetic organism - living tissue over metal endoskeleton.";
+              inputstring = "I'm cybernetic organism - living tissue over metal endoskeleton.";
             }
             else if (0 == ncsstrncmp(inputstring, "/jedi ", 6) || 0 == ncsstrncmp(inputstring, "/jedi", 6))
             {
-              msgstring = (char *) "May the Force be with you, my young padawan...";
+              inputstring = "May the Force be with you, my young padawan...";
             }         
 
             
             if ((*(chatrooms.current)).room)
             {
-              ppart = new part(msgstring, chatrooms.currentroom().name);
+              ppart = new part(inputstring, chatrooms.currentroom().name);
             }
             else
             {
-              ppart = new part(("/msg " + chatrooms.currentroom().name + " " + msgstring).c_str());
+              inputstring = "/msg " + chatrooms.currentroom().name + " " + inputstring;
+              ppart = new part(inputstring);
             }
             putmsg(ppart);
           }
-          free(inputstring);
         }
       }
         
@@ -517,10 +500,6 @@ int main(int argc, char *argv[])
     delete interface;
   }
  
-  if (logfn != NULL)
-  {
-    free(logfn);
-  }
   closelog(); 
   puts("AmiX: Koniec pracy na dzis, polecam sie na przyszlosc");
   return 0;

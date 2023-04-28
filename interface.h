@@ -56,6 +56,7 @@ class amixInterface
     int consptr;
     std::string buffer;
     std::string utf8char;
+    std::string utf8charOut;
     int utf8charToGo;
     int utf8left;
     void getsize();
@@ -65,10 +66,12 @@ class amixInterface
     std::list<std::string>::iterator history_ptr;
     bool buffer_stored;
     static const int history_size = 100;
+    std::string fromUTF8(std::string);
 
   public:
     int nicklist_w;
     bool useattr;
+    bool latin2;
 
     amixInterface();
     ~amixInterface();
@@ -89,7 +92,8 @@ class amixInterface
     void print();
     void printtitle();
     void printpol(const char *);
-    char * console_input();
+    bool console_input();
+    std::string get_input();
     void printnicklist();
     std::string input_password();
     void console_update();
