@@ -279,7 +279,7 @@ int main(int argc, char *argv[])
     window_nl();
     window_nl();
 
-    switch (rand() % 2)
+    switch (rand() % 3)
     {
       case 0:
         window_put(" Cieszmy się, że mamy harcerki - to dzięki nim istnieje AmiX.");
@@ -288,6 +288,9 @@ int main(int argc, char *argv[])
         window_put(" Wyłącz komputer i wyjdź z domu.");
         window_nl();
         window_put(" Może pod twoim blokiem nawalają się magowie.");
+        break;
+      case 2:
+        window_put("1f j00 (4n 1234d 7|-|15, j00 n33d 70 937 |41d");
         break;
     }
     window_nl();

@@ -880,14 +880,14 @@ char *console_input()
 void console_update()
 {
   int i = 0;
-  int j = 0;
   int d = 0;
   int utf8d = 0;
 
   if (consptr > console_w)
   {
-    d = consptr + console_w;
+    d = consptr - console_w;
   }
+  
   int tmp = d;
   while (tmp != 0)
   {
@@ -898,12 +898,14 @@ void console_update()
     utf8d++;
   }
 
-  while (not isutf8charbeginning(buffer[utf8d]))
+  while (!isutf8charbeginning(buffer[utf8d]))
   {
     utf8d++;
   }
 
   wmove(consolewindow, 0, 0);
+
+  int j = 0;
   while (i + utf8d < len && j < console_w)
   {
     unsigned char c = buffer[utf8d + i++];
