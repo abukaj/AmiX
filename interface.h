@@ -1,3 +1,6 @@
+#ifndef AMIX_INTERFACE_H
+#define AMIX_INTERFACE_H
+
 #include <time.h>
 
 #include <string>
@@ -6,8 +9,6 @@
 
 #include "polchat.h"
 
-#ifndef AMIX_INTERFACE_H
-#define AMIX_INTERFACE_H
 
 #define NICKLIST_X nicklist_x
 #define NICKLIST_Y 0

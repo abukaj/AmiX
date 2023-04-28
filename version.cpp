@@ -55,7 +55,7 @@ int checkupdate(){
         if (sfd >= 0){
           strcpy(buffer, "GET " AMIXPATH "  HTTP/1.1\r\nHost: " AMIXSERVER "\r\n\r\n");
                                                   
-          if (write(sfd, buffer, strlen(buffer) + 1))
+          if (write(sfd, buffer, strlen(buffer)))
             {
             while ((state != 6) && read(sfd, buffer, 1))
               {

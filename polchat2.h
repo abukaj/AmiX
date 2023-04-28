@@ -1,6 +1,6 @@
 /*AmiX - polchat2.h - v. 0.2 - (c) by ABUKAJ (J.M.Kowalski)*/
-#ifndef POLCHAT2_H
-#define POLCHAT2_H
+#ifndef AMIX_POLCHAT2_H
+#define AMIX_POLCHAT2_H
 
 #include <string>
 
