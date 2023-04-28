@@ -117,10 +117,10 @@ class chat
     }
 };
 
-int openlog(char *);
-int openoldlog(char *);
+int openlog(const char *);
+int openoldlog(const char *);
 void closelog();
-int printlog(const char *, const char *);
+int printlog(const char *, std::string &, std::string &);
 
 extern int cud;
 extern int debug;
@@ -131,7 +131,6 @@ extern int bell;
 extern int run;
 extern int connected;
 extern int antiidle;
-extern int html;
 extern double period;
 extern int askpassw;
 extern std::string pass;

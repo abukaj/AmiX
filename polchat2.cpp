@@ -107,7 +107,21 @@ part::part(std::string nick,
 }
 
 //message
-part::part(const char * string)
+//part::part(const char * string)
+//{
+//  this->next = NULL;
+//
+//  this->header = new short int [1];
+//
+//  this->headerlen = 1;
+//  this->header[0] = 0x019a;
+//
+//  this->strings = new std::string [1];
+//  this->nstrings = 1;
+//  this->strings[0] = std::string(string);
+//}
+
+part::part(std::string & str)
 {
   this->next = NULL;
 
@@ -118,11 +132,27 @@ part::part(const char * string)
 
   this->strings = new std::string [1];
   this->nstrings = 1;
-  this->strings[0] = std::string(string);
+  this->strings[0] = str;
 }
 
 //message
-part::part(const char * string, std::string & room)
+//part::part(const char * string, std::string & room)
+//{
+//  this->next = NULL;
+//
+//  this->header = new short int [1];
+//
+//  this->headerlen = 1;
+//  this->header[0] = 0x019a;
+//
+//  this->strings = new std::string [2];
+//  this->nstrings = 2;
+//  this->strings[0] = std::string(string);
+//  this->strings[1] = room;
+//}
+
+//message
+part::part(std::string & str, std::string & room)
 {
   this->next = NULL;
 
@@ -133,7 +163,7 @@ part::part(const char * string, std::string & room)
 
   this->strings = new std::string [2];
   this->nstrings = 2;
-  this->strings[0] = std::string(string);
+  this->strings[0] = str;
   this->strings[1] = room;
 }
 
@@ -239,7 +269,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
             {
               chatrooms.roommsg(ppart->strings[1], ppart->strings[0]);
-              printlog("-msg-", ppart->strings[0].c_str());
+              printlog("-msg-", ppart->strings[0], ppart->strings[1]);
             }
           }
           else
@@ -528,7 +558,7 @@ void processpart(part *ppart, int sfd)
               tmp = sscanf(ptr, "#%x #%x #%x #%x #%x #%x #%x", &tempt[0],
                            &tempt[1], &tempt[2], &tempt[3], &tempt[4], &tempt[5],
                            &tempt[6]);
-              for (i = 0; i <tmp; i++)
+              for (i = 0; i < tmp; i++)
               {
                 colourt[i + 1] = transformrgb((tempt[i] >> 16) & 0x00FF, (tempt[i] >> 8) & 0x00FF, tempt[i] & 0x00FF);
               }
@@ -554,7 +584,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
             {
               chatrooms.roommsg(ppart->strings[1], ppart->strings[0]);
-              printlog("-hi-", ppart->strings[0].c_str());
+              printlog("-hi-", ppart->strings[0], ppart->strings[1]);
               interface->colouroff();
             }
           }
@@ -580,7 +610,7 @@ void processpart(part *ppart, int sfd)
             if (!verbose)
             {
               chatrooms.currentroom().msg(ppart->strings[0], true);
-              printlog("-bye-", ppart->strings[0].c_str());
+              printlog("-bye-", ppart->strings[0], ppart->strings[1]);
               interface->colouroff();
             }
           }
@@ -616,7 +646,9 @@ void processpart(part *ppart, int sfd)
               interface->put(tmp.timestring.c_str());
               interface->printpol(tmp.text.c_str());
 
-              printlog("---", ppart->strings[0].c_str());
+              std::string dummy = "";
+
+              printlog("---", ppart->strings[0], dummy);
             }
             connected = 0;
             close(sfd);
@@ -806,7 +838,8 @@ void sendnext(int sfd)
     {
       if (connected && (antiidle < difftime(time(NULL), last)))
       {
-        if (NULL != (tmp = new part("/noop")))
+        std::string noop = "/noop";
+        if (NULL != (tmp = new part(noop)))
         {
           sendpol(tmp, sfd);
           delete tmp;
