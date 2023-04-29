@@ -393,6 +393,16 @@ int main(int argc, char *argv[])
             ppart = new part(inputstring);
             putmsg(ppart);
           }
+          else if (0 == ncsstrncmp(inputstring, "/next ", 6) || 0 == ncsstrncmp(inputstring, "/next", 6))
+          {
+            chatrooms.next();
+            interface->print();
+          }
+          else if (0 == ncsstrncmp(inputstring, "/prev ", 6) || 0 == ncsstrncmp(inputstring, "/prev", 6))
+          {
+            chatrooms.prev();
+            interface->print();
+          }
           else if (0 == ncsstrncmp(inputstring, "/debugon ", 9) || 0 == ncsstrncmp(inputstring, "/debugon", 9))
           {
             debug = -1;
