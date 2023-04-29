@@ -80,7 +80,7 @@ int ncsstrncmp(const char *cs, const char *ct, int n)
 
 int ncsstrncmp(std::string cs, std::string ct, int n)
 {
-  int len = std::min(std::min(cs.length(), ct.length()), (const unsigned int) n);
+  int len = std::min((const unsigned long int) std::min(cs.length(), ct.length()), (const unsigned long int) n);
 
   for (int i = 0; i < len; ++i)
   {
