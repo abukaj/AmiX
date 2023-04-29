@@ -392,6 +392,30 @@ int main(int argc, char *argv[])
             ppart = new part(inputstring);
             putmsg(ppart);
           }
+          else if (0 == ncsstrncmp(inputstring, "/info ", 6))
+          {
+            size_t first_nonspace = inputstring.find_first_not_of(' ', 5);
+            size_t last_nonspace = inputstring.find_last_not_of(' ');
+
+            if (first_nonspace != std::string::npos)
+            {
+              std::string infonick = inputstring.substr(first_nonspace, last_nonspace + 1 - first_nonspace);
+
+              std::list<nicknode>::iterator it_end = chatrooms.currentroom().nicklist.end();
+              for (std::list<nicknode>::iterator it = chatrooms.currentroom().nicklist.begin();
+                   it != it_end;
+                   it++)
+              {
+                if ((*it).nick == infonick)
+                {
+                  chatrooms.currentroom().msg((*it).nick + " uses " + (*it).client, true);
+                  break;
+                }
+              }
+            }
+            ppart = new part(inputstring);
+            putmsg(ppart);
+          }
           else if (0 == ncsstrncmp(inputstring, "/next ", 6) || 0 == ncsstrncmp(inputstring, "/next", 6))
           {
             chatrooms.next();
@@ -433,21 +457,25 @@ int main(int argc, char *argv[])
           else if (0 == ncsstrncmp(inputstring, "/ver ", 5) || 0 == ncsstrncmp(inputstring, "/ver", 5))
           {
             //TODO: rethink it 
-            chatrooms.currentroom().addline("<B>" VER "</B>");
+            chatrooms.currentroom().msg("<B>" VER "</B>", true);
             interface->print();
           }
           else if (0 == ncsstrncmp(inputstring, "/help ", 6) || 0 == ncsstrncmp(inputstring, "/help", 6))
           {
             //TODO: retink it
-            chatrooms.currentroom().addline("<B>/borg</B> - wysyla tekst: &quot;"
-                          "I'm cybernetic organism - living tissue over metal endoskeleton.&quot;");
-            chatrooms.currentroom().addline("<B>/exit</B> - komenda analogiczna do polchatowego /quit, ale "
-                          "dodatkowo konczy prace programu");
-            chatrooms.currentroom().addline("<B>/help</B> - wyswietla tekst pomocy");
-            chatrooms.currentroom().addline("<B>/lama</B> - wysyla tekst: &quot;" 
+            chatrooms.currentroom().msg("<B>/borg</B> - wysyla tekst: &quot;"
+                          "I'm cybernetic organism - living tissue over metal endoskeleton.&quot;",
+                          true);
+            chatrooms.currentroom().msg("<B>/exit</B> - komenda analogiczna do polchatowego /quit, ale "
+                          "dodatkowo konczy prace programu",
+                          true);
+            chatrooms.currentroom().msg("<B>/help</B> - wyswietla tekst pomocy",
+            true);
+            chatrooms.currentroom().msg("<B>/lama</B> - wysyla tekst: &quot;" 
                           "thankfully alert gauchos were able to save the llama "
-                          "before it was swept into the blades of the turbine&quot;");
-            chatrooms.currentroom().addline("<B>/ver</B> - podaje wersje programu"); 
+                          "before it was swept into the blades of the turbine&quot;",
+                          true);
+            chatrooms.currentroom().msg("<B>/ver</B> - podaje wersje programu", true); 
             interface->print();
           }
           else if ((0 == ncsstrncmp(inputstring, "/part ", 6) || 0 == ncsstrncmp(inputstring, "/part", 6)) && !(*(chatrooms.current)).room)
