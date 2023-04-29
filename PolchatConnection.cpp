@@ -526,7 +526,7 @@ std::list<part *> * PolchatConnection::getAllParts()
   this->received = new std::list<part *>();
   this->receivedMutex.unlock();
   return ptr;
-} 
+}
 
 void PolchatConnection::close()
 {

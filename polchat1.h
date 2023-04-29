@@ -21,7 +21,7 @@ class tank : public Renderable
 
     virtual unsigned long size()
     {
-      return length + 4; 
+      return length + 4;
     }
 
     unsigned long len()

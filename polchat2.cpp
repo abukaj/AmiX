@@ -186,7 +186,7 @@ void processpart(part *ppart)
   char *ptr;
   unsigned int tmp;
   unsigned int tempt[7];
-  
+
   if (NULL != ppart)
   {
     headerlen = ppart->headerlen;
@@ -219,9 +219,9 @@ void processpart(part *ppart)
                 ppart->dump(interface);
               }
             }
-          }     
+          }
           break;
-        case 0x0262:/*MSG*/                
+        case 0x0262:/*MSG*/
           if (headerlen == 0x0001 && nstrings == 0x0002)
           {
             if (bell)
@@ -385,7 +385,7 @@ void processpart(part *ppart)
               if (!verbose)
               {
                 ppart->dump(interface);
-              }  
+              }
             }
           }
           break;
@@ -529,7 +529,7 @@ void processpart(part *ppart)
                 colourt[i + 1] = transformrgb((tempt[i] >> 16) & 0x00FF, (tempt[i] >> 8) & 0x00FF, tempt[i] & 0x00FF);
               }
             }
-          }    
+          }
           else
           {
             if (debug)
@@ -590,7 +590,7 @@ void processpart(part *ppart)
               {
                 ppart->dump(interface);
               }
-            } 
+            }
           }
           break;
         case 0x0591:
@@ -676,7 +676,7 @@ void processpart(part *ppart)
         //TODO ensure if it works?
         connection->close();
       }
-    }     
+    }
     if (verbose)
     {
       ppart->dump(interface, coredump);

@@ -18,17 +18,17 @@ amixInterface * interface = NULL;
 int transformrgb(int red, int green, int blue)
 {
   int col = 0;
-  
+
   if (red > 0x007F)
   {
     col |= 0x01;
   }
-  
+
   if (green > 0x007F)
   {
     col |= 0x02;
   }
-  
+
   if (blue > 0x007F)
   {
     col |= 0x04;
@@ -147,7 +147,7 @@ amixInterface::amixInterface(bool oldSchool)
     wmove(this->chatwindow, this->window_h - 1, 0);
   }
   wrefresh(this->chatwindow);
-  
+
   this->nickwindow = newwin(this->nicklist_h, this->nicklist_w, this->nicklist_y, this->nicklist_x);
   if (this->oldSchool)
   {
@@ -199,7 +199,7 @@ void amixInterface::resize()
     wsetscrreg(this->chatwindow, 1, this->window_h - 2);
   }
   this->window_redraw();
-  
+
   mvwin(this->nickwindow, this->nicklist_y, this->nicklist_x);
   wresize(this->nickwindow, this->nicklist_h, this->nicklist_w);
   if (this->oldSchool)
@@ -208,11 +208,11 @@ void amixInterface::resize()
     mvwaddstr(this->nickwindow, 0, this->nicklist_w / 2 - 4, " NICKS: ");
   }
   this->printnicklist();
-  
+
   mvwin(this->titlewindow, this->title_y, this->title_x);
   wresize(this->titlewindow, this->title_h, this->title_w);
   this->printtitle();
-  
+
   mvwin(this->consolewindow, this->console_y, this->console_x);
   wresize(this->consolewindow, this->console_h, this->console_w);
   this->console_update();
@@ -237,8 +237,8 @@ void amixInterface::window_redraw()
       waddch(this->chatwindow, ' ');
     }*/
   }
-  
-  for (std::list<line>::iterator it = lines.begin(); 
+
+  for (std::list<line>::iterator it = lines.begin();
        it != lines.end();
        it++)
 
@@ -346,7 +346,7 @@ void amixInterface::put(const char *word)
         waddstr(this->chatwindow, this->fromUTF8(word).c_str());
         inlen += len;
       }
-      else 
+      else
       {
         this->nl();
         while (*word != '\0')
@@ -389,7 +389,7 @@ void amixInterface::put(const char *word)
         waddstr(this->chatwindow, this->fromUTF8(word).c_str());
         this->inlen += len;
       }
-      else 
+      else
       {
         this->nl();
         while (*word != '\0')
@@ -508,7 +508,7 @@ char *readtoken(const char *string){
           if (0 == ncsstrcmp(result, "</a>"))
             {
             link = 0;
-            }             
+            }
           return result;
           }
         break;
@@ -527,7 +527,7 @@ char *readtoken(const char *string){
           memcpy(result, string + start, len);
           result[len] = '\0';
           return result;
-          }                 
+          }
         break;
       case 5:
         while (isspace(string[ptr++]))
@@ -543,7 +543,7 @@ char *readtoken(const char *string){
         break;
       }
     }
- 
+
   return result;
   }
 
@@ -568,7 +568,7 @@ void amixInterface::printtitle()
 
     if (written + len + 2 > this->title_w)
     {
-      mvwaddnstr(this->titlewindow, 0, written, "...", this->title_w - written);      
+      mvwaddnstr(this->titlewindow, 0, written, "...", this->title_w - written);
       break;
     }
 
@@ -629,7 +629,7 @@ void amixInterface::printpol(const char *string)
   char *ptr;
   unsigned int tmp;
   int col;
-  
+
   if (string != NULL)
   {
     token = readtoken(string);
@@ -721,7 +721,7 @@ void amixInterface::printpol(const char *string)
             this->put("<");
             mode = 1;
           }
-          else 
+          else
           {
             this->put(token);
             mode = 1;
@@ -781,7 +781,7 @@ bool amixInterface::console_input()
   int updated = 0;
   int tptr;
   int tlen = 0;
- 
+
   int c;
   while (ERR != (c = wgetch(this->consolewindow)))
   {
@@ -930,7 +930,7 @@ bool amixInterface::console_input()
         tlen--;
         {
           std::string nick = chatrooms.currentroom().getnickbyprefix((char *) this->buffer.c_str() + tptr, tlen);
-        
+
           nick.erase(0, tlen);
           this->buffer.insert(ptr, nick);
           this->ptr += nick.length();
@@ -970,7 +970,7 @@ bool amixInterface::console_input()
           //TODO: rethink it
           this->utf8left += utf8charlen(c) - 1;
         }
-        
+
         if (this->utf8left == 0)
         {
           this->buffer_stored_flush();
@@ -1008,7 +1008,7 @@ void amixInterface::console_update()
   int utf8d = 0;
 
   int d = this->consptr >= this->console_w?1 + this->consptr - this->console_w:0;
-  
+
   for (int i = d; i != 0; i--)
   {
     utf8d += utf8charlen((unsigned char) this->buffer[utf8d]);
@@ -1042,7 +1042,7 @@ void amixInterface::console_update()
   }
   wmove(this->consolewindow, 0, std::min(this->consptr, this->console_w));
   wnoutrefresh(this->consolewindow);
-  
+
   this->window_updated = true;
 }
 
@@ -1053,7 +1053,7 @@ void amixInterface::printnicklist()
 
   std::list<nicknode> & nicklist = chatrooms.currentroom().nicklist;
 
-  for (std::list<nicknode>::iterator it = nicklist.begin(); 
+  for (std::list<nicknode>::iterator it = nicklist.begin();
        it != nicklist.end() && i < nicklist_h - (this->oldSchool ? 1 : 0);
        it++)
   {
@@ -1064,7 +1064,7 @@ void amixInterface::printnicklist()
     {
       wattron(this->nickwindow, COLOR_PAIR(colour));
     }
-    
+
     if ((*it).status & 0x0002)
     {
       mvwprintw(this->nickwindow, i, this->oldSchool ? 1 : 0, "OP ");
@@ -1078,11 +1078,11 @@ void amixInterface::printnicklist()
     {
       wattron(this->nickwindow, A_UNDERLINE);
     }
-    
+
     if (this->useattr)
     {
       wattron(this->nickwindow, A_BOLD);
-    }  
+    }
 
     mvwaddnstr(this->nickwindow, i, nicklen, this->fromUTF8((*it).nick).c_str(), this->nicklist_w - (this->oldSchool ? 1 : 0) - nicklen);
     nicklen += utf8strlen((*it).nick);
@@ -1123,11 +1123,11 @@ void amixInterface::printnicklist()
       mvwaddch(this->nickwindow, i, j, ' ');
     }
     i++;
-    
+
     if (colour != COLOR_WHITE && colour != COLOR_BLACK && this->useattr)
     {
       wattroff(this->nickwindow, COLOR_PAIR(colour) | A_BOLD);
-    }  
+    }
   }
 
   while (i < this->nicklist_h - (this->oldSchool ? 1 : 0))
@@ -1174,9 +1174,9 @@ std::string amixInterface::input_password()
       default:
         string += c;
         break;
-    }                           
+    }
   }
-  
+
   nodelay(this->consolewindow, TRUE);
   return string;
 }

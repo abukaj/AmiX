@@ -14,7 +14,7 @@
 #define NICKLIST_Y 0
 
 #define WINDOW_X 0
-#define WINDOW_Y 2 
+#define WINDOW_Y 2
 
 #define CONSOLE_X 0
 #define CONSOLE_H 1

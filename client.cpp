@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
     {
       pass = interface->input_password();
     }
-    
+
     init_pair(COLOR_RED, COLOR_RED, COLOR_BLACK);
     init_pair(COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
     init_pair(COLOR_YELLOW, COLOR_YELLOW, COLOR_BLACK);
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
         }
         else if (0 == ncsstrncmp(inputstring, "/ver ", 5) || 0 == ncsstrncmp(inputstring, "/ver", 5))
         {
-          //TODO: rethink it 
+          //TODO: rethink it
           chatrooms.currentroom().msg("<B>" VER "</B>", true);
           interface->print();
         }
@@ -335,18 +335,18 @@ int main(int argc, char *argv[])
                         true);
           chatrooms.currentroom().msg("<B>/help</B> - wyswietla tekst pomocy",
           true);
-          chatrooms.currentroom().msg("<B>/lama</B> - wysyla tekst: &quot;" 
+          chatrooms.currentroom().msg("<B>/lama</B> - wysyla tekst: &quot;"
                         "thankfully alert gauchos were able to save the llama "
                         "before it was swept into the blades of the turbine&quot;",
                         true);
-          chatrooms.currentroom().msg("<B>/ver</B> - podaje wersje programu", true); 
+          chatrooms.currentroom().msg("<B>/ver</B> - podaje wersje programu", true);
           interface->print();
         }
         else if ((0 == ncsstrncmp(inputstring, "/part ", 6) || 0 == ncsstrncmp(inputstring, "/part", 6)) && !(*(chatrooms.current)).room)
         {
           chatrooms.part((*(chatrooms.current)).name, true);
           interface->update_all();
-        }         
+        }
         else
         {
           if (0 == ncsstrncmp(inputstring, "/lama ", 6) || 0 == ncsstrncmp(inputstring, "/lama", 6))
@@ -361,9 +361,9 @@ int main(int argc, char *argv[])
           else if (0 == ncsstrncmp(inputstring, "/jedi ", 6) || 0 == ncsstrncmp(inputstring, "/jedi", 6))
           {
             inputstring = "May the Force be with you, my young padawan...";
-          }         
+          }
 
-          
+
           if ((*(chatrooms.current)).room)
           {
             ppart = new part(inputstring, chatrooms.currentroom().name);
@@ -383,7 +383,7 @@ int main(int argc, char *argv[])
       //  connection->close();
       //}
     }
-        
+
     delete connection;
     delete interface;
   }
@@ -391,8 +391,8 @@ int main(int argc, char *argv[])
   {
     fprintf(stderr, "Exception: %s\n", e.what());
   }
- 
-  closelog(); 
+
+  closelog();
   puts("AmiX: Koniec pracy na dzis, polecam sie na przyszlosc");
   return 0;
 }

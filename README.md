@@ -176,7 +176,7 @@ $ amix <lista_parametrów_poprzedzonych_słowami_kluczowymi>
 | PERIOD         | wyrażone w sekundach opóźnienie między kolejnymi wysyłanymi wiadomościami (auto-flood-ban protection;-D) | 1.0                                              |
 | NICKLISTWIDTH  | wyrażona w znakach szerokość listy nicków                                                                | 30                                               |
 | NOATTR         | wyłącza atrybuty wyświetlanego tekstu                                                                    | atrybuty włączone                                |
-| ASKPASSW       | wymusza zapytanie o hasło (patrz [bezpieczeństwo](#safety))                                              |                                                  | 
+| ASKPASSW       | wymusza zapytanie o hasło (patrz [bezpieczeństwo](#safety))                                              |                                                  |
 | CHECKUPDATES   |sprawdza po uruchomieniu programu dostępność aktualizacji	sprawdzanie aktualizacji                        | wyłączone                                        |
 | LOG            | plik, do którego mają być zapisywane logi (stary plik zostanie skasowany)                                | logowanie wyłączone                              |
 | OLDLOG         | plik, do którego mają być dopisywane logi (zaleca się użycie wraz z "NOHTML")                            | logowanie wyłączone                              |
@@ -218,4 +218,4 @@ Ponieważ crackerzy wykorzystują błędy w programach powodujące ich "dziwne" 
 
 ## Polchat 2.0 a bezpieczeństwo
 
-Niestety, z pustego i Salomon nie naleje...  Protokół Polchat 2.0 nie jest protokołem bezpiecznym (przynajmniej w części, którą udało mi się rozpracować).  Ponieważ crackerzy i tak o tym wiedzą, zdradzę, że tekst wiadomości wysyłanych tym protokołem, jak również nicka i hasło jest w stanie odczytać każdy, kto potrafi uruchomić sniffer:-(.  Poruszyłem ten temat na forum poświęconym propozycjom ulepszeń na Polchacie. 
+Niestety, z pustego i Salomon nie naleje...  Protokół Polchat 2.0 nie jest protokołem bezpiecznym (przynajmniej w części, którą udało mi się rozpracować).  Ponieważ crackerzy i tak o tym wiedzą, zdradzę, że tekst wiadomości wysyłanych tym protokołem, jak również nicka i hasło jest w stanie odczytać każdy, kto potrafi uruchomić sniffer:-(.  Poruszyłem ten temat na forum poświęconym propozycjom ulepszeń na Polchacie.

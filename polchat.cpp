@@ -59,8 +59,8 @@ void chatroom::addnick(std::string & nick,
 {
   std::list<nicknode>::iterator it;
   bool found = false;
-  
-  for (it = this->nicklist.begin(); 
+
+  for (it = this->nicklist.begin();
        it != this->nicklist.end();
        it++)
   {
@@ -95,8 +95,8 @@ void chatroom::updatenick(std::string & nick,
 {
   //bool found = false;
   std::list<nicknode>::iterator it;
-  
-  for (it = this->nicklist.begin(); 
+
+  for (it = this->nicklist.begin();
        it != this->nicklist.end();
        it++)
   {
@@ -131,8 +131,8 @@ void chatroom::removenick(std::string & nick)
 {
   bool found = false;
   std::list<nicknode>::iterator it;
-  
-  for (it = this->nicklist.begin(); 
+
+  for (it = this->nicklist.begin();
        it != this->nicklist.end();
        it++)
   {
@@ -164,7 +164,7 @@ void chatroom::removenick(std::string & nick)
 
 std::string chatroom::getnickbyprefix(char * prefix, int len)
 {
-  for (std::list<nicknode>::iterator it = this->nicklist.begin(); 
+  for (std::list<nicknode>::iterator it = this->nicklist.begin();
        it != this->nicklist.end();
        it++)
   {
