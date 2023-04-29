@@ -2,25 +2,29 @@
 #ifndef AMIX_POLCHAT1_H
 #define AMIX_POLCHAT1_H
 
-#include <time.h>
-
 #include <string>
 
 #include "interface.h"
+#include "Renderable.h"
 
-class tank
+class tank : public Renderable
 {
   protected:
-    long length;
-    char *data;
+    unsigned long length;
+    char * data;
 
   public:
-    tank(int, char *);
-    ~tank();
-    int send(int);
-    void dump();
+    tank(unsigned long, char *, bool = true);
+    virtual unsigned long render(unsigned char * &);
+    virtual ~tank();
+    void dump(amixInterface *);
 
-    long len()
+    virtual unsigned long size()
+    {
+      return length + 4; 
+    }
+
+    unsigned long len()
     {
       return length;
     }
@@ -31,7 +35,5 @@ class tank
     }
 
 };
-
-tank *readtank(int);
 
 #endif

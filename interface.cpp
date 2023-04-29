@@ -1,7 +1,8 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+/*AmiX - interface.cpp - (c) by ABUKAJ (J.M.Kowalski)*/
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cctype>
 
 #include <algorithm>
 
@@ -92,8 +93,9 @@ void amixInterface::window_attroff(int attr)
 }
 
 
-amixInterface::amixInterface()
+amixInterface::amixInterface(bool oldSchool)
 {
+  this->oldSchool = oldSchool;
   this->history_ptr = this->history.begin();
   this->buffer_stored = false;
 
@@ -129,16 +131,29 @@ amixInterface::amixInterface()
   this->getsize();
 
   this->chatwindow = newwin(this->window_h, this->window_w, this->window_y, this->window_x);
-  wborder(this->chatwindow, ' ', ' ', '#', '#', '*', '*', '*', '*');
-  mvwaddstr(this->chatwindow, 0, this->window_w / 2 - 3, " CHAT ");
+  if (this->oldSchool)
+  {
+    wborder(this->chatwindow, ' ', ' ', '#', '#', '*', '*', '*', '*');
+    mvwaddstr(this->chatwindow, 0, this->window_w / 2 - 3, " CHAT ");
+  }
   scrollok(this->chatwindow, TRUE);
-  wsetscrreg(this->chatwindow, 1, this->window_h - 2);
-  wmove(this->chatwindow, 1, 0);
+  if (this->oldSchool)
+  {
+    wsetscrreg(this->chatwindow, 1, this->window_h - 2);
+    wmove(this->chatwindow, this->window_h - 2, 0);
+  }
+  else
+  {
+    wmove(this->chatwindow, this->window_h - 1, 0);
+  }
   wrefresh(this->chatwindow);
   
   this->nickwindow = newwin(this->nicklist_h, this->nicklist_w, this->nicklist_y, this->nicklist_x);
-  wborder(this->nickwindow, '|', '|', '-', '-', '+', '+', '+', '+');
-  mvwaddstr(this->nickwindow, 0, this->nicklist_w / 2 - 4, " NICKS: ");
+  if (this->oldSchool)
+  {
+    wborder(this->nickwindow, '|', '|', '-', '-', '+', '+', '+', '+');
+    mvwaddstr(this->nickwindow, 0, this->nicklist_w / 2 - 4, " NICKS: ");
+  }
   wrefresh(this->nickwindow);
 
   this->titlewindow = newwin(this->title_h, this->title_w, this->title_y, this->title_x);
@@ -177,15 +192,21 @@ void amixInterface::resize()
 
   mvwin(this->chatwindow, this->window_y, this->window_x);
   wresize(this->chatwindow, this->window_h, this->window_w);
-  wborder(this->chatwindow, ' ', ' ', '#', '#', '*', '*', '*', '*');
-  mvwaddstr(this->chatwindow, 0, this->window_w / 2 - 3, " CHAT ");
-  wsetscrreg(this->chatwindow, 1, this->window_h - 2);
+  if (this->oldSchool)
+  {
+    wborder(this->chatwindow, ' ', ' ', '#', '#', '*', '*', '*', '*');
+    mvwaddstr(this->chatwindow, 0, this->window_w / 2 - 3, " CHAT ");
+    wsetscrreg(this->chatwindow, 1, this->window_h - 2);
+  }
   this->window_redraw();
   
   mvwin(this->nickwindow, this->nicklist_y, this->nicklist_x);
   wresize(this->nickwindow, this->nicklist_h, this->nicklist_w);
-  wborder(this->nickwindow, '|', '|', '-', '-', '+', '+', '+', '+');
-  mvwaddstr(this->nickwindow, 0, this->nicklist_w / 2 - 4, " NICKS: ");
+  if (this->oldSchool)
+  {
+    wborder(this->nickwindow, '|', '|', '-', '-', '+', '+', '+', '+');
+    mvwaddstr(this->nickwindow, 0, this->nicklist_w / 2 - 4, " NICKS: ");
+  }
   this->printnicklist();
   
   mvwin(this->titlewindow, this->title_y, this->title_x);
@@ -202,15 +223,19 @@ void amixInterface::window_redraw()
 {
   std::list<line> & lines = chatrooms.currentroom().lines;
 
-  wmove(this->chatwindow, 1, 0);
-
-  for (int i = lines.size(); i < MSGSTOREMAX; i++)
+  if (this->oldSchool)
   {
-    for (int j = 0; j < this->window_w; ++j)
+    wmove(this->chatwindow, this->window_h - 2, 0);
+  }
+
+  for (int i = lines.size(); i < this->window_h - (this->oldSchool ? 2 : 0); i++)
+  {
+    this->nl();
+    // is this loop below necessary?
+    /*for (int j = 0; j < this->window_w; ++j)
     {
       waddch(this->chatwindow, ' ');
-    }
-    waddch(this->chatwindow, '\n');
+    }*/
   }
   
   for (std::list<line>::iterator it = lines.begin(); 
@@ -218,6 +243,7 @@ void amixInterface::window_redraw()
        it++)
 
   {
+    this->nl();
     this->put((*it).timestring.c_str());
     this->printpol((*it).text.c_str());
   }
@@ -246,12 +272,19 @@ amixInterface::~amixInterface()
 
 void amixInterface::nl()
 {
-  while (this->inlen < this->window_w - 2)
+  while (this->inlen < this->window_w - (this->oldSchool ? 2 : 0))
   {
     waddch(this->chatwindow, ' ');
     this->inlen++;
   }
-  waddch(this->chatwindow, '\n');
+  if (this->oldSchool)
+  {
+    waddch(this->chatwindow, '\n');
+  }
+  else
+  {
+    wmove(this->chatwindow, this->window_h, 0);
+  }
   this->inlen = 0;
   this->window_updated = true;
 }
@@ -267,7 +300,7 @@ std::string amixInterface::fromUTF8(std::string str)
 
 void amixInterface::putchar(unsigned char c)
 {
-  if (this->inlen >= this->window_w - 2)
+  if (this->inlen >= this->window_w - (this->oldSchool ? 2 : 0))
   {
     this->nl();
   }
@@ -285,7 +318,7 @@ void amixInterface::putchar(unsigned char c)
 
 void amixInterface::puthex(unsigned int n, unsigned int len)
 {
-  if (this->inlen + len >= this->window_w - 2)
+  if (this->inlen + len >= this->window_w - (this->oldSchool ? 2 : 0))
   {
     this->nl();
   }
@@ -308,7 +341,7 @@ void amixInterface::put(const char *word)
     else if (verbose || (*word != '<'))
     {
       int len = utf8strlen((unsigned char *) word);
-      if (this->inlen + len <= this->window_w - 2)
+      if (this->inlen + len <= this->window_w - (this->oldSchool ? 2 : 0))
       {
         waddstr(this->chatwindow, this->fromUTF8(word).c_str());
         inlen += len;
@@ -351,7 +384,7 @@ void amixInterface::put(const char *word)
     else
     {
       int len = utf8strlen((unsigned char *) word);
-      if (this->inlen + len <= this->window_w - 2)
+      if (this->inlen + len <= this->window_w - (this->oldSchool ? 2 : 0))
       {
         waddstr(this->chatwindow, this->fromUTF8(word).c_str());
         this->inlen += len;
@@ -708,14 +741,13 @@ void amixInterface::printpol(const char *string)
           break;
       }
     }
-    this->nl();
   }
   else
   {
     if (debug)
     {
-      this->put("Error: NULL ptr given to printpol()");
       this->put("\n");
+      this->put("Error: NULL ptr given to printpol()");
     }
   }
   this->colourflush();
@@ -1017,15 +1049,15 @@ void amixInterface::console_update()
 
 void amixInterface::printnicklist()
 {
-  int i = 1;
+  int i = this->oldSchool ? 1 : 0;
 
   std::list<nicknode> & nicklist = chatrooms.currentroom().nicklist;
 
   for (std::list<nicknode>::iterator it = nicklist.begin(); 
-       it != nicklist.end() && i < nicklist_h - 1;
+       it != nicklist.end() && i < nicklist_h - (this->oldSchool ? 1 : 0);
        it++)
   {
-    int nicklen = 4;
+    int nicklen = 3 + (this->oldSchool ? 1 : 0);
     int colour = colourt[((*it).status & 0x0070) >> 4];
 
     if (colour != COLOR_WHITE && colour != COLOR_BLACK && this->useattr)
@@ -1035,11 +1067,11 @@ void amixInterface::printnicklist()
     
     if ((*it).status & 0x0002)
     {
-      mvwprintw(this->nickwindow, i, 1, "OP ");
+      mvwprintw(this->nickwindow, i, this->oldSchool ? 1 : 0, "OP ");
     }
     else
     {
-      mvwprintw(this->nickwindow, i, 1, "   ");
+      mvwprintw(this->nickwindow, i, this->oldSchool ? 1 : 0, "   ");
     }
 
     if (((*it).status & 0x0001) && this->useattr)
@@ -1052,7 +1084,7 @@ void amixInterface::printnicklist()
       wattron(this->nickwindow, A_BOLD);
     }  
 
-    mvwaddnstr(this->nickwindow, i, nicklen, this->fromUTF8((*it).nick).c_str(), this->nicklist_w - 1 - nicklen);
+    mvwaddnstr(this->nickwindow, i, nicklen, this->fromUTF8((*it).nick).c_str(), this->nicklist_w - (this->oldSchool ? 1 : 0) - nicklen);
     nicklen += utf8strlen((*it).nick);
 
     if (this->useattr)
@@ -1060,14 +1092,14 @@ void amixInterface::printnicklist()
       wattroff(this->nickwindow, A_BOLD);
     }
 
-    if (nicklen < this->nicklist_w - 4 && (*it).client != "unknown")
+    if (nicklen < this->nicklist_w - 3 - (this->oldSchool ? 1 : 0) && (*it).client != "unknown")
     {
       if (this->useattr)
       {
         wattron(this->nickwindow, A_DIM);
       }
 
-      mvwaddnstr(this->nickwindow, i, nicklen, (":" + this->fromUTF8((*it).client)).c_str(), this->nicklist_w - 1 - nicklen);
+      mvwaddnstr(this->nickwindow, i, nicklen, (":" + this->fromUTF8((*it).client)).c_str(), this->nicklist_w - (this->oldSchool ? 1 : 0) - nicklen);
       nicklen += 1 + utf8strlen((*it).client);
 
       if (this->useattr)
@@ -1078,7 +1110,7 @@ void amixInterface::printnicklist()
 
     if (nicklen > this->nicklist_w)
     {
-      mvwaddstr(this->nickwindow, i, this->nicklist_w - 4, "...");
+      mvwaddstr(this->nickwindow, i, this->nicklist_w - 3 - (this->oldSchool ? 1 : 0), "...");
     }
 
     if (((*it).status & 0x0001) && this->useattr)
@@ -1086,7 +1118,7 @@ void amixInterface::printnicklist()
       wattroff(this->nickwindow, A_UNDERLINE);
     }
 
-    for (int j = nicklen; j < this->nicklist_w - 1; j++)
+    for (int j = nicklen; j < this->nicklist_w - (this->oldSchool ? 1 : 0); j++)
     {
       mvwaddch(this->nickwindow, i, j, ' ');
     }
@@ -1098,10 +1130,10 @@ void amixInterface::printnicklist()
     }  
   }
 
-  while (i < this->nicklist_h - 1)
+  while (i < this->nicklist_h - (this->oldSchool ? 1 : 0))
   {
-    wmove(this->nickwindow, i, 1);
-    for (int j = 2; j < this->nicklist_w; j++)
+    wmove(this->nickwindow, i, this->oldSchool ? 1 : 0);
+    for (int j =  this->oldSchool ? 2 : 0; j < this->nicklist_w; j++)
     {
       waddch(this->nickwindow, ' ');
     }

@@ -1,7 +1,7 @@
 #ifndef AMIX_INTERFACE_H
 #define AMIX_INTERFACE_H
 
-#include <time.h>
+#include <ctime>
 
 #include <string>
 #include <stack>
@@ -50,6 +50,7 @@ class amixInterface
     int scr_rows;
     int scr_cols;
     bool window_updated;
+    bool oldSchool;
 
     int inlen;
     int ptr;
@@ -73,7 +74,7 @@ class amixInterface
     bool useattr;
     bool latin2;
 
-    amixInterface();
+    amixInterface(bool = false);
     ~amixInterface();
     void colouron(int);
     void colouroff();

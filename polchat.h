@@ -2,7 +2,7 @@
 #ifndef AMIX_POLCHAT_H
 #define AMIX_POLCHAT_H
 
-#include <time.h>
+#include <ctime>
 
 #include <string>
 #include <map>
@@ -132,6 +132,7 @@ extern int run;
 extern int connected;
 extern int antiidle;
 extern bool antiidle_sent;
+extern time_t last;
 extern double period;
 extern int askpassw;
 extern std::string pass;

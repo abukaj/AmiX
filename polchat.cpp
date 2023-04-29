@@ -23,6 +23,8 @@ std::string pass = "";
 std::string nick = "AmiX_user";
 int antiidle = 0;
 bool antiidle_sent = false;
+time_t last = 0;
+
 double period = 1.0;
 FILE *logfh = NULL;
 short nickn;
@@ -79,11 +81,11 @@ void chatroom::addnick(std::string & nick,
   {
     if (debug)
     {
+      interface->nl();
       interface->put("NICK: ");
       interface->put(nick.c_str());
       interface->put(" already found in room: ");
       interface->put(this->name.c_str());
-      interface->nl();
     }
   }
 }
@@ -116,11 +118,11 @@ void chatroom::updatenick(std::string & nick,
   //updatenick message is sent BEFORE nick entered and AFTER nick left
   //if (!found && debug)
   //{
+  //  interface->nl();
   //  interface->put("(updatenick) NICK: ");
   //  interface->put(nick.c_str());
   //  interface->put(" not found in room: ");
   //  interface->put(this->name.c_str());
-  //  interface->nl();
   //}
 }
 
@@ -151,11 +153,11 @@ void chatroom::removenick(std::string & nick)
 
   if (!found && debug)
   {
+    interface->nl();
     interface->put("(removenick) NICK: ");
     interface->put(nick.c_str());
     interface->put(" not found in room: ");
     interface->put(this->name.c_str());
-    interface->nl();
   }
 }
 
@@ -258,6 +260,7 @@ void chatroom::msg(std::string msg, bool display)
   if (display)
   {
     line & tmp = this->lines.back();
+    interface->nl();
     interface->put(tmp.timestring.c_str());
     interface->printpol(tmp.text.c_str());
   }

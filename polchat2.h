@@ -5,19 +5,21 @@
 #include <string>
 
 #include "polchat1.h"
+#include "Renderable.h"
+#include "interface.h"
 
 #define POLCHAT_BAD_PASSWORD_MSG "nieprawidłowe hasło lub identyfikator użytkownika"
 #define POLCHAT_NOOP_REPLY_MSG "<font color=red>** nieznana komenda <b>/noop</b></font>"
 #define POLCHAT_NICK_BUSY_MSG "wybrany identyfikator jest aktualnie w użyciu"
 
-class part
+class part : public Renderable
 {
   public:
     short headerlen;
     short nstrings;
-    short *header;
-    std::string *strings;
-    part *next;
+    short * header;
+    std::string * strings;
+    tank * source;
 
     part(tank &);
     //part(const char *);
@@ -25,20 +27,13 @@ class part
     //part(const char *, std::string &);
     part(std::string &, std::string &);
     part(std::string, std::string, std::string, std::string, std::string);
-    ~part();
-    void dump();
+    part(unsigned int, unsigned int, short * = NULL, std::string * = NULL);
+    virtual unsigned long render(unsigned char * &);
+    virtual unsigned long size();
+    virtual ~part();
+    void dump(amixInterface *, bool = false);
 };
 
-part *readpart(int);
-void processpart(part *, int);
-
-
-int sendpol(part *, int);
-
-void putmsg(part *);
-void sendnext(int);
-
-extern part *tosend;
-extern time_t last;
+void processpart(part *);
 
 #endif

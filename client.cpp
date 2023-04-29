@@ -1,10 +1,9 @@
-/*AmiX - client.c - v. 0.2 - (c) by ABUKAJ (J.M.Kowalski)*/
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <time.h>
-#include <locale.h>
+/*AmiX - client.cpp - (c) by ABUKAJ (J.M.Kowalski)*/
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <ctime>
+#include <clocale>
 
 #include <string>
 
@@ -20,195 +19,59 @@
 #include "temp.h"
 #include "version.h"
 
-#define input() 0
-#define output() 1
+#include "AmiXCommandlineParser.h"
+#include "PolchatConnection.h"
 
 int main(int argc, char *argv[])
 {
-  int i;
-  std::string host = "s1.polchat.pl";
-  std::string room = "AmiX";
-  std::string reffrom = "http://www.polchat.pl/chat/room.phtml/?room=AmiX";
+  short nickStatus[2] = {0x0582, 0x0001};
+  AmiXCommandlineParser options(argc, argv);
 
-  int port = 14003;
-
-  int sfd = -1;
-  struct sockaddr_in *serv_addr = NULL;
-  struct addrinfo hints, *res, *tres;
-  struct pollfd pol;
   part *ppart = NULL;
-  bool useattr = true;
-  bool latin2 = false;
-  int nicklistwidth = 30;
+
+  // polchat.cpp globals
+  askpassw = options.askPassw ? -1 : 0;
+  cud = options.cud ? -1 : 0;
+  debug = options.debug ? -1 : 0;
+  coredump = options.coreDump ? -1 : 0;
+  verbose = options.verbose || options.coreDump ? -1 : 0;
+  nohtml = options.noHTML ? -1 : 0;
+  bell = options.bell ? -1 : 0;
+  period = options.period;
+  antiidle = options.antiidle;
+  nick = options.nick;
 
   srand(time(NULL));
 
-  
-  for (i = 1; i < argc; ++i)
+  switch (options.log)
   {
-    if (0 == strcmp(argv[i], "?"))
-    {
-      printf("SERVER/K PORT/K/N ROOM/K NICK/K DEBUG/S VERBOSE/S COREDUMP/S BELL/S"
-             " PERIOD/K/N NICKLISTWIDTH/K/N NOATTR/S ASKPASSW/S CHECKUPDATES/S"
-             " LOG/K OLDLOG/K ANTIIDLE/K/N NOHTML/S REFFROM/K LATIN2/S\n");
-      run = 0;
-    }
-    else if (0 == strcmp(argv[i], "-help") || 0 == strcmp(argv[i], "--help") || 0 == strcmp(argv[i], "-h"))
-    {
-      run = 0;
-      puts("Usage:");
-      puts(argv[0]);
-      puts("[-askpassw]");
-      puts("[-checkupdates]");
-      puts("[-nick nick]");
-      puts("[-nicklistwidth width of nicklist]");
-      puts("[-noattr]");
-      puts("[-period interval]");
-      puts("[-port port]");
-      puts("[-room room]");
-      puts("[-server server]");
-      puts("[-log logfilename]");
-      puts("[-oldlog logfilename]");
-      puts("[-antiidle interval]");
-      puts("[-nohtml]");
-      puts("[-latin2]");
-    }
-    else if (0 == strcmp(argv[i], "-askpassw") || 0 == ncsstrcmp(argv[i], "ASKPASSW"))
-    {
-      askpassw = -1;
-    }
-    else if (0 == strcmp(argv[i], "-noattr") || 0 == ncsstrcmp(argv[i], "NOATTR"))
-    {
-      useattr = false;
-    }
-    else if (0 == strcmp(argv[i], "-latin2") || 0 == ncsstrcmp(argv[i], "LATIN2"))
-    {
-      latin2 = true;
-    }
-    else if (0 == strcmp(argv[i], "-checkupdates") || 0 == ncsstrcmp(argv[i], "CHECKUPDATES"))
-    {
-      cud = -1;
-    }
-    else if (0 == strcmp(argv[i], "-debug") || 0 == ncsstrcmp(argv[i], "DEBUG"))
-    {
-      debug = -1;
-    }
-    else if (0 == strcmp(argv[i], "-coredump") || 0 == ncsstrcmp(argv[i], "COREDUMP"))
-    {
-      coredump = -1;
-    }
-    else if (0 == strcmp(argv[i], "-verbose") || 0 == ncsstrcmp(argv[i], "VERBOSE"))
-    {
-      verbose = -1;
-    }
-    else if (0 == strcmp(argv[i], "-nohtmlformatting") || 0 == ncsstrcmp(argv[i], "NOHTMLFORMATTING") || 0 == strcmp(argv[i], "-nohtml") || 0 == ncsstrcmp(argv[i], "NOHTML"))
-    {
-      nohtml = -1;
-    }
-    else if (0 == strcmp(argv[i], "-bell") || 0 == ncsstrcmp(argv[i], "BELL"))
-    {
-      bell = -1;
-    }
-    else if (0 == strcmp(argv[i], "-reffrom") || 0 == ncsstrcmp(argv[i], "REFFROM"))
-    {
-      i++;
-      if (i < argc)
-      {
-        reffrom = argv[i];
-      }                              
-    }
-    else if (0 == strcmp(argv[i], "-server") || 0 == ncsstrcmp(argv[i], "SERVER"))
-    {
-      i++;
-      if (i < argc)
-      {
-        host = argv[i];
-      }                              
-    }
-    else if (0 == strcmp(argv[i], "-port") || 0 == ncsstrcmp(argv[i], "PORT"))
-    {
-      i++;
-      if (i < argc)
-      {
-        port = atoi(argv[i]);
-      }                              
-    }
-    else if (0 == strcmp(argv[i], "-nicklistwidth") || 0 == ncsstrcmp(argv[i], "NICKLISTWIDTH"))
-    {
-      i++;
-      if (i < argc)
-      {
-        nicklistwidth = atoi(argv[i]);
-      }                              
-    }
-    else if (0 == strcmp(argv[i], "-period") || 0 == ncsstrcmp(argv[i], "PERIOD"))
-    {
-      i++;
-      if (i < argc)
-      {
-        period = strtod(argv[i], NULL);
-      }
-    }
-    else if (0 == strcmp(argv[i], "-antiidle") || 0 == ncsstrcmp(argv[i], "ANTIIDLE"))
-    {
-      i++;
-      if (i < argc)
-      {
-        antiidle = atoi(argv[i]);
-      }
-    }
-    else if (0 == strcmp(argv[i], "-room") || 0 == ncsstrcmp(argv[i], "ROOM"))
-    {
-      i++;
-      if (i < argc)
-      {
-        room = argv[i];
-      }                              
-    }
-    else if (0 == strcmp(argv[i], "-log") || 0 == ncsstrcmp(argv[i], "LOG"))
-    {
-      i++;
-      if (i < argc)
-      {
-        openlog(argv[i]);
-      }
-    }
-    else if (0 == strcmp(argv[i], "-oldlog") || 0 == ncsstrcmp(argv[i], "OLDLOG"))
-    {
-      i++;
-      if (i < argc)
-      {
-        openoldlog(argv[i]);
-      }
-    }
-    else if (0 == strcmp(argv[i], "-nick") || 0 == ncsstrcmp(argv[i], "NICK"))
-    {
-      i++;
-      if (i < argc)
-      {
-        nick = argv[i];
-      }                              
-    }
-    else
-    {
-      printf("%s - unknown option\n", argv[i]);
-    }
+    case LOG:
+      openlog(options.logFilename.c_str());
+      break;
+
+    case OLDLOG:
+      openoldlog(options.logFilename.c_str());
+      break;
+
+    default:
+      ;
   }
 
-  if (!latin2)
+  if (!options.latin2)
   {
     setlocale(LC_ALL, "");
   }
 
-  if (run)
+  try
   {
-    interface = new amixInterface;
+    interface = new amixInterface(options.oldSchool);
 
-    interface->nicklist_w = nicklistwidth;
-    interface->useattr = useattr;
-    interface->latin2 = latin2;
+    interface->nicklist_w = options.nickListWidth;
+    interface->useattr = options.useAttr;
+    interface->latin2 = options.latin2;
     interface->resize();
 
+    interface->nl();
     interface->window_attron(COLOR_PAIR(7) | A_BOLD);
     interface->put(" " VER " ");
     interface->window_attroff(COLOR_PAIR(7) | A_BOLD);
@@ -232,18 +95,18 @@ int main(int argc, char *argv[])
       case 0:
         interface->put(" Cieszmy się, że mamy harcerki - to dzięki nim istnieje AmiX.");
         break;
+
       case 1:
         interface->put(" Wyłącz komputer i wyjdź z domu.");
         interface->nl();
         interface->put(" Może pod twoim blokiem nawalają się magowie.");
         break;
+
       case 2:
         interface->put("1f j00 (4n 1234d 7|-|15, j00 n33d 70 937 |41d");
         break;
     }
     interface->nl();
-    interface->nl();
-
     interface->print();
     interface->update();
 
@@ -253,8 +116,8 @@ int main(int argc, char *argv[])
     }
     else
     {
-      interface->put(" Sprawdzanie uaktualnien pominiete.");
       interface->nl();
+      interface->put(" Sprawdzanie uaktualnien pominiete.");
     }
     interface->print();
     interface->update();
@@ -271,270 +134,262 @@ int main(int argc, char *argv[])
     init_pair(COLOR_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
     init_pair(COLOR_CYAN, COLOR_CYAN, COLOR_BLACK);
 
-    interface->put(" resolving...");
-    interface->nl();
-
-    interface->print();
-    interface->update();
-   
-    /*resolvuje adres*/
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = PF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    if (0 == getaddrinfo(host.c_str(), NULL, &hints, &res))
+    boost::asio::io_service io_service;
+    connection = new PolchatConnection(options.host, options.port, options.period);
+    while (run || connected)
     {
-      while (run || connected)
+      switch (connection->getState())
       {
-        if (!connected)
-        {
-          sfd = -1;
-          for (tres = res; tres != NULL && connected == 0; tres = tres->ai_next)
+        case PolchatConnection::DISCONNECTED:
+          connected = 0;
+          if (run)
           {
-            serv_addr = (struct sockaddr_in *) tres->ai_addr;
-            serv_addr->sin_port = htons(port);
-            if ((sfd = socket(tres->ai_family, tres->ai_socktype, tres->ai_protocol)) != -1)
-            {
-              interface->put(" connecting...");
-              interface->nl();
-              interface->print();
-              interface->update();
-
-              if ((connect(sfd, tres->ai_addr, tres->ai_addrlen)) < 0)
-              {
-                interface->put(" Connection failed...");
-                interface->nl();
-                interface->print();
-                interface->update();
-                close(sfd);
-                sfd = -1;
-                continue;
-              }
-            }
-            else
-            {
-              interface->put(" Unable to create socket...");
-              interface->nl();
-              interface->print();
-              interface->update();
-            }
-          }
-      
-          if (sfd >= 0)/*jesli sie polaczylismy*/
-          {
-            connected = -1;
-            interface->put(" connected");
-            interface->nl();
-            interface->print();
-            interface->update();
-
-            if (tosend != NULL)
-            {
-              delete tosend;
-              tosend = NULL;
-            }
-
+            connection->connect();
             //TODO: rethink reconnect
             //if (roomname != NULL)
             //{
             //  ppart = new part(nick, pass, roomname, "", reffrom);
             //}
             //else
+            //{
+            ppart = new part(nick, pass, options.room, "", options.refFrom);
+            //}
+            // is this possible to send on disconnected?
+            connection->send(ppart);
+          }
+          break;
+
+        case PolchatConnection::CONNECTED:
+          connected = -1;
+          if (NULL != (ppart = connection->getOnePart()))
+          {
+            processpart(ppart);
+            delete ppart;
+            ppart = NULL;
+            interface->print();
+          }
+
+          if (last == 0)
+          {
+            last = time(NULL);
+          }
+
+          if (options.antiidle > 0)
+          {
+            if (connected && (options.antiidle < difftime(time(NULL), last)))
             {
-              ppart = new part(nick, pass, room, "", reffrom);
-            }
-            putmsg(ppart);
-          }
-          else
-          {
-            interface->put("Unable to connect host: ");
-            interface->put(host.c_str());
-            interface->put(" ...");
-            interface->nl();
-          }                               
-        }
-        else /* if (connected)*/
-        {
-          /*czy jest cos na gniezdzie?*/
-          pol.fd = sfd;
-          pol.events = POLLIN;
-          pol.revents = 0;
-          poll(&pol, 1, 50);
-          if (((pol.revents) & POLLIN) == POLLIN)
-          {
-            if (NULL != (ppart = readpart(sfd)))
-            {
-              processpart(ppart, sfd);
-              delete ppart;
-              ppart = NULL;
-              interface->print();
-            }
-          }
-
-          /*czy mamy cos do wyslania?*/
-          sendnext(sfd);
-
-          interface->update();
-        }
-          
-        /*czy jest cos na wejsciu?*/
-        if (interface->console_input())
-        {
-          std::string inputstring = interface->get_input();
-          if (0 == ncsstrncmp(inputstring, "/quit ", 6) || 0 == ncsstrncmp(inputstring, "/quit", 6))
-          {
-            ppart = new part(inputstring);
-            putmsg(ppart);
-          }
-          else if (0 == ncsstrncmp(inputstring, "/exit ", 6) || 0 == ncsstrncmp(inputstring, "/exit", 6))
-          {
-            run = 0;
-            inputstring.replace(0, 5, "/quit");
-            ppart = new part(inputstring);
-            putmsg(ppart);
-          }
-          else if (0 == ncsstrncmp(inputstring, "/info ", 6))
-          {
-            size_t first_nonspace = inputstring.find_first_not_of(' ', 5);
-            size_t last_nonspace = inputstring.find_last_not_of(' ');
-
-            if (first_nonspace != std::string::npos)
-            {
-              std::string infonick = inputstring.substr(first_nonspace, last_nonspace + 1 - first_nonspace);
-
-              std::list<nicknode>::iterator it_end = chatrooms.currentroom().nicklist.end();
-              for (std::list<nicknode>::iterator it = chatrooms.currentroom().nicklist.begin();
-                   it != it_end;
-                   it++)
+              std::string noop = "/noop";
+              part * tmp;
+              if (NULL != (tmp = new part(noop)))
               {
-                if ((*it).nick == infonick)
-                {
-                  chatrooms.currentroom().msg((*it).nick + " uses " + (*it).client, true);
-                  break;
-                }
+                connection->send(tmp);
+                last = time(NULL);
+                antiidle_sent = true;
               }
             }
-            ppart = new part(inputstring);
-            putmsg(ppart);
           }
-          else if (0 == ncsstrncmp(inputstring, "/next ", 6) || 0 == ncsstrncmp(inputstring, "/next", 6))
+          break;
+
+        case PolchatConnection::CONNECTING:
+        default:
+          break;
+      }
+
+      std::string msg = connection->getReport();
+      while (msg != "")
+      {
+        interface->nl();
+        interface->put(msg.c_str());
+        interface->print();
+        interface->update();
+        fprintf(stderr, "%s\n", msg.c_str());
+        msg = connection->getReport();
+      }
+
+      interface->update();
+
+      /*czy jest cos na wejsciu?*/
+      if (interface->console_input())
+      {
+        std::string inputstring = interface->get_input();
+        if (0 == ncsstrncmp(inputstring, "/quit ", 6) || 0 == ncsstrncmp(inputstring, "/quit", 6))
+        {
+          ppart = new part(inputstring);
+          connection->sendDelayed(ppart);
+        }
+        else if (0 == ncsstrncmp(inputstring, "/exit ", 6) || 0 == ncsstrncmp(inputstring, "/exit", 6))
+        {
+          run = 0;
+          inputstring.replace(0, 5, "/quit");
+          ppart = new part(inputstring);
+          connection->sendDelayed(ppart);
+        }
+        else if (0 == ncsstrncmp(inputstring, "/busy ", 6) || 0 == ncsstrncmp(inputstring, "/busy", 6))
+        {
+          nickStatus[1] = 0x0001;
+          ppart = new part(2, 0, nickStatus);
+          connection->send(ppart);
+        }
+        else if (0 == ncsstrncmp(inputstring, "/free ", 6) || 0 == ncsstrncmp(inputstring, "/free", 6))
+        {
+          nickStatus[1] = 0x0000;
+          ppart = new part(2, 0, nickStatus);
+          connection->send(ppart);
+        }
+        else if (0 == ncsstrncmp(inputstring, "/status ", 8))
+        {
+          nickStatus[1] = atoi(&inputstring[8]);
+          ppart = new part(2, 0, nickStatus);
+          connection->send(ppart);
+        }
+        else if (0 == ncsstrncmp(inputstring, "/info ", 6))
+        {
+          size_t first_nonspace = inputstring.find_first_not_of(' ', 5);
+          size_t last_nonspace = inputstring.find_last_not_of(' ');
+
+          if (first_nonspace != std::string::npos)
           {
-            chatrooms.next();
-            interface->print();
+            std::string infonick = inputstring.substr(first_nonspace, last_nonspace + 1 - first_nonspace);
+
+            std::list<nicknode>::iterator it_end = chatrooms.currentroom().nicklist.end();
+            for (std::list<nicknode>::iterator it = chatrooms.currentroom().nicklist.begin();
+                 it != it_end;
+                 it++)
+            {
+              if ((*it).nick == infonick)
+              {
+                chatrooms.currentroom().msg((*it).nick + " uses " + (*it).client, true);
+                break;
+              }
+            }
           }
-          else if (0 == ncsstrncmp(inputstring, "/prev ", 6) || 0 == ncsstrncmp(inputstring, "/prev", 6))
+          ppart = new part(inputstring);
+          connection->sendDelayed(ppart);
+        }
+        else if (0 == ncsstrncmp(inputstring, "/next ", 6) || 0 == ncsstrncmp(inputstring, "/next", 6))
+        {
+          chatrooms.next();
+          interface->print();
+        }
+        else if (0 == ncsstrncmp(inputstring, "/prev ", 6) || 0 == ncsstrncmp(inputstring, "/prev", 6))
+        {
+          chatrooms.prev();
+          interface->print();
+        }
+        else if (0 == ncsstrncmp(inputstring, "/debugon ", 9) || 0 == ncsstrncmp(inputstring, "/debugon", 9))
+        {
+          debug = -1;
+          interface->nl();
+          interface->put("DEBUG MODE ON");
+          interface->print();
+        }
+        else if (0 == ncsstrncmp(inputstring, "/debugoff ", 10) || 0 == ncsstrncmp(inputstring, "/debugoff", 10))
+        {
+          debug = 0;
+          interface->nl();
+          interface->put("DEBUG MODE OFF");
+          interface->print();
+        }
+        else if (0 == ncsstrncmp(inputstring, "/verboseon ", 11) || 0 == ncsstrncmp(inputstring, "/verboseon", 11))
+        {
+          verbose = -1;
+          interface->nl();
+          interface->put("VERBOSE MODE ON");
+          interface->print();
+        }
+        else if (0 == ncsstrncmp(inputstring, "/verboseoff ", 12) || 0 == ncsstrncmp(inputstring, "/verboseoff", 12))
+        {
+          verbose = 0;
+          interface->nl();
+          interface->put("VERBOSE MODE OFF");
+          interface->print();
+        }
+        else if (0 == ncsstrncmp(inputstring, "/coredumpon ", 12) || 0 == ncsstrncmp(inputstring, "/coredumpon", 12))
+        {
+          verbose = coredump = -1;
+          interface->nl();
+          interface->put("COREDUMP MODE ON");
+          interface->print();
+        }
+        else if (0 == ncsstrncmp(inputstring, "/coredumpoff ", 13) || 0 == ncsstrncmp(inputstring, "/coredumpoff", 13))
+        {
+          verbose = coredump = 0;
+          interface->nl();
+          interface->put("COREDUMP MODE OFF");
+          interface->print();
+        }
+        else if (0 == ncsstrncmp(inputstring, "/ver ", 5) || 0 == ncsstrncmp(inputstring, "/ver", 5))
+        {
+          //TODO: rethink it 
+          chatrooms.currentroom().msg("<B>" VER "</B>", true);
+          interface->print();
+        }
+        else if (0 == ncsstrncmp(inputstring, "/help ", 6) || 0 == ncsstrncmp(inputstring, "/help", 6))
+        {
+          //TODO: retink it
+          chatrooms.currentroom().msg("<B>/borg</B> - wysyla tekst: &quot;"
+                        "I'm cybernetic organism - living tissue over metal endoskeleton.&quot;",
+                        true);
+          chatrooms.currentroom().msg("<B>/exit</B> - komenda analogiczna do polchatowego /quit, ale "
+                        "dodatkowo konczy prace programu",
+                        true);
+          chatrooms.currentroom().msg("<B>/help</B> - wyswietla tekst pomocy",
+          true);
+          chatrooms.currentroom().msg("<B>/lama</B> - wysyla tekst: &quot;" 
+                        "thankfully alert gauchos were able to save the llama "
+                        "before it was swept into the blades of the turbine&quot;",
+                        true);
+          chatrooms.currentroom().msg("<B>/ver</B> - podaje wersje programu", true); 
+          interface->print();
+        }
+        else if ((0 == ncsstrncmp(inputstring, "/part ", 6) || 0 == ncsstrncmp(inputstring, "/part", 6)) && !(*(chatrooms.current)).room)
+        {
+          chatrooms.part((*(chatrooms.current)).name, true);
+          interface->update_all();
+        }         
+        else
+        {
+          if (0 == ncsstrncmp(inputstring, "/lama ", 6) || 0 == ncsstrncmp(inputstring, "/lama", 6))
           {
-            chatrooms.prev();
-            interface->print();
+            inputstring = "thankfully alert gauchos were able to save the llama"
+                          "before it was swept into the blades of the turbine";
           }
-          else if (0 == ncsstrncmp(inputstring, "/debugon ", 9) || 0 == ncsstrncmp(inputstring, "/debugon", 9))
+          else if (0 == ncsstrncmp(inputstring, "/borg ", 6) || 0 == ncsstrncmp(inputstring, "/borg", 6))
           {
-            debug = -1;
-            interface->put("DEBUG MODE ON");
-            interface->nl();
-            interface->print();
+            inputstring = "I'm cybernetic organism - living tissue over metal endoskeleton.";
           }
-          else if (0 == ncsstrncmp(inputstring, "/debugoff ", 10) || 0 == ncsstrncmp(inputstring, "/debugoff", 10))
+          else if (0 == ncsstrncmp(inputstring, "/jedi ", 6) || 0 == ncsstrncmp(inputstring, "/jedi", 6))
           {
-            debug = 0;
-            interface->put("DEBUG MODE OFF");
-            interface->nl();
-            interface->print();
-          }
-          else if (0 == ncsstrncmp(inputstring, "/verboseon ", 11) || 0 == ncsstrncmp(inputstring, "/verboseon", 11))
-          {
-            verbose = -1;
-            interface->put("VERBOSE MODE ON");
-            interface->nl();
-            interface->print();
-          }
-          else if (0 == ncsstrncmp(inputstring, "/verboseoff ", 12) || 0 == ncsstrncmp(inputstring, "/verboseoff", 12))
-          {
-            verbose = 0;
-            interface->put("VERBOSE MODE OFF");
-            interface->nl();
-            interface->print();
-          }
-          else if (0 == ncsstrncmp(inputstring, "/ver ", 5) || 0 == ncsstrncmp(inputstring, "/ver", 5))
-          {
-            //TODO: rethink it 
-            chatrooms.currentroom().msg("<B>" VER "</B>", true);
-            interface->print();
-          }
-          else if (0 == ncsstrncmp(inputstring, "/help ", 6) || 0 == ncsstrncmp(inputstring, "/help", 6))
-          {
-            //TODO: retink it
-            chatrooms.currentroom().msg("<B>/borg</B> - wysyla tekst: &quot;"
-                          "I'm cybernetic organism - living tissue over metal endoskeleton.&quot;",
-                          true);
-            chatrooms.currentroom().msg("<B>/exit</B> - komenda analogiczna do polchatowego /quit, ale "
-                          "dodatkowo konczy prace programu",
-                          true);
-            chatrooms.currentroom().msg("<B>/help</B> - wyswietla tekst pomocy",
-            true);
-            chatrooms.currentroom().msg("<B>/lama</B> - wysyla tekst: &quot;" 
-                          "thankfully alert gauchos were able to save the llama "
-                          "before it was swept into the blades of the turbine&quot;",
-                          true);
-            chatrooms.currentroom().msg("<B>/ver</B> - podaje wersje programu", true); 
-            interface->print();
-          }
-          else if ((0 == ncsstrncmp(inputstring, "/part ", 6) || 0 == ncsstrncmp(inputstring, "/part", 6)) && !(*(chatrooms.current)).room)
-          {
-            chatrooms.part((*(chatrooms.current)).name, true);
-            interface->update_all();
+            inputstring = "May the Force be with you, my young padawan...";
           }         
+
+          
+          if ((*(chatrooms.current)).room)
+          {
+            ppart = new part(inputstring, chatrooms.currentroom().name);
+          }
           else
           {
-            if (0 == ncsstrncmp(inputstring, "/lama ", 6) || 0 == ncsstrncmp(inputstring, "/lama", 6))
-            {
-              inputstring = "thankfully alert gauchos were able to save the llama"
-                            "before it was swept into the blades of the turbine";
-            }
-            else if (0 == ncsstrncmp(inputstring, "/borg ", 6) || 0 == ncsstrncmp(inputstring, "/borg", 6))
-            {
-              inputstring = "I'm cybernetic organism - living tissue over metal endoskeleton.";
-            }
-            else if (0 == ncsstrncmp(inputstring, "/jedi ", 6) || 0 == ncsstrncmp(inputstring, "/jedi", 6))
-            {
-              inputstring = "May the Force be with you, my young padawan...";
-            }         
-
-            
-            if ((*(chatrooms.current)).room)
-            {
-              ppart = new part(inputstring, chatrooms.currentroom().name);
-            }
-            else
-            {
-              inputstring = "/msg " + chatrooms.currentroom().name + " " + inputstring;
-              ppart = new part(inputstring);
-            }
-            putmsg(ppart);
+            inputstring = "/msg " + chatrooms.currentroom().name + " " + inputstring;
+            ppart = new part(inputstring);
           }
+          connection->sendDelayed(ppart);
         }
       }
-        
-      if (tosend != NULL)
-      {
-        delete tosend;
-      }
 
-      if (connected)
-      {
-        connected = 0;
-        close(sfd);
-      }
-        
+      //if (!run)
+      //{
+      //  NOT A BUG BUT A FEATURE - it is not pleasant to escape without goodbye.
+      //  connection->close();
+      //}
     }
-    else
-    {
-      interface->put("Resolver problem...");
-      interface->nl();
-      interface->print();
-      interface->update();
-    } 
-    
+        
+    delete connection;
     delete interface;
+  }
+  catch (std::exception& e)
+  {
+    fprintf(stderr, "Exception: %s\n", e.what());
   }
  
   closelog(); 
