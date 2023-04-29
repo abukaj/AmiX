@@ -3,7 +3,7 @@
 CC = g++
 LD = g++
 CFLAGS = -g -Wall -pedantic
-LDFLAGS = -lm -lncursesw -lboost_system -lboost_thread
+LDFLAGS = -lm -lncursesw -lboost_system -lboost_thread -lpthread
 RM = rm -f
 OBJS = client.o polchat.o temp.o polchat1.o polchat2.o interface.o version.o \
        image.o PolchatConnection.o
