@@ -1149,3 +1149,22 @@ std::string amixInterface::input_password()
   return string;
 }
 
+std::string amixInterface::input(std::string msg, std::string init="")
+{
+  this->put(msg.c_str());
+  this->nl();
+  wnoutrefresh(this->chatwindow);
+
+  this->buffer = init;
+  this->ptr = this->buffer.length();
+  this->consptr = utf8strlen(this->buffer);
+  this->console_update();
+
+  doupdate();
+  while (!this->console_input())
+  {
+    this->update();
+  }
+  return interface->get_input();
+}
+

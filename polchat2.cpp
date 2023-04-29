@@ -183,7 +183,9 @@ void part::dump()
   interface->nl();
   for (int i = 0; i < this->nstrings; i++)
   {
+    interface->putchar('"');
     interface->put(this->strings[i].c_str());
+    interface->putchar('"');
     interface->nl();
   }
   //interface->nl();
@@ -268,8 +270,11 @@ void processpart(part *ppart, int sfd)
             }
             if (!verbose)
             {
-              chatrooms.roommsg(ppart->strings[1], ppart->strings[0]);
-              printlog("-msg-", ppart->strings[0], ppart->strings[1]);
+              if (!antiidle_sent || ppart->strings[0] != POLCHAT_NOOP_REPLY_MSG)
+              {
+                chatrooms.roommsg(ppart->strings[1], ppart->strings[0]);
+                printlog("-msg-", ppart->strings[0], ppart->strings[1]);
+              }
             }
           }
           else
@@ -650,11 +655,19 @@ void processpart(part *ppart, int sfd)
 
               printlog("---", ppart->strings[0], dummy);
             }
+            else
+            {
+              ppart->dump();
+            }
             connected = 0;
             close(sfd);
-            if (0 == strncmp("nieprawidłowe hasło i/lub identyfikator użytkownika", ppart->strings[0].c_str(), 9))
+            if (POLCHAT_BAD_PASSWORD_MSG == ppart->strings[0])
             {
               pass = interface->input_password();
+            }
+            else if (POLCHAT_NICK_BUSY_MSG == ppart->strings[0])
+            {
+              nick = interface->input(" Nick:", nick);;
             }
           }
           else
@@ -844,6 +857,7 @@ void sendnext(int sfd)
           sendpol(tmp, sfd);
           delete tmp;
           last = time(NULL);
+          antiidle_sent = true;
         }
       }
     }

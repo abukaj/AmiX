@@ -28,7 +28,6 @@ int main(int argc, char *argv[])
   int i;
   std::string host = "s1.polchat.pl";
   std::string room = "AmiX";
-  std::string nick = "AmiX_user";
   std::string reffrom = "http://www.polchat.pl/chat/room.phtml/?room=AmiX";
 
   int port = 14003;

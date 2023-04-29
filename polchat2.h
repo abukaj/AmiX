@@ -6,6 +6,10 @@
 
 #include "polchat1.h"
 
+#define POLCHAT_BAD_PASSWORD_MSG "nieprawidłowe hasło lub identyfikator użytkownika"
+#define POLCHAT_NOOP_REPLY_MSG "<font color=red>** nieznana komenda <b>/noop</b></font>"
+#define POLCHAT_NICK_BUSY_MSG "wybrany identyfikator jest aktualnie w użyciu"
+
 class part
 {
   public:

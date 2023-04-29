@@ -96,6 +96,7 @@ class amixInterface
     std::string get_input();
     void printnicklist();
     std::string input_password();
+    std::string input(std::string, std::string);
     void console_update();
 };
 
