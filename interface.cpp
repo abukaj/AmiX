@@ -923,6 +923,9 @@ bool amixInterface::console_input()
         this->window_redraw();
         this->printnicklist();
         break;
+      case KEY_NPAGE:
+      case KEY_PPAGE:
+        break;
       default:
         if (this->latin2)
         {
