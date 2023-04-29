@@ -6,6 +6,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#define NCURSES_NOMACROS
 #include <ncursesw/ncurses.h>
 
 #include "polchat.h"

@@ -6,6 +6,7 @@
 
 #include <algorithm>
 
+#define NCURSES_NOMACROS
 #include <ncursesw/ncurses.h>
 
 #include "interface.h"

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#define NCURSES_NOMACROS
 #include <ncursesw/ncurses.h>
 
 #include "temp.h"

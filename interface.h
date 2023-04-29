@@ -7,6 +7,7 @@
 #include <stack>
 #include <list>
 
+#define NCURSES_NOMACROS
 #include <ncursesw/ncurses.h>
 
 #include "polchat.h"
